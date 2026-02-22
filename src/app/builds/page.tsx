@@ -7,9 +7,9 @@ import {
 import { parseChampionList } from "@/lib/data/champions";
 import { parseItems } from "@/lib/data/items";
 import { parseRunes } from "@/lib/data/runes";
-import { SimulatorClient } from "./simulator-client";
+import { BuildsClient } from "./builds-client";
 
-export default async function Home() {
+export default async function BuildsPage() {
   let version = "15.3.1";
   let champions: ReturnType<typeof parseChampionList> = [];
   let items: ReturnType<typeof parseItems> = [];
@@ -32,7 +32,7 @@ export default async function Home() {
   }
 
   return (
-    <SimulatorClient
+    <BuildsClient
       version={version}
       champions={champions}
       items={items}
