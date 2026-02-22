@@ -1,0 +1,71 @@
+import type { SummonerSpell } from '@/types';
+
+export const SUMMONER_SPELLS: SummonerSpell[] = [
+  {
+    id: 'SummonerFlash',
+    name: 'Flash',
+    nameJa: 'フラッシュ',
+    image: 'SummonerFlash.png',
+    cooldown: 300,
+  },
+  {
+    id: 'SummonerIgnite',
+    name: 'Ignite',
+    nameJa: 'イグナイト',
+    image: 'SummonerDot.png',
+    cooldown: 180,
+    damage: (level: number) => 50 + 20 * level,
+    damageType: 'true',
+  },
+  {
+    id: 'SummonerSmite',
+    name: 'Smite',
+    nameJa: 'スマイト',
+    image: 'SummonerSmite.png',
+    cooldown: 15,
+    damage: (level: number) => 20 + Math.floor((156 - 20) * (level - 1) / 17),
+    damageType: 'true',
+  },
+  {
+    id: 'SummonerTeleport',
+    name: 'Teleport',
+    nameJa: 'テレポート',
+    image: 'SummonerTeleport.png',
+    cooldown: 360,
+  },
+  {
+    id: 'SummonerGhost',
+    name: 'Ghost',
+    nameJa: 'ゴースト',
+    image: 'SummonerHaste.png',
+    cooldown: 210,
+  },
+  {
+    id: 'SummonerHeal',
+    name: 'Heal',
+    nameJa: 'ヒール',
+    image: 'SummonerHeal.png',
+    cooldown: 240,
+  },
+  {
+    id: 'SummonerBarrier',
+    name: 'Barrier',
+    nameJa: 'バリア',
+    image: 'SummonerBarrier.png',
+    cooldown: 180,
+  },
+  {
+    id: 'SummonerExhaust',
+    name: 'Exhaust',
+    nameJa: 'イグゾースト',
+    image: 'SummonerExhaust.png',
+    cooldown: 210,
+  },
+  {
+    id: 'SummonerCleanse',
+    name: 'Cleanse',
+    nameJa: 'クレンズ',
+    image: 'SummonerBoost.png',
+    cooldown: 210,
+  },
+];
