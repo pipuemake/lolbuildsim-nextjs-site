@@ -1,4 +1,3 @@
-import Script from "next/script";
 import type { Metadata } from "next";
 import {
   Geist_Mono,
@@ -59,12 +58,7 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9413051018199631"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        <meta name="google-adsense-account" content="ca-pub-9413051018199631" />
       </head>
       <body
         className={`${playfair.variable} ${merriweather.variable} ${spaceGrotesk.variable} ${dmSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen font-[family-name:var(--font-dm-sans)]`}
