@@ -18,7 +18,7 @@ const ITEM_CATEGORIES = [
   { key: "hp", ja: "HP", en: "HP", stat: "hp" },
   { key: "armor", ja: "物防", en: "Armor", stat: "armor" },
   { key: "mr", ja: "魔防", en: "MR", stat: "mr" },
-  { key: "as", ja: "攻速", en: "AS", stat: "attackSpeed" },
+  { key: "as", ja: "AS", en: "AS", stat: "attackSpeed" },
   { key: "crit", ja: "クリ", en: "Crit", stat: "critChance" },
   { key: "ls", ja: "LS", en: "LS", stat: "lifeSteal" },
   { key: "ah", ja: "AH", en: "AH", stat: "abilityHaste" },
@@ -27,13 +27,6 @@ const ITEM_CATEGORIES = [
   { key: "magicPen", ja: "魔貫", en: "MPen", stat: "flatMagicPen" },
   { key: "ms", ja: "MS", en: "MS", stat: "moveSpeed" },
   { key: "boots", ja: "ブーツ", en: "Boots", stat: null, tag: "Boots" },
-  {
-    key: "trinket",
-    ja: "トリンケット",
-    en: "Trinket",
-    stat: null,
-    tag: "Trinket",
-  },
 ] as const;
 
 /** Parse DDragon item description HTML into structured parts */
@@ -166,13 +159,8 @@ export function ItemShop({
   const [category, setCategory] = useState("all");
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
 
-  // Trinket IDs that should always show despite gold=0
-  const TRINKET_IDS = new Set(["3330", "3340", "3363", "3364"]);
-
   const shopItems = useMemo(() => {
     return items.filter((item) => {
-      // Always show trinkets
-      if (TRINKET_IDS.has(item.id)) return true;
       // Exclude 0-gold items (internal items, etc.)
       if (item.gold.total === 0) return false;
       return true;

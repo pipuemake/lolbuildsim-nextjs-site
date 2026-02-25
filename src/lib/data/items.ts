@@ -111,7 +111,7 @@ function parseDescriptionStats(description: string): Partial<ItemStats> {
 const SUMMONERS_RIFT_MAP_ID = '11';
 
 // Items that should be included despite failing normal filters
-// (transformed items, support quest upgrades, trinkets, wardstones, rune items)
+// (transformed items, support quest upgrades, wardstones, rune items)
 const WHITELISTED_ITEM_IDS = new Set([
   // Transformed items (inStore=false, not purchasable but have real stats)
   '3040',   // セラフ エンブレイス (Seraph's Embrace)
@@ -123,16 +123,29 @@ const WHITELISTED_ITEM_IDS = new Set([
   // Support quest upgrades
   '3866',   // ルーニック コンパス (Runic Compass)
   '3867',   // 世界の恵み (Bounty of Worlds)
-  // Trinkets (gold=0 but standard items)
-  '3330',   // 身代わり人形 (Scarecrow Effigy)
-  '3340',   // ステルス ワード (Stealth Ward)
-  '3363',   // ファーサイト オルタレーション (Farsight Alteration)
-  '3364',   // オラクル レンズ (Oracle Lens)
   // Wardstones (marked not on SR in DDragon but used in game)
   '4638',   // ウォッチフル ワードストーン (Watchful Wardstone)
   '4643',   // ビジラント ワードストーン (Vigilant Wardstone)
   // Rune-generated boots
   '2422',   // ちょっとだけ魔法がかった靴 (Slightly Magical Footwear)
+]);
+
+// Items to exclude by Japanese name (removed from the shop entirely)
+const BLACKLISTED_ITEM_NAMES = new Set([
+  '肉喰らう者',
+  '冷酷な一撃',
+  'ギャンブラーの剣',
+  'シャッタードクイーンクラウン',
+  '花咲く夜明けの剣',
+  'ガーゴイル ストーンプレート',
+  'ゼファー',
+  'ベイガーの超越のタリスマン',
+  '天帝の剣',
+  '星空のマント',
+  'モルテン ストーンシールド',
+  '不死身の大王の王冠',
+  'アトマの報い',
+  'ガーディアン ハンマー',
 ]);
 
 export function parseItems(data: DDragonItemData): Item[] {
@@ -155,6 +168,16 @@ export function parseItems(data: DDragonItemData): Item[] {
       if (raw.maps && !raw.maps[SUMMONERS_RIFT_MAP_ID]) continue;
     }
 
+    // Exclude trinket items (tags contain "Trinket")
+    if (raw.tags.includes('Trinket')) continue;
+
+    // Exclude blacklisted items by name (normalize spaces for comparison)
+    const normalizedName = raw.name.replace(/\s+/g, '');
+    const isBlacklisted = [...BLACKLISTED_ITEM_NAMES].some(
+      (bl) => bl.replace(/\s+/g, '') === normalizedName,
+    );
+    if (isBlacklisted) continue;
+
     const baseStats = mapDDragonStats(raw.stats);
     const descStats = parseDescriptionStats(raw.description);
 
@@ -164,6 +187,15 @@ export function parseItems(data: DDragonItemData): Item[] {
       if (value !== undefined && value !== 0) {
         (mergedStats as Record<string, number>)[key] = value as number;
       }
+    }
+
+    // Ensure Gunmetal Boots are classified as boots
+    let tags = raw.tags;
+    if (
+      (raw.name.includes('ガンメタル') || raw.name.toLowerCase().includes('gunmetal')) &&
+      !tags.includes('Boots')
+    ) {
+      tags = [...tags, 'Boots'];
     }
 
     items.push({
@@ -180,7 +212,7 @@ export function parseItems(data: DDragonItemData): Item[] {
       },
       from: raw.from ?? [],
       into: raw.into ?? [],
-      tags: raw.tags,
+      tags,
       image: raw.image.full,
       depth: raw.depth,
     });

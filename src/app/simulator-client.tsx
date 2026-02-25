@@ -12,6 +12,7 @@ import Link from "next/link";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
 import { LocaleProvider, useLocale } from "@/lib/i18n";
+import { SiteFooter } from "@/components/site-footer";
 import { ChampionSelect } from "@/components/champion-select";
 import { LevelSlider } from "@/components/level-slider";
 import { ItemShop } from "@/components/item-shop";
@@ -172,6 +173,7 @@ const DEFAULT_COMPUTED_STATS: ComputedStats = {
   moveSpeed: 0,
   attackRange: 0,
   abilityHaste: 0,
+  ultimateHaste: 0,
   lethality: 0,
   flatMagicPen: 0,
   percentMagicPen: 0,
@@ -1669,6 +1671,7 @@ function SimulatorInner({
     }
     return {
       abilityHaste: allyStats.abilityHaste,
+      ultimateHaste: allyStats.ultimateHaste ?? 0,
       cooldownReduction: 1 - 100 / (100 + allyStats.abilityHaste),
       skillCooldowns: [],
       tenacity: allyStats.tenacity,
@@ -1718,7 +1721,7 @@ function SimulatorInner({
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            LoL Build Sim
+            {locale === "ja" ? "LoLビルドシミュ(β版)" : "LoL Build Sim(Beta)"}
           </h1>
         </div>
       </div>
@@ -2177,14 +2180,27 @@ function SimulatorInner({
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border mt-8">
-        <div className="max-w-[1600px] mx-auto px-4 py-4 text-center text-xs text-muted-foreground/50">
-          LoL Build Simulator is not endorsed by Riot Games and does not reflect
-          the views or opinions of Riot Games. League of Legends and Riot Games
-          are trademarks of Riot Games, Inc.
+      {/* About section */}
+      <section className="max-w-3xl mx-auto px-4 py-10">
+        <h2 className="text-lg font-bold text-[#C89B3C] mb-4 font-[family-name:var(--font-playfair)]">
+          {t("home.aboutTitle")}
+        </h2>
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>{t("home.aboutBody1")}</p>
+          <p>{t("home.aboutBody2")}</p>
+          <ul className="list-disc list-inside space-y-1 pl-2">
+            <li>{t("home.aboutList1")}</li>
+            <li>{t("home.aboutList2")}</li>
+            <li>{t("home.aboutList3")}</li>
+          </ul>
+          <p>{t("home.aboutBody3")}</p>
+          <p>{t("home.aboutBody4")}</p>
+          <p>{t("home.aboutBody5")}</p>
+          <p>{t("home.aboutBody6")}</p>
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </div>
   );
 }

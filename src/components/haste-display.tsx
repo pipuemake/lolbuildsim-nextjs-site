@@ -68,6 +68,16 @@ export function HasteDisplay({ hasteInfo, locale = "ja" }: HasteDisplayProps) {
                 {cdrPct}%
               </span>
             </div>
+            {hasteInfo.ultimateHaste > 0 && (
+              <div className="lol-stat-row px-1">
+                <span className="text-[13px] text-zinc-500">
+                  {isJa ? "アルティメットヘイスト" : "Ultimate Haste"}
+                </span>
+                <span className="text-[13px] font-medium text-purple-400 tabular-nums">
+                  {hasteInfo.ultimateHaste}
+                </span>
+              </div>
+            )}
             {hasteInfo.tenacity > 0 && (
               <>
                 <div className="lol-stat-row px-1">

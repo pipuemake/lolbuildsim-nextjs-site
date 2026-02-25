@@ -80,6 +80,7 @@ const DEFAULT_COMPUTED_STATS: ComputedStats = {
   moveSpeed: 0,
   attackRange: 0,
   abilityHaste: 0,
+  ultimateHaste: 0,
   lethality: 0,
   flatMagicPen: 0,
   percentMagicPen: 0,
@@ -277,7 +278,7 @@ function BuildsInner({
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            LoL Build Sim
+            {locale === "ja" ? "LoLビルドシミュ(β版)" : "LoL Build Sim(Beta)"}
           </h1>
         </div>
       </div>

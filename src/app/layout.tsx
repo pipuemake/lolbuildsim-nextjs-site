@@ -39,11 +39,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LoL ビルドシミュレーター | Build Simulator",
+  title: "LoLビルドシミュ(β版) | LoL Build Sim(Beta)",
   description:
     "League of Legendsのビルドシミュレーター。チャンピオンのステータス、ダメージ計算、DPS、有効HPを日本語で確認できます。",
   openGraph: {
-    title: "LoL ビルドシミュレーター",
+    title: "LoLビルドシミュ(β版)",
     description:
       "League of Legendsのビルドシミュレーター。1v1ダメージ計算、ビルド比較、スキルダメージを日本語で。",
     type: "website",

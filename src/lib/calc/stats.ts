@@ -42,6 +42,7 @@ export function computeBaseStats(
     moveSpeed: s.moveSpeed,
     attackRange: s.attackRange,
     abilityHaste: 0,
+    ultimateHaste: 0,
     lethality: 0,
     flatMagicPen: 0,
     percentMagicPen: 0,
@@ -76,6 +77,7 @@ export function computeItemStats(items: Item[]): Partial<ComputedStats> {
     if (st.attackSpeed) result.attackSpeed = (result.attackSpeed ?? 0) + st.attackSpeed;
     if (st.critChance) result.critChance = (result.critChance ?? 0) + st.critChance;
     if (st.abilityHaste) result.abilityHaste = (result.abilityHaste ?? 0) + st.abilityHaste;
+    if (st.ultimateHaste) result.ultimateHaste = (result.ultimateHaste ?? 0) + st.ultimateHaste;
     if (st.lethality) result.lethality = (result.lethality ?? 0) + st.lethality;
     if (st.flatMagicPen) result.flatMagicPen = (result.flatMagicPen ?? 0) + st.flatMagicPen;
     if (st.percentMagicPen) result.percentMagicPen = (result.percentMagicPen ?? 0) + st.percentMagicPen;
@@ -114,6 +116,7 @@ export function computeRuneStats(
     if (v.attackSpeed) result.attackSpeed = (result.attackSpeed ?? 0) + v.attackSpeed;
     if (v.critChance) result.critChance = (result.critChance ?? 0) + v.critChance;
     if (v.abilityHaste) result.abilityHaste = (result.abilityHaste ?? 0) + v.abilityHaste;
+    if (v.ultimateHaste) result.ultimateHaste = (result.ultimateHaste ?? 0) + v.ultimateHaste;
     if (v.lethality) result.lethality = (result.lethality ?? 0) + v.lethality;
     if (v.flatMagicPen) result.flatMagicPen = (result.flatMagicPen ?? 0) + v.flatMagicPen;
     if (v.percentMagicPen) result.percentMagicPen = (result.percentMagicPen ?? 0) + v.percentMagicPen;
@@ -187,6 +190,7 @@ export function computeStats(
     moveSpeed: sum('moveSpeed') + (bonus.moveSpeed ?? 0),
     attackRange: (base.attackRange ?? champion.stats.attackRange) + (bonus.attackRange ?? 0),
     abilityHaste: sum('abilityHaste') + (bonus.abilityHaste ?? 0),
+    ultimateHaste: sum('ultimateHaste') + (bonus.ultimateHaste ?? 0),
     lethality: sum('lethality') + (bonus.lethality ?? 0),
     flatMagicPen: sum('flatMagicPen') + (bonus.flatMagicPen ?? 0),
     percentMagicPen: sum('percentMagicPen') + (bonus.percentMagicPen ?? 0),
