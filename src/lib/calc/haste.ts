@@ -28,15 +28,20 @@ export function getHasteInfo(
       const rank = skillRanks[skill.key] ?? 1;
       const safeRank = Math.max(1, Math.min(rank, skill.maxRank));
       const baseCD = skill.cooldown[safeRank - 1] ?? 0;
+      // R (ultimate) uses Ultimate Haste; other skills use Ability Haste
+      const haste = skill.key === 'R'
+        ? stats.abilityHaste + (stats.ultimateHaste ?? 0)
+        : stats.abilityHaste;
       return {
         key: skill.key,
         baseCooldown: baseCD,
-        actualCooldown: calcActualCooldown(baseCD, stats.abilityHaste),
+        actualCooldown: calcActualCooldown(baseCD, haste),
       };
     });
 
   return {
     abilityHaste: stats.abilityHaste,
+    ultimateHaste: stats.ultimateHaste ?? 0,
     cooldownReduction,
     skillCooldowns,
     tenacity: stats.tenacity,

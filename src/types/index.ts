@@ -131,6 +131,7 @@ export interface ItemStats {
   lifeSteal?: number;
   omnivamp?: number;
   tenacity?: number;
+  ultimateHaste?: number;
 }
 
 export interface Item {
@@ -233,6 +234,7 @@ export interface BonusStats {
   lifeSteal?: number;
   omnivamp?: number;
   tenacity?: number;
+  ultimateHaste?: number;
   // Special modifiers
   critMultiplier?: number; // e.g. Yasuo/Yone double crit chance
   critDamageModifier?: number; // e.g. -0.175 for Yasuo/Yone reduced crit damage
@@ -273,6 +275,7 @@ export interface ComputedStats {
   moveSpeed: number;
   attackRange: number;
   abilityHaste: number;
+  ultimateHaste: number;
   lethality: number;
   flatMagicPen: number;
   percentMagicPen: number;
@@ -375,6 +378,7 @@ export interface EffectiveHPResult {
 // ===== Haste =====
 export interface HasteInfo {
   abilityHaste: number;
+  ultimateHaste: number;
   cooldownReduction: number; // equivalent CDR %
   skillCooldowns: {
     key: string;
