@@ -91,6 +91,7 @@ export function calcOnHitDamage(
     return {
       itemId: effect.itemId,
       itemName: effect.nameEn,
+      itemNameJa: effect.nameJa,
       damageType: effect.damageType,
       rawDamage,
       effectiveDamage,
@@ -105,7 +106,9 @@ export function calcAutoAttackDamage(
   attacker: ComputedStats,
   target: ComputedStats,
   level: number = 18,
-  onHitEffects?: ItemOnHitEffect[]
+  onHitEffects?: ItemOnHitEffect[],
+  critCount?: number,
+  totalAA?: number,
 ): DamageResult {
   const flatPen = calcLethality(attacker.lethality, level);
   const effectiveAR = calcEffectiveArmor(
@@ -117,9 +120,17 @@ export function calcAutoAttackDamage(
   );
 
   const rawAD = attacker.ad;
-  // Average damage accounting for crit:
-  // avgRaw = AD * (1 + critChance * (critMultiplier - 1))
-  const avgRaw = rawAD * (1 + attacker.critChance * (attacker.critMultiplier - 1));
+  // When critCount is specified, use exact crit calculation per AA
+  let avgRaw: number;
+  if (critCount != null && totalAA != null && totalAA > 0) {
+    const critDmg = critCount * rawAD * attacker.critMultiplier;
+    const normalDmg = (totalAA - critCount) * rawAD;
+    avgRaw = (critDmg + normalDmg) / totalAA;
+  } else {
+    // Average damage accounting for crit:
+    // avgRaw = AD * (1 + critChance * (critMultiplier - 1))
+    avgRaw = rawAD * (1 + attacker.critChance * (attacker.critMultiplier - 1));
+  }
   let physical = calcPhysicalDamage(avgRaw, effectiveAR);
   let magical = 0;
   let trueDamage = 0;
@@ -144,15 +155,6 @@ export function calcAutoAttackDamage(
     total: physical + magical + trueDamage,
     onHitEffects: onHitResults,
   };
-}
-
-export function calcAutoAttackDamageAtLevel(
-  attacker: ComputedStats,
-  target: ComputedStats,
-  level: number,
-  onHitEffects?: ItemOnHitEffect[]
-): DamageResult {
-  return calcAutoAttackDamage(attacker, target, level, onHitEffects);
 }
 
 // ===== Skill damage =====
@@ -222,6 +224,7 @@ export function calcSkillDamage(
       break;
   }
 
+  const missingHpScaling = skill.scalings.find(s => s.stat === 'targetMissingHp');
   return {
     skillKey: skill.key,
     skillName: skill.name,
@@ -230,6 +233,8 @@ export function calcSkillDamage(
     totalRaw,
     totalAfterResist,
     damageType: skill.damageType,
+    hasMissingHpScaling: !!missingHpScaling,
+    missingHpRatio: missingHpScaling?.ratio,
   };
 }
 
@@ -263,6 +268,7 @@ export function calcItemActiveDamage(
   return {
     itemId: effect.itemId,
     itemName: effect.nameEn,
+    itemNameJa: effect.nameJa,
     damageType: effect.damageType,
     rawDamage,
     effectiveDamage,
@@ -324,6 +330,7 @@ export function calcSubCastDamage(
       break;
   }
 
+  const missingHpScaling = subCast.scalings.find(s => s.stat === 'targetMissingHp');
   return {
     skillKey,
     skillName: subCast.nameEn,
@@ -334,7 +341,60 @@ export function calcSubCastDamage(
     totalAfterResist,
     damageType: subCast.damageType,
     subCastId: subCast.id,
+    hasMissingHpScaling: !!missingHpScaling,
+    missingHpRatio: missingHpScaling?.ratio,
   };
+}
+
+// ===== Missing HP recalculation helper =====
+
+/**
+ * Recalculate a skill's damage with an adjusted target HP (for missing HP ordering).
+ * Only the targetMissingHp portion changes; other scalings remain the same.
+ */
+export function recalcMissingHpSkillDamage(
+  original: SkillDamageResult,
+  priorDamage: number,
+  targetMaxHp: number,
+  targetCurrentHp: number,
+  attacker: ComputedStats,
+  target: ComputedStats,
+  attackerLevel: number,
+): number {
+  if (!original.hasMissingHpScaling || !original.missingHpRatio) {
+    return original.totalAfterResist;
+  }
+
+  // Original missing HP used in calculation
+  const originalMissingHp = targetMaxHp - targetCurrentHp;
+  // New missing HP after prior damage
+  const newCurrentHp = Math.max(0, targetCurrentHp - priorDamage);
+  const newMissingHp = targetMaxHp - newCurrentHp;
+  // Additional raw damage from increased missing HP
+  const additionalMissingHp = newMissingHp - originalMissingHp;
+  const additionalRaw = additionalMissingHp * original.missingHpRatio;
+
+  // Apply resistance to the additional raw damage
+  let additionalEffective: number;
+  const flatArmorPen = calcLethality(attacker.lethality, attackerLevel);
+  switch (original.damageType) {
+    case 'physical': {
+      const effectiveAR = calcEffectiveArmor(target.armor, 0, 0, attacker.percentArmorPen, flatArmorPen);
+      additionalEffective = calcPhysicalDamage(additionalRaw, effectiveAR);
+      break;
+    }
+    case 'magic': {
+      const effectiveMR = calcEffectiveMR(target.mr, attacker.flatMagicPen, attacker.percentMagicPen);
+      additionalEffective = calcMagicDamage(additionalRaw, effectiveMR);
+      break;
+    }
+    case 'true':
+    default:
+      additionalEffective = additionalRaw;
+      break;
+  }
+
+  return original.totalAfterResist + additionalEffective;
 }
 
 // ===== Full combo =====

@@ -130,6 +130,12 @@ const WHITELISTED_ITEM_IDS = new Set([
   '2422',   // ちょっとだけ魔法がかった靴 (Slightly Magical Footwear)
 ]);
 
+// Items to exclude by ID (support quest variants that duplicate regular items)
+const BLACKLISTED_ITEM_IDS = new Set([
+  '323034', // コレクター (Collector) — support quest variant, duplicates 3034
+  '667666', // コレクター (Collector) — duplicate of 6676
+]);
+
 // Items to exclude by Japanese name (removed from the shop entirely)
 const BLACKLISTED_ITEM_NAMES = new Set([
   '肉喰らう者',
@@ -152,6 +158,9 @@ export function parseItems(data: DDragonItemData): Item[] {
   const items: Item[] = [];
 
   for (const [id, raw] of Object.entries(data)) {
+    // Exclude blacklisted item IDs
+    if (BLACKLISTED_ITEM_IDS.has(id)) continue;
+
     const isWhitelisted = WHITELISTED_ITEM_IDS.has(id);
 
     if (!isWhitelisted) {

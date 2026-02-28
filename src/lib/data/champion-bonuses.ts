@@ -48,7 +48,10 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
     min: 0,
     max: 255,
     defaultValue: 0,
-    calc: (stacks) => ({ hp: stacks * 80 }),
+    calc: (stacks, level) => {
+      const perStack = level >= 16 ? 160 : level >= 11 ? 120 : 80;
+      return { hp: stacks * perStack };
+    },
   },
   {
     id: 'thresh-passive',
@@ -195,17 +198,30 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
     calc: (stacks) => ({ hp: stacks * 5 }),
   },
   {
-    id: 'conqueror',
+    id: 'conqueror-ad',
     type: 'rune',
-    nameEn: 'Conqueror',
-    nameJa: '征服者',
-    descriptionEn: '+2 AD per stack (0-12), or +3.5 AP per stack',
-    descriptionJa: 'スタック毎に+2 AD (0-12)、またはスタック毎に+3.5 AP',
+    nameEn: 'Conqueror (AD)',
+    nameJa: '征服者 (AD)',
+    descriptionEn: '+2 AD per stack (0-12)',
+    descriptionJa: 'スタック毎に+2 AD (0-12)',
     inputType: 'number',
     min: 0,
     max: 12,
     defaultValue: 0,
     calc: (stacks) => ({ ad: stacks * 2 }),
+  },
+  {
+    id: 'conqueror-ap',
+    type: 'rune',
+    nameEn: 'Conqueror (AP)',
+    nameJa: '征服者 (AP)',
+    descriptionEn: '+3.5 AP per stack (0-12)',
+    descriptionJa: 'スタック毎に+3.5 AP (0-12)',
+    inputType: 'number',
+    min: 0,
+    max: 12,
+    defaultValue: 0,
+    calc: (stacks) => ({ ap: stacks * 3.5 }),
   },
   {
     id: 'dark-harvest',
@@ -221,31 +237,73 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
     calc: (stacks) => ({ ad: stacks * 5 }),
   },
   {
-    id: 'gathering-storm',
+    id: 'gathering-storm-ad',
     type: 'rune',
-    nameEn: 'Gathering Storm',
-    nameJa: '集めた嵐',
-    descriptionEn: '+AD/AP based on game time (10min: +8, 20min: +24, 30min: +48...)',
-    descriptionJa: 'ゲーム時間に応じてAD/AP増加 (10分: +8, 20分: +24, 30分: +48...)',
+    nameEn: 'Gathering Storm (AD)',
+    nameJa: '集めた嵐 (AD)',
+    descriptionEn: '+AD based on game time (10min: +8, 20min: +24, 30min: +48...)',
+    descriptionJa: 'ゲーム時間に応じてAD増加 (10分: +8, 20分: +24, 30分: +48...)',
     inputType: 'number',
     min: 0,
     max: 120,
     defaultValue: 0,
     calc: (minutes) => {
-      // Gathering Storm: every 10 minutes, stacking: 8, 24, 48, 80, 120...
-      // Formula: at N intervals (N = floor(min/10)), bonus = 8 * N*(N+1)/2... simplified
       const intervals = Math.floor(minutes / 10);
       if (intervals <= 0) return {};
-      // Actual values: 8, 24, 48, 80, 120, 168...
-      // Pattern: 8 * (1, 3, 6, 10, 15, 21) = 8 * triangular(N)
-      const triangular = (intervals * (intervals + 1)) / 2;
-      const bonus = 8 * triangular / intervals; // average per interval... no, just use the total
-      // Actually: 10min=8, 20min=24, 30min=48, 40min=80
-      // This is 8*1, 8*3, 8*6, 8*10 = 8 * triangular number
       const total = 8 * (intervals * (intervals + 1)) / 2;
-      // This gives AD for AD champs. User can apply it as either AD or AP.
       return { ad: total };
     },
+  },
+  {
+    id: 'gathering-storm-ap',
+    type: 'rune',
+    nameEn: 'Gathering Storm (AP)',
+    nameJa: '集めた嵐 (AP)',
+    descriptionEn: '+AP based on game time (10min: +8, 20min: +24, 30min: +48...)',
+    descriptionJa: 'ゲーム時間に応じてAP増加 (10分: +8, 20分: +24, 30分: +48...)',
+    inputType: 'number',
+    min: 0,
+    max: 120,
+    defaultValue: 0,
+    calc: (minutes) => {
+      const intervals = Math.floor(minutes / 10);
+      if (intervals <= 0) return {};
+      const total = 8 * (intervals * (intervals + 1)) / 2;
+      return { ap: total };
+    },
+  },
+];
+
+// ===== Item-based bonuses =====
+
+export const ITEM_BONUSES: ChampionBonusDefinition[] = [
+  {
+    id: 'heartsteel-stacks',
+    itemId: '3084',
+    type: 'item',
+    nameEn: 'Heartsteel Stacks',
+    nameJa: '心の鋼 スタック',
+    descriptionEn: 'Bonus HP gained from Colossal Consumption procs',
+    descriptionJa: '巨大な消費の発動で獲得した増加HP',
+    inputType: 'number',
+    min: 0,
+    max: 9999,
+    defaultValue: 0,
+    calc: (hp) => ({ hp }),
+  },
+  {
+    id: 'hubris-stacks',
+    itemId: '6697',
+    type: 'item',
+    nameEn: 'Hubris Stacks',
+    nameJa: 'ヒュブリス スタック',
+    descriptionEn: '+2 AD per takedown stack',
+    descriptionJa: 'テイクダウン毎に+2 AD',
+    inputType: 'number',
+    min: 0,
+    max: 99,
+    defaultValue: 0,
+    calc: (stacks) => ({ ad: stacks * 2 }),
   },
 ];
 
@@ -254,6 +312,12 @@ export function getChampionBonuses(championId: string): ChampionBonusDefinition[
   return CHAMPION_BONUSES.filter(
     (b) => b.championId === championId
   );
+}
+
+/** Get item-based bonuses for equipped items */
+export function getItemBonuses(itemIds: string[]): ChampionBonusDefinition[] {
+  const idSet = new Set(itemIds);
+  return ITEM_BONUSES.filter((b) => b.itemId && idSet.has(b.itemId));
 }
 
 /** Get all rune bonuses */

@@ -188,6 +188,20 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
         },
       ],
     },
+    {
+      skillKey: 'R',
+      subCasts: [
+        {
+          id: 'R1',
+          nameEn: 'Wind Slash',
+          nameJa: 'ウィンドスラッシュ',
+          baseDamage: [100, 150, 200],
+          damageType: 'physical',
+          scalings: [{ stat: 'bonusAd', ratio: 0.6 }],
+          distanceMultiplier: { min: 1.0, max: 3.0, defaultPct: 0, labelEn: 'Target Missing HP%', labelJa: '対象減少HP%' },
+        },
+      ],
+    },
   ],
 
   // ── Nidalee ──
@@ -733,22 +747,23 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     {
       skillKey: 'Q',
       subCasts: [
-        {
-          id: 'Q1',
-          nameEn: 'Comet Spear (tap)',
-          nameJa: 'コメットスピア (短押し)',
-          baseDamage: [70, 100, 130, 160, 190],
-          damageType: 'physical',
-          scalings: [{ stat: 'bonusAd', ratio: 1.15 }],
-        },
-        {
-          id: 'Q2',
-          nameEn: 'Comet Spear (charge)',
-          nameJa: 'コメットスピア (溜め)',
-          baseDamage: [70, 115, 160, 205, 250],
-          damageType: 'physical',
-          scalings: [{ stat: 'bonusAd', ratio: 1.15 }],
-        },
+        { id: 'Q1', nameEn: 'Comet Spear (tap)', nameJa: 'コメットスピア (短押し)', baseDamage: [70, 100, 130, 160, 190], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.15 }], comboLabel: '短' },
+        { id: 'Q2', nameEn: 'Comet Spear (charge)', nameJa: 'コメットスピア (溜め)', baseDamage: [70, 115, 160, 205, 250], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.15 }], comboLabel: '溜' },
+        { id: 'Q3', nameEn: 'Empowered Comet Spear (charge)', nameJa: '強化コメットスピア (溜め)', baseDamage: [70, 115, 160, 205, 250], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 2.3 }], comboLabel: 'P', image: 'https://raw.communitydragon.org/latest/game/assets/characters/pantheon/hud/icons2d/pantheon_q2.png' },
+      ],
+    },
+    {
+      skillKey: 'W',
+      subCasts: [
+        { id: 'W1', nameEn: 'Shield Vault', nameJa: 'シールドヴォルト', baseDamage: [60, 80, 100, 120, 140], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 1.0 }] },
+        { id: 'W2', nameEn: 'Empowered Shield Vault (3 hits)', nameJa: '強化シールドヴォルト (3回)', baseDamage: [180, 240, 300, 360, 420], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 3.0 }], comboLabel: 'P', image: 'https://raw.communitydragon.org/latest/game/assets/characters/pantheon/hud/icons2d/pantheon_w2.png' },
+      ],
+    },
+    {
+      skillKey: 'E',
+      subCasts: [
+        { id: 'E1', nameEn: 'Aegis Assault (slam)', nameJa: 'イージスアサルト (叩きつけ)', baseDamage: [55, 105, 155, 205, 255], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.5 }] },
+        { id: 'E2', nameEn: 'Empowered Aegis Assault', nameJa: '強化イージスアサルト', baseDamage: [55, 105, 155, 205, 255], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.5 }], comboLabel: 'P', image: 'https://raw.communitydragon.org/latest/game/assets/characters/pantheon/hud/icons2d/pantheon_e2.png' },
       ],
     },
   ],
@@ -915,6 +930,76 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
         { id: 'W1', nameEn: 'Blade\'s Reach (Base)', nameJa: 'ブレードリーチ (通常)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'base' },
         { id: 'W2', nameEn: 'Blade\'s Reach (Shadow)', nameJa: 'ブレードリーチ (影)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'shadow' },
         { id: 'W3', nameEn: 'Blade\'s Reach (Rhaast)', nameJa: 'ブレードリーチ (ラースト)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'rhaast' },
+      ],
+    },
+  ],
+
+  // ── Warwick ──
+  // Q: Jaws of the Beast — 10-50 + 100% AD + 90% AP + 6% target max HP magic damage
+  Warwick: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        {
+          id: 'Q1',
+          nameEn: 'Jaws of the Beast',
+          nameJa: '顎の獣',
+          baseDamage: [10, 20, 30, 40, 50],
+          damageType: 'magic',
+          scalings: [
+            { stat: 'ad', ratio: 1.0 },
+            { stat: 'ap', ratio: 0.9 },
+            { stat: 'targetMaxHp', ratio: 0.06 },
+          ],
+        },
+      ],
+    },
+  ],
+
+  // ── Viego ──
+  // R: Heartbreaker — 100/200/300 + 60% bonus AD + 12% target missing HP physical
+  Viego: [
+    {
+      skillKey: 'R',
+      subCasts: [
+        {
+          id: 'R1',
+          nameEn: 'Heartbreaker',
+          nameJa: 'ハートブレイカー',
+          baseDamage: [100, 200, 300],
+          damageType: 'physical',
+          scalings: [
+            { stat: 'bonusAd', ratio: 0.6 },
+            { stat: 'targetMissingHp', ratio: 0.12 },
+          ],
+        },
+      ],
+    },
+  ],
+
+  // ── Renekton ──
+  // Normal vs Fury (50+ fury) variants for Q/W/E — Hwei-style comboLabel
+  Renekton: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        { id: 'Q1', nameEn: 'Cull the Meek', nameJa: '断罪の鎌', baseDamage: [65, 100, 135, 170, 205], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.8 }] },
+        { id: 'Q2', nameEn: 'Cull the Meek (Fury)', nameJa: '断罪の鎌 (フューリー)', baseDamage: [100, 150, 200, 250, 300], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.2 }], comboLabel: 'F' },
+      ],
+    },
+    {
+      skillKey: 'W',
+      subCasts: [
+        { id: 'W1', nameEn: 'Ruthless Predator (2 hits)', nameJa: '冷酷な追撃者 (2回)', baseDamage: [20, 60, 100, 140, 180], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.5 }] },
+        { id: 'W2', nameEn: 'Ruthless Predator (Fury, 3 hits)', nameJa: '冷酷な追撃者 (フューリー, 3回)', baseDamage: [30, 90, 150, 210, 270], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 2.25 }], comboLabel: 'F' },
+      ],
+    },
+    {
+      skillKey: 'E',
+      subCasts: [
+        { id: 'E1', nameEn: 'Slice', nameJa: 'スライス', baseDamage: [40, 70, 100, 130, 160], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.9 }] },
+        { id: 'E2', nameEn: 'Dice', nameJa: 'ダイス', baseDamage: [40, 70, 100, 130, 160], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.9 }] },
+        { id: 'E3', nameEn: 'Dice (Fury)', nameJa: 'ダイス (フューリー)', baseDamage: [70, 115, 160, 205, 250], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.35 }], comboLabel: 'F' },
       ],
     },
   ],

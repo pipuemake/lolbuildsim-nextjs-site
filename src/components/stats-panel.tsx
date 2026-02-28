@@ -22,9 +22,12 @@ interface StatCategory {
 interface StatsPanelProps {
   stats: ComputedStats;
   locale?: string;
+  aaCounts?: number;
+  critHitCount?: number;
+  onCritHitCountChange?: (count: number) => void;
 }
 
-export function StatsPanel({ stats, locale = "ja" }: StatsPanelProps) {
+export function StatsPanel({ stats, locale = "ja", aaCounts, critHitCount, onCritHitCountChange }: StatsPanelProps) {
   const isJa = locale === "ja";
   const [collapsed, setCollapsed] = useState(false);
 
@@ -253,6 +256,27 @@ export function StatsPanel({ stats, locale = "ja" }: StatsPanelProps) {
               </div>
             );
           })}
+          {/* Critical hit count slider */}
+          {aaCounts != null && aaCounts > 0 && onCritHitCountChange && (
+            <div className="pt-2 border-t border-border/60">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-zinc-400">
+                  {isJa ? "クリティカル発動回数" : "Critical Hit Count"}
+                </span>
+                <span className="text-xs font-medium text-yellow-300 tabular-nums">
+                  {critHitCount ?? 0}/{aaCounts}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={aaCounts}
+                value={critHitCount ?? 0}
+                onChange={(e) => onCritHitCountChange(Number(e.target.value))}
+                className="w-full h-1.5 accent-yellow-400"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,49 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Champion, SkillData, SkillDamageResult } from "@/types";
+import { Champion, SkillData, SkillDamageResult, SkillScaling } from "@/types";
+
+/** Map scaling stat keys to display names */
+const STAT_DISPLAY_NAMES: Record<string, string> = {
+  ad: "AD",
+  bonusAd: "Bonus AD",
+  ap: "AP",
+  hp: "HP",
+  bonusHp: "Bonus HP",
+  maxHp: "Max HP",
+  armor: "Armor",
+  mr: "MR",
+  mana: "Mana",
+  bonusMana: "Bonus Mana",
+  attackSpeed: "AS",
+  targetMaxHp: "Target Max HP",
+  targetCurrentHp: "Target Current HP",
+  targetMissingHp: "Target Missing HP",
+};
+
+const DAMAGE_TYPE_STYLE: Record<string, { color: string; label: string }> = {
+  physical: { color: "bg-red-400", label: "Physical" },
+  magic: { color: "bg-blue-400", label: "Magic" },
+  true: { color: "bg-white", label: "True" },
+};
+
+/** Build a human-readable damage formula string, e.g. "60 + 60% AD + 40% AP" */
+function buildDamageFormula(
+  baseDamage: number[],
+  scalings: SkillScaling[],
+  rank: number,
+): string | null {
+  const base = baseDamage[rank - 1];
+  if (base === undefined && scalings.length === 0) return null;
+  const parts: string[] = [];
+  if (base !== undefined && base !== 0) parts.push(String(base));
+  for (const s of scalings) {
+    const pct = Math.round(s.ratio * 100);
+    if (pct === 0) continue;
+    parts.push(`${pct}% ${STAT_DISPLAY_NAMES[s.stat] ?? s.stat}`);
+  }
+  return parts.length > 0 ? parts.join(" + ") : null;
+}
 
 interface SkillDamageProps {
   champion: Champion;
@@ -14,6 +56,8 @@ interface SkillDamageProps {
   onDistanceMultiplierChange?: (subCastId: string, pct: number) => void;
   version: string;
   locale?: string;
+  targetHpPercent?: number;
+  onTargetHpPercentChange?: (pct: number) => void;
 }
 
 const SKILL_ACCENT: Record<
@@ -83,9 +127,20 @@ export function SkillDamagePanel({
   onDistanceMultiplierChange,
   version,
   locale = "ja",
+  targetHpPercent = 100,
+  onTargetHpPercentChange,
 }: SkillDamageProps) {
   const isJa = locale === "ja";
   const [collapsed, setCollapsed] = useState(false);
+
+  // Check if any skill has targetMissingHp or targetCurrentHp scaling
+  const hasHpScaling = skills.some(
+    (s) =>
+      s.scalings.some((sc) => sc.stat === "targetMissingHp" || sc.stat === "targetCurrentHp") ||
+      s.subCasts?.some((sub) =>
+        sub.scalings.some((sc) => sc.stat === "targetMissingHp" || sc.stat === "targetCurrentHp"),
+      ),
+  );
 
   const displaySkills = skills.filter((s) => s.key !== "P");
 
@@ -124,6 +179,25 @@ export function SkillDamagePanel({
 
       {!collapsed && (
         <div className="px-4 pb-4 space-y-2">
+          {/* Target HP % slider - shown when any skill has HP-based scaling */}
+          {hasHpScaling && onTargetHpPercentChange && (
+            <div className="flex items-center gap-2 px-1 py-1.5 rounded bg-zinc-800/40 border border-zinc-700/30">
+              <span className="text-[10px] text-zinc-500 whitespace-nowrap font-medium">
+                {isJa ? "対象HP%" : "Target HP%"}
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={100}
+                value={targetHpPercent}
+                onChange={(e) => onTargetHpPercentChange(parseInt(e.target.value))}
+                className="flex-1 h-1.5 accent-emerald-500 cursor-pointer"
+              />
+              <span className="text-[11px] text-emerald-400 font-bold tabular-nums min-w-[2.5rem] text-right">
+                {targetHpPercent}%
+              </span>
+            </div>
+          )}
           {displaySkills.map((skill) => {
             const rank = skillRanks[skill.key] || 1;
             const spellInfo = getSpellInfo(skill.key);
@@ -253,7 +327,7 @@ export function SkillDamagePanel({
                             </div>
                             <div className="flex flex-col">
                               <span className="text-zinc-600">
-                                {isJa ? "比率" : "Scale"}
+                                {isJa ? "スケール" : "Scale"}
                               </span>
                               <span className="text-zinc-300 font-medium tabular-nums">
                                 +{Math.round(scd.scaledDamage)}
@@ -270,6 +344,23 @@ export function SkillDamagePanel({
                               </span>
                             </div>
                           </div>
+
+                          {/* Damage formula */}
+                          {(() => {
+                            const formula = buildDamageFormula(scDef?.baseDamage ?? [], scDef?.scalings ?? [], rank);
+                            const dmgType = DAMAGE_TYPE_STYLE[scd.damageType];
+                            return formula ? (
+                              <div className="text-[10px] text-zinc-500 mt-0.5 flex items-center gap-1">
+                                {dmgType && (
+                                  <span
+                                    className={`inline-block w-1.5 h-1.5 rounded-full ${dmgType.color} flex-shrink-0`}
+                                    title={dmgType.label}
+                                  />
+                                )}
+                                {formula}
+                              </div>
+                            ) : null;
+                          })()}
 
                           {/* Distance multiplier slider (e.g. Nidalee Q) */}
                           {hasDist && onDistanceMultiplierChange && (
@@ -333,7 +424,7 @@ export function SkillDamagePanel({
                       </div>
                       <div className="flex flex-col">
                         <span className="text-zinc-600">
-                          {isJa ? "比率" : "Scale"}
+                          {isJa ? "スケール" : "Scale"}
                         </span>
                         <span className="text-zinc-300 font-medium tabular-nums">
                           +{Math.round(damage.scaledDamage)}
@@ -350,6 +441,23 @@ export function SkillDamagePanel({
                         </span>
                       </div>
                     </div>
+
+                    {/* Damage formula */}
+                    {(() => {
+                      const formula = buildDamageFormula(skill.baseDamage, skill.scalings, rank);
+                      const dmgType = DAMAGE_TYPE_STYLE[skill.damageType];
+                      return formula ? (
+                        <div className="text-[10px] text-zinc-500 mt-0.5 flex items-center gap-1">
+                          {dmgType && (
+                            <span
+                              className={`inline-block w-1.5 h-1.5 rounded-full ${dmgType.color} flex-shrink-0`}
+                              title={dmgType.label}
+                            />
+                          )}
+                          {formula}
+                        </div>
+                      ) : null;
+                    })()}
 
                     {/* Cooldown & cost */}
                     <div className="flex items-center gap-2 text-xs text-zinc-600">

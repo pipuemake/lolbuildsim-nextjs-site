@@ -240,11 +240,12 @@ export interface BonusStats {
   critDamageModifier?: number; // e.g. -0.175 for Yasuo/Yone reduced crit damage
 }
 
-export type ChampionBonusType = 'stack' | 'passive' | 'rune';
+export type ChampionBonusType = 'stack' | 'passive' | 'rune' | 'item';
 
 export interface ChampionBonusDefinition {
   id: string;
   championId?: string; // undefined = generic / rune
+  itemId?: string; // if set, only shown when this item is equipped
   type: ChampionBonusType;
   nameEn: string;
   nameJa: string;
@@ -304,6 +305,7 @@ export interface ItemOnHitEffect {
 export interface OnHitDamageResult {
   itemId: string;
   itemName: string;
+  itemNameJa?: string;
   damageType: 'physical' | 'magic' | 'true';
   rawDamage: number;
   effectiveDamage: number;
@@ -322,6 +324,7 @@ export interface ItemActiveEffect {
 export interface ItemActiveDamageResult {
   itemId: string;
   itemName: string;
+  itemNameJa?: string;
   damageType: 'physical' | 'magic' | 'true';
   rawDamage: number;
   effectiveDamage: number;
@@ -346,6 +349,10 @@ export interface SkillDamageResult {
   totalAfterResist: number;
   damageType: 'physical' | 'magic' | 'true';
   subCastId?: string;  // sub-cast identifier (e.g. 'Q1', 'Q2')
+  /** If true, this skill scales with targetMissingHp and should be applied last in combo */
+  hasMissingHpScaling?: boolean;
+  /** The ratio for targetMissingHp scaling (used for combo reordering) */
+  missingHpRatio?: number;
 }
 
 export interface ComboDamageResult {

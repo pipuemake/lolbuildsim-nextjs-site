@@ -17,6 +17,8 @@ const SEGMENT_COLORS: Record<string, string> = {
 interface HPBarProps {
   maxHP: number;
   damageSegments: DamageSegment[];
+  shieldAmount?: number;
+  healAmount?: number;
   label?: string;
   locale?: string;
 }
@@ -24,21 +26,30 @@ interface HPBarProps {
 export function HPBar({
   maxHP,
   damageSegments,
+  shieldAmount = 0,
+  healAmount = 0,
   label,
   locale = "ja",
 }: HPBarProps) {
-  const totalDamage = damageSegments.reduce((sum, s) => sum + s.amount, 0);
-  const remainingHP = Math.max(0, maxHP - totalDamage);
-  const killable = totalDamage >= maxHP;
+  const effectiveHP = maxHP + shieldAmount;
+  const totalDamageRaw = damageSegments.reduce((sum, s) => sum + s.amount, 0);
+  // Healing reduces effective damage (can't overheal above max HP)
+  const totalDamage = Math.max(0, totalDamageRaw - healAmount);
+  const remainingHP = Math.max(0, effectiveHP - totalDamage);
+  const killable = totalDamage >= effectiveHP;
 
   // Segment dividers every 100 HP, max 30 visible
-  const segmentCount = Math.min(Math.ceil(maxHP / 100), 30);
+  const segmentCount = Math.min(Math.ceil(effectiveHP / 100), 30);
 
-  const remainingPct = (remainingHP / maxHP) * 100;
+  const remainingPct = (remainingHP / effectiveHP) * 100;
+  const shieldPct = (shieldAmount / effectiveHP) * 100;
+  const hpOnlyPct = (maxHP / effectiveHP) * 100;
 
-  // HP bar color based on remaining %
+  // HP bar color based on remaining HP (not shield)
+  const remainingHpOnly = Math.max(0, maxHP - Math.max(0, totalDamage - shieldAmount));
+  const hpRatio = maxHP > 0 ? (remainingHpOnly / maxHP) * 100 : 0;
   const hpColor =
-    remainingPct > 60 ? "#22c55e" : remainingPct > 30 ? "#eab308" : "#ef4444";
+    hpRatio > 60 ? "#22c55e" : hpRatio > 30 ? "#eab308" : "#ef4444";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -67,20 +78,31 @@ export function HPBar({
 
       {/* Main HP bar */}
       <div className="relative h-7 bg-zinc-900 rounded overflow-hidden border border-zinc-700/50 shadow-inner">
-        {/* Remaining HP */}
+        {/* Remaining HP (green/yellow/red portion) */}
         <div
           className="absolute left-0 top-0 h-full transition-all duration-300"
           style={{
-            width: `${remainingPct}%`,
+            width: `${Math.min(remainingPct, hpOnlyPct)}%`,
             background: `linear-gradient(180deg, ${hpColor}dd 0%, ${hpColor}99 100%)`,
           }}
         />
+        {/* Shield portion (white/silver, shown after HP) */}
+        {shieldAmount > 0 && remainingPct > hpOnlyPct && (
+          <div
+            className="absolute top-0 h-full transition-all duration-300"
+            style={{
+              left: `${Math.min(remainingPct, hpOnlyPct)}%`,
+              width: `${Math.min(remainingPct - hpOnlyPct, shieldPct)}%`,
+              background: 'linear-gradient(180deg, #e2e8f0dd 0%, #94a3b899 100%)',
+            }}
+          />
+        )}
 
         {/* Damage segments */}
         {(() => {
-          let offset = remainingHP / maxHP;
+          let offset = remainingHP / effectiveHP;
           return damageSegments.map((seg, i) => {
-            const width = Math.min(seg.amount / maxHP, 1 - offset);
+            const width = Math.min(seg.amount / effectiveHP, 1 - offset);
             if (width <= 0) return null;
             const segEl = (
               <div
@@ -105,14 +127,16 @@ export function HPBar({
           <div
             key={`seg-${i}`}
             className="absolute top-0 h-full w-px bg-black/40 pointer-events-none"
-            style={{ left: `${(((i + 1) * 100) / maxHP) * 100}%` }}
+            style={{ left: `${(((i + 1) * 100) / effectiveHP) * 100}%` }}
           />
         ))}
 
         {/* HP text overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xs font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-            {Math.round(remainingHP)} / {Math.round(maxHP)}
+            {shieldAmount > 0
+              ? `${Math.round(remainingHpOnly)} + ${Math.round(Math.max(0, remainingHP - remainingHpOnly))} / ${Math.round(maxHP)}`
+              : `${Math.round(remainingHP)} / ${Math.round(maxHP)}`}
           </span>
         </div>
       </div>
@@ -137,6 +161,20 @@ export function HPBar({
                 </span>
               </div>
             ))}
+          {shieldAmount > 0 && (
+            <div className="flex items-center gap-1 text-[10px]">
+              <div className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ background: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%)' }} />
+              <span className="text-zinc-500">{locale === "ja" ? "シールド" : "Shield"}</span>
+              <span className="text-zinc-300 tabular-nums">{Math.round(shieldAmount)}</span>
+            </div>
+          )}
+          {healAmount > 0 && (
+            <div className="flex items-center gap-1 text-[10px]">
+              <div className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ backgroundColor: '#22c55e' }} />
+              <span className="text-zinc-500">{locale === "ja" ? "回復" : "Heal"}</span>
+              <span className="text-green-400 tabular-nums">+{Math.round(healAmount)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1 text-[10px] ml-auto">
             <span className="text-zinc-600">
               {locale === "ja" ? "計" : "Total"}:

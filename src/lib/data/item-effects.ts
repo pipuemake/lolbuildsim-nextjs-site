@@ -54,6 +54,15 @@ const ALL_ON_HIT_EFFECTS: ItemOnHitEffect[] = [
       return 5 + bonusHp * 0.015;
     },
   },
+  // Terminus — 30 bonus magic damage on-hit
+  {
+    itemId: '3302',
+    nameEn: 'Terminus',
+    nameJa: '終わりなき絶望',
+    trigger: 'onhit',
+    damageType: 'magic',
+    calc: () => 30,
+  },
   // Lich Bane — 75% base AD + 50% AP magic (Spellblade)
   {
     itemId: '3100',
@@ -198,6 +207,69 @@ const ALL_ACTIVE_EFFECTS: ItemActiveEffect[] = [
       return 5 + bonusHp * 0.015;
     },
   },
+  // Hextech Gunblade — 175-262 + 30% AP magic (active)
+  {
+    itemId: '3146',
+    nameEn: 'Hextech Gunblade',
+    nameJa: 'ヘクステック・ガンブレード',
+    damageType: 'magic',
+    calc: (attacker, _target, level) => {
+      const base = 175 + (87 * (level - 1) / 17);
+      return base + attacker.ap * 0.3;
+    },
+  },
+  // Hextech Alternator — 65 magic damage proc
+  {
+    itemId: '3145',
+    nameEn: 'Hextech Alternator',
+    nameJa: 'アクチュアライザー',
+    damageType: 'magic',
+    calc: () => 65,
+  },
+  // Luden's Tempest — 100 + 10% AP magic per orb
+  {
+    itemId: '6655',
+    nameEn: "Luden's Tempest",
+    nameJa: 'ルーデンエコー',
+    damageType: 'magic',
+    calc: (attacker) => 100 + attacker.ap * 0.1,
+  },
+  // Stormsurge — 125 + 10% AP magic proc
+  {
+    itemId: '4646',
+    nameEn: 'Stormsurge',
+    nameJa: 'ストームサージ',
+    damageType: 'magic',
+    calc: (attacker) => 125 + attacker.ap * 0.1,
+  },
+  // Hollow Radiance — 15 + 1% bonus HP magic per second (aura)
+  {
+    itemId: '6664',
+    nameEn: 'Hollow Radiance',
+    nameJa: 'ホロウレディアンス',
+    damageType: 'magic',
+    calc: (attacker, _target, level) => {
+      const base = 15 + (15 * (level - 1) / 17);
+      const bonusHp = attacker.hp - attacker.baseHp;
+      return base + bonusHp * 0.01;
+    },
+  },
+  // Sundered Sky — 100% crit damage physical proc (once per target per 10s)
+  {
+    itemId: '6610',
+    nameEn: 'Sundered Sky',
+    nameJa: 'サンダードスカイ',
+    damageType: 'physical',
+    calc: (attacker) => attacker.ad * attacker.critMultiplier,
+  },
+  // Elixir of Sorcery — 25 true damage on hit to champions
+  {
+    itemId: '2139',
+    nameEn: 'Elixir of Sorcery',
+    nameJa: 'ソーサリー エリクサー',
+    damageType: 'true',
+    calc: () => 25,
+  },
 ];
 
 /**
@@ -206,4 +278,156 @@ const ALL_ACTIVE_EFFECTS: ItemActiveEffect[] = [
 export function getItemActiveEffects(itemIds: string[]): ItemActiveEffect[] {
   const idSet = new Set(itemIds);
   return ALL_ACTIVE_EFFECTS.filter((e) => idSet.has(e.itemId));
+}
+
+// ===== Item Stack Bonuses (Dark Seal, Mejai's, Yuntal, etc.) =====
+
+export interface ItemStackBonus {
+  itemId: string;
+  nameEn: string;
+  nameJa: string;
+  maxStacks: number;
+  statBonus: (stacks: number) => Record<string, number>;
+}
+
+export const ITEM_STACK_BONUSES: ItemStackBonus[] = [
+  {
+    itemId: '1082', // Dark Seal
+    nameEn: 'Dark Seal',
+    nameJa: 'ダークシール',
+    maxStacks: 10,
+    statBonus: (stacks) => ({ ap: stacks * 4 }),
+  },
+  {
+    itemId: '3041', // Mejai's Soulstealer
+    nameEn: "Mejai's Soulstealer",
+    nameJa: 'メジャイソウルスティーラー',
+    maxStacks: 25,
+    statBonus: (stacks) => ({
+      ap: stacks * 5,
+      ...(stacks >= 10 ? { moveSpeedPercent: 0.10 } : {}),
+    }),
+  },
+  {
+    itemId: '4010', // Yuntal Wildarrows
+    nameEn: 'Yuntal Wildarrows',
+    nameJa: 'ユンタルワイルドアロー',
+    maxStacks: 25,
+    statBonus: (stacks) => ({ critChance: stacks * 0.01 }),
+  },
+  // Elixirs (toggle: 0=inactive, 1=active)
+  {
+    itemId: '2140', // Elixir of Wrath
+    nameEn: 'Elixir of Wrath',
+    nameJa: 'ラース エリクサー',
+    maxStacks: 1,
+    statBonus: (stacks) => (stacks ? { ad: 30 } : ({}  as Record<string, number>)),
+  },
+  {
+    itemId: '2139', // Elixir of Sorcery
+    nameEn: 'Elixir of Sorcery',
+    nameJa: 'ソーサリー エリクサー',
+    maxStacks: 1,
+    statBonus: (stacks) => (stacks ? { ap: 50 } : ({} as Record<string, number>)),
+  },
+  {
+    itemId: '2138', // Elixir of Iron
+    nameEn: 'Elixir of Iron',
+    nameJa: 'アイアン エリクサー',
+    maxStacks: 1,
+    statBonus: (stacks) => (stacks ? { hp: 300, tenacity: 0.25 } : ({} as Record<string, number>)),
+  },
+];
+
+export function getItemStackBonuses(itemIds: string[]): ItemStackBonus[] {
+  const idSet = new Set(itemIds);
+  return ITEM_STACK_BONUSES.filter((b) => idSet.has(b.itemId));
+}
+
+// ===== Item Heal Effects (Potions) =====
+
+export interface ItemHealEffect {
+  itemId: string;
+  nameEn: string;
+  nameJa: string;
+  healPerCharge: number;
+  maxCharges: number;
+}
+
+const ITEM_HEAL_EFFECTS: ItemHealEffect[] = [
+  {
+    itemId: '2003', // Health Potion
+    nameEn: 'Health Potion',
+    nameJa: '体力ポーション',
+    healPerCharge: 120,
+    maxCharges: 1,
+  },
+  {
+    itemId: '2031', // Refillable Potion
+    nameEn: 'Refillable Potion',
+    nameJa: '詰め替えポーション',
+    healPerCharge: 100,
+    maxCharges: 2,
+  },
+];
+
+export function getItemHealEffects(itemIds: string[]): ItemHealEffect[] {
+  const idSet = new Set(itemIds);
+  return ITEM_HEAL_EFFECTS.filter((e) => idSet.has(e.itemId));
+}
+
+// ===== Lifeline Shield Registry =====
+
+export interface ItemLifelineShield {
+  itemId: string;
+  nameEn: string;
+  nameJa: string;
+  /** Calculate shield amount given the holder's computed stats and level */
+  calc: (holder: { hp: number; baseHp: number; ad: number; ap: number; mr: number }, level: number) => number;
+}
+
+const LIFELINE_SHIELDS: ItemLifelineShield[] = [
+  // Maw of Malmortius — Lifeline: magic shield = 200 + 20% max HP (for 2.5s)
+  {
+    itemId: '3156',
+    nameEn: 'Maw of Malmortius',
+    nameJa: 'マルモティウスの胃袋',
+    calc: (holder) => 200 + holder.hp * 0.2,
+  },
+  // Sterak's Gage — Lifeline: shield = 75% bonus HP (decays over 3.75s)
+  {
+    itemId: '3053',
+    nameEn: "Sterak's Gage",
+    nameJa: 'ステラックの篭手',
+    calc: (holder) => {
+      const bonusHp = holder.hp - holder.baseHp;
+      return bonusHp * 0.75;
+    },
+  },
+  // Immortal Shieldbow — Lifeline: shield = 300 + 800 over levels 1-18
+  {
+    itemId: '6673',
+    nameEn: 'Immortal Shieldbow',
+    nameJa: 'イモータルシールドボウ',
+    calc: (_holder, level) => {
+      return 300 + (800 * (level - 1) / 17);
+    },
+  },
+];
+
+/**
+ * Get the Lifeline shield for the given items.
+ * Lifeline is a unique passive — only one can proc. We pick the first matching item.
+ */
+export function getLifelineShield(
+  itemIds: string[],
+  holder: { hp: number; baseHp: number; ad: number; ap: number; mr: number },
+  level: number,
+): { shield: number; item: ItemLifelineShield } | null {
+  const idSet = new Set(itemIds);
+  for (const ls of LIFELINE_SHIELDS) {
+    if (!idSet.has(ls.itemId)) continue;
+    return { shield: ls.calc(holder, level), item: ls };
+  }
+  return null;
 }

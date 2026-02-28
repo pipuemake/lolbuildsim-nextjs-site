@@ -19,6 +19,7 @@ interface GenericBonusValues {
 interface BonusStatsPanelProps {
   championBonuses: ChampionBonusDefinition[];
   runeBonuses: ChampionBonusDefinition[];
+  itemBonuses?: ChampionBonusDefinition[];
   bonusValues: BonusStatsValues;
   genericBonuses: GenericBonusValues;
   onBonusChange: (bonusId: string, value: number) => void;
@@ -29,13 +30,14 @@ interface BonusStatsPanelProps {
 export function BonusStatsPanel({
   championBonuses,
   runeBonuses,
+  itemBonuses = [],
   bonusValues,
   genericBonuses,
   onBonusChange,
   onGenericChange,
   locale,
 }: BonusStatsPanelProps) {
-  const allBonuses = [...championBonuses, ...runeBonuses];
+  const allBonuses = [...championBonuses, ...runeBonuses, ...itemBonuses];
 
   if (allBonuses.length === 0 && !genericBonuses) return null;
 
@@ -70,6 +72,24 @@ export function BonusStatsPanel({
             {locale === "ja" ? "ルーン" : "Runes"}
           </div>
           {runeBonuses.map((bonus) => (
+            <BonusRow
+              key={bonus.id}
+              bonus={bonus}
+              value={bonusValues[bonus.id] ?? bonus.defaultValue}
+              onChange={(v) => onBonusChange(bonus.id, v)}
+              locale={locale}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Item-based bonuses (Heartsteel, Hubris, etc.) */}
+      {itemBonuses.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] text-zinc-400 uppercase tracking-wide">
+            {locale === "ja" ? "アイテム" : "Items"}
+          </div>
+          {itemBonuses.map((bonus) => (
             <BonusRow
               key={bonus.id}
               bonus={bonus}

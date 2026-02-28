@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +9,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Item } from "@/types";
+
+/** Convert katakana to hiragana for search matching */
+function katakanaToHiragana(str: string): string {
+  return str.replace(/[\u30A1-\u30F6]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0x60)
+  );
+}
 
 /** Stats-based category filters */
 const ITEM_CATEGORIES = [
@@ -27,6 +34,7 @@ const ITEM_CATEGORIES = [
   { key: "magicPen", ja: "魔貫", en: "MPen", stat: "flatMagicPen" },
   { key: "ms", ja: "MS", en: "MS", stat: "moveSpeed" },
   { key: "boots", ja: "ブーツ", en: "Boots", stat: null, tag: "Boots" },
+  { key: "other", ja: "その他", en: "Other", stat: null },
 ] as const;
 
 /** Parse DDragon item description HTML into structured parts */
@@ -82,15 +90,15 @@ function parseItemDescription(html: string): {
   return { stats, passive };
 }
 
-function ItemTooltipContent({ item }: { item: Item }) {
+function ItemTooltipContent({ item, displayName, displayDescription }: { item: Item; displayName?: string; displayDescription?: string }) {
   const { stats, passive } = useMemo(
-    () => parseItemDescription(item.description),
-    [item.description],
+    () => parseItemDescription(displayDescription ?? item.description),
+    [displayDescription, item.description],
   );
 
   return (
     <div className="min-w-[200px] max-w-[280px]">
-      <p className="font-bold text-amber-300 text-sm mb-1">{item.name}</p>
+      <p className="font-bold text-amber-300 text-sm mb-1">{displayName ?? item.name}</p>
       {stats && (
         <div className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-line mb-1.5 pb-1.5 border-b border-zinc-700/60">
           {stats}
@@ -111,15 +119,15 @@ function ItemTooltipContent({ item }: { item: Item }) {
 }
 
 /** Detailed preview panel for the hovered item */
-function ItemPreview({ item }: { item: Item }) {
+function ItemPreview({ item, displayName, displayDescription }: { item: Item; displayName?: string; displayDescription?: string }) {
   const { stats, passive } = useMemo(
-    () => parseItemDescription(item.description),
-    [item.description],
+    () => parseItemDescription(displayDescription ?? item.description),
+    [displayDescription, item.description],
   );
 
   return (
     <div className="p-3 space-y-2">
-      <p className="font-bold text-amber-300 text-sm">{item.name}</p>
+      <p className="font-bold text-amber-300 text-sm">{displayName ?? item.name}</p>
       {stats && (
         <div className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-line pb-2 border-b border-zinc-700/60">
           {stats}
@@ -145,6 +153,7 @@ interface ItemShopProps {
   onItemChange: (slotIndex: number, itemId: string | null) => void;
   locale?: string;
   version: string;
+  enItemData?: Record<string, { name: string; description: string }>;
 }
 
 export function ItemShop({
@@ -153,11 +162,24 @@ export function ItemShop({
   onItemChange,
   locale = "ja",
   version,
+  enItemData,
 }: ItemShopProps) {
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
+
+  /** Get item display name respecting locale */
+  const getItemName = useCallback((item: Item): string => {
+    if (locale === "en" && enItemData?.[item.id]?.name) return enItemData[item.id].name;
+    return item.name;
+  }, [locale, enItemData]);
+
+  /** Get item description respecting locale */
+  const getItemDescription = useCallback((item: Item): string => {
+    if (locale === "en" && enItemData?.[item.id]?.description) return enItemData[item.id].description;
+    return item.description;
+  }, [locale, enItemData]);
 
   const shopItems = useMemo(() => {
     return items.filter((item) => {
@@ -169,10 +191,24 @@ export function ItemShop({
 
   const filteredItems = useMemo(() => {
     return shopItems.filter((item) => {
+      const enName = enItemData?.[item.id]?.name?.toLowerCase() ?? "";
       const matchesSearch =
-        search === "" || item.name.toLowerCase().includes(search.toLowerCase());
+        search === "" ||
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        katakanaToHiragana(item.name).includes(katakanaToHiragana(search)) ||
+        enName.includes(search.toLowerCase());
 
       if (category === "all") return matchesSearch;
+
+      if (category === "other") {
+        const hasNoMajorStats = !item.stats.ad && !item.stats.ap && !item.stats.hp &&
+          !item.stats.armor && !item.stats.mr && !item.stats.attackSpeed &&
+          !item.stats.critChance && !item.stats.lifeSteal && !item.stats.abilityHaste &&
+          !item.stats.mana && !item.stats.lethality && !item.stats.flatMagicPen &&
+          !item.stats.moveSpeed && !item.stats.moveSpeedPercent;
+        const isNotBoots = !item.tags.includes("Boots");
+        return matchesSearch && hasNoMajorStats && isNotBoots;
+      }
 
       const cat = ITEM_CATEGORIES.find((c) => c.key === category);
       if (!cat) return matchesSearch;
@@ -259,6 +295,16 @@ export function ItemShop({
                       setHoveredItem(null);
                     }
                   }}
+                  onMouseEnter={() => {
+                    if (shopOpen && item) {
+                      setHoveredItem(item);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (shopOpen) {
+                      setHoveredItem(null);
+                    }
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     if (selectedItems[i]) {
@@ -277,7 +323,7 @@ export function ItemShop({
                     <>
                       <Image
                         src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${item.image}`}
-                        alt={item.name}
+                        alt={getItemName(item)}
                         width={44}
                         height={44}
                         className="rounded block"
@@ -297,7 +343,7 @@ export function ItemShop({
                   side="bottom"
                   className="bg-popover border-border p-2.5 pointer-events-none"
                 >
-                  <ItemTooltipContent item={item} />
+                  <ItemTooltipContent item={item} displayName={getItemName(item)} displayDescription={getItemDescription(item)} />
                 </TooltipContent>
               )}
             </Tooltip>
@@ -396,7 +442,7 @@ export function ItemShop({
             {/* Detail preview (desktop only) */}
             <div className="hidden md:block w-52 shrink-0 border-l border-border overflow-y-auto">
               {hoveredItem ? (
-                <ItemPreview item={hoveredItem} />
+                <ItemPreview item={hoveredItem} displayName={getItemName(hoveredItem)} displayDescription={getItemDescription(hoveredItem)} />
               ) : (
                 <div className="p-3 text-[11px] text-zinc-600 text-center mt-12">
                   {locale === "ja"
