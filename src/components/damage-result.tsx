@@ -224,7 +224,7 @@ export function DamageResultPanel({
                   key={oh.itemId}
                   className="flex items-center justify-between text-xs py-0.5"
                 >
-                  <span className="text-zinc-400">{oh.itemName}</span>
+                  <span className="text-zinc-400">{isJa && oh.itemNameJa ? oh.itemNameJa : oh.itemName}</span>
                   <div className="flex items-center gap-1.5">
                     <span
                       className={

@@ -70,6 +70,7 @@ interface ChampionSelectProps {
   onDeselect?: () => void;
   locale?: string;
   version: string;
+  enChampionNames?: Record<string, string>;
 }
 
 export function ChampionSelect({
@@ -79,24 +80,33 @@ export function ChampionSelect({
   onDeselect,
   locale = "ja",
   version,
+  enChampionNames,
 }: ChampionSelectProps) {
   const [search, setSearch] = useState("");
   const [laneFilter, setLaneFilter] = useState<string>("all");
+
+  /** Get display name for a champion respecting locale */
+  const getDisplayName = (c: Champion): string => {
+    if (locale === "en" && enChampionNames?.[c.id]) return enChampionNames[c.id];
+    return c.name;
+  };
 
   const filtered = useMemo(() => {
     return champions.filter((c) => {
       const q = search.toLowerCase();
       const qKata = hiraganaToKatakana(q);
+      const enName = enChampionNames?.[c.id]?.toLowerCase() ?? "";
       const matchesSearch =
         search === "" ||
         c.name.toLowerCase().includes(q) ||
         c.name.includes(qKata) ||
-        c.id.toLowerCase().includes(q);
+        c.id.toLowerCase().includes(q) ||
+        enName.includes(q);
       const matchesLane =
         laneFilter === "all" || championMatchesLane(c.id, laneFilter as Lane);
       return matchesSearch && matchesLane;
     });
-  }, [champions, search, laneFilter]);
+  }, [champions, search, laneFilter, enChampionNames]);
 
   const labels = LANE_LABELS[locale] || LANE_LABELS.en;
   const fullLabels = LANE_FULL_LABELS[locale] || LANE_FULL_LABELS.en;
@@ -161,11 +171,11 @@ export function ChampionSelect({
                     ? "ring-2 ring-[#C89B3C] z-10"
                     : "opacity-80 hover:opacity-100 hover:ring-1 hover:ring-zinc-600 hover:z-10"
                 }`}
-                title={champion.name}
+                title={getDisplayName(champion)}
               >
                 <Image
                   src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image}`}
-                  alt={champion.name}
+                  alt={getDisplayName(champion)}
                   width={52}
                   height={52}
                   className="rounded block"
@@ -178,7 +188,7 @@ export function ChampionSelect({
                       : "bg-black/70 text-white/90 group-hover:bg-black/80"
                   }`}
                 >
-                  {champion.name}
+                  {getDisplayName(champion)}
                 </span>
               </button>
             );

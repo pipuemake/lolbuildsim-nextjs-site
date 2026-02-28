@@ -11,6 +11,7 @@ import type {
   ItemOnHitEffect,
   ChampionComboPassive,
 } from "@/types";
+import type { ItemHealEffect } from "@/lib/data/item-effects";
 import { SUMMONER_SPELLS } from "@/lib/data/summoner-spells";
 
 interface SkillComboBarProps {
@@ -23,7 +24,7 @@ interface SkillComboBarProps {
   summonerSpells: [SummonerSpell | null, SummonerSpell | null];
   summonerActive: [boolean, boolean];
   itemActiveEffects?: ItemActiveEffect[];
-  itemActiveToggles?: Record<string, boolean>;
+  itemActiveToggles?: Record<string, number>;
   onHitEffects?: ItemOnHitEffect[];
   onHitToggles?: Record<string, boolean>;
   comboPassives?: ChampionComboPassive[];
@@ -38,9 +39,15 @@ interface SkillComboBarProps {
   onAAChange: (count: number) => void;
   onSummonerChange: (index: 0 | 1, spell: SummonerSpell | null) => void;
   onSummonerActiveChange: (index: 0 | 1, active: boolean) => void;
-  onItemActiveToggle?: (itemId: string, active: boolean) => void;
+  onItemActiveToggle?: (itemId: string, count: number) => void;
   onOnHitToggle?: (itemId: string, active: boolean) => void;
   onComboPassiveChange?: (id: string, value: number) => void;
+  itemStackBonuses?: { itemId: string; nameEn: string; nameJa: string; maxStacks: number }[];
+  itemStacks?: Record<string, number>;
+  onItemStackChange?: (itemId: string, stacks: number) => void;
+  itemHealEffects?: ItemHealEffect[];
+  itemHealCharges?: Record<string, number>;
+  onItemHealToggle?: (itemId: string, charges: number) => void;
 }
 
 const SKILL_KEYS = ["P", "Q", "W", "E", "R"] as const;
@@ -103,6 +110,12 @@ export function SkillComboBar({
   onItemActiveToggle,
   onOnHitToggle,
   onComboPassiveChange,
+  itemStackBonuses,
+  itemStacks,
+  onItemStackChange,
+  itemHealEffects,
+  itemHealCharges,
+  onItemHealToggle,
 }: SkillComboBarProps) {
   const isJa = locale === "ja";
   const [dropdownIndex, setDropdownIndex] = useState<0 | 1 | null>(null);
@@ -571,17 +584,17 @@ export function SkillComboBar({
               <div className="w-px h-9 bg-zinc-700/60" />
               <div className="flex items-center gap-1.5">
                 {itemActiveEffects.map((effect) => {
-                  const active = itemActiveToggles?.[effect.itemId] ?? false;
+                  const count = itemActiveToggles?.[effect.itemId] ?? 0;
                   return (
                     <button
                       key={effect.itemId}
-                      onClick={() => onItemActiveToggle(effect.itemId, !active)}
+                      onClick={() => onItemActiveToggle(effect.itemId, count + 1)}
                       onContextMenu={(e) => {
                         e.preventDefault();
-                        onItemActiveToggle(effect.itemId, !active);
+                        if (count > 0) onItemActiveToggle(effect.itemId, count - 1);
                       }}
                       className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
- ${active ? "ring-2 ring-teal-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ ${count > 0 ? "ring-2 ring-teal-500 shadow-md" : "opacity-30 hover:opacity-60"}
  `}
                       title={isJa ? effect.nameJa : effect.nameEn}
                     >
@@ -593,9 +606,9 @@ export function SkillComboBar({
                         className="rounded border border-black/50"
                         unoptimized
                       />
-                      {active && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center text-[9px] bg-teal-600 text-white rounded-full leading-none">
-                          !
+                      {count > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center text-[9px] bg-teal-600 text-white rounded-full leading-none font-bold">
+                          {count}
                         </span>
                       )}
                     </button>
@@ -636,6 +649,46 @@ export function SkillComboBar({
                     {active && (
                       <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center text-[9px] bg-cyan-600 text-white rounded-full leading-none">
                         {effect.trigger === "spellblade" ? "S" : "!"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Potion / heal item toggles */}
+        {itemHealEffects && itemHealEffects.length > 0 && onItemHealToggle && (
+          <>
+            <div className="w-px h-9 bg-zinc-700/60" />
+            <div className="flex items-center gap-1.5">
+              {itemHealEffects.map((effect) => {
+                const charges = itemHealCharges?.[effect.itemId] ?? 0;
+                return (
+                  <button
+                    key={`heal-${effect.itemId}`}
+                    onClick={() => onItemHealToggle(effect.itemId, Math.min(charges + 1, effect.maxCharges))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (charges > 0) onItemHealToggle(effect.itemId, charges - 1);
+                    }}
+                    className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${charges > 0 ? "ring-2 ring-green-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                    title={`${isJa ? effect.nameJa : effect.nameEn} (+${effect.healPerCharge} HP)`}
+                  >
+                    <Image
+                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${effect.itemId}.png`}
+                      alt={effect.nameEn}
+                      width={36}
+                      height={36}
+                      className="rounded border border-black/50"
+                      unoptimized
+                    />
+                    {charges > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-green-600 text-white rounded-full leading-none font-bold px-0.5">
+                        {charges}
                       </span>
                     )}
                   </button>
@@ -805,6 +858,61 @@ export function SkillComboBar({
                         Math.min(passive.max ?? 9999, val + 1),
                       )
                     }
+                    className="w-5 h-5 flex items-center justify-center rounded bg-zinc-700/60 text-zinc-400 hover:text-zinc-200 text-xs font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Item stack bonuses (Dark Seal, Mejai's, Yuntal, etc.) */}
+      {itemStackBonuses && itemStackBonuses.length > 0 && onItemStackChange && (
+        <div className="flex flex-wrap items-center gap-2 mt-1.5 pt-1.5 border-t border-zinc-700/40">
+          <span className="text-[10px] text-zinc-600 font-medium">
+            {isJa ? "スタック" : "Stacks"}
+          </span>
+          {itemStackBonuses.map((sb) => {
+            const stacks = itemStacks?.[sb.itemId] ?? 0;
+            return (
+              <div
+                key={sb.itemId}
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800/60 border border-zinc-700/40"
+              >
+                <Image
+                  src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${sb.itemId}.png`}
+                  alt={isJa ? sb.nameJa : sb.nameEn}
+                  width={20}
+                  height={20}
+                  className="rounded border border-black/40"
+                  unoptimized
+                />
+                <span className={`text-xs font-medium ${stacks > 0 ? "text-teal-300" : "text-zinc-500"}`}>
+                  {isJa ? sb.nameJa : sb.nameEn}
+                </span>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => onItemStackChange(sb.itemId, Math.max(0, stacks - 1))}
+                    className="w-5 h-5 flex items-center justify-center rounded bg-zinc-700/60 text-zinc-400 hover:text-zinc-200 text-xs font-bold"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    max={sb.maxStacks}
+                    value={stacks}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value) || 0;
+                      onItemStackChange(sb.itemId, Math.max(0, Math.min(sb.maxStacks, n)));
+                    }}
+                    className="w-12 h-5 text-center text-xs font-bold bg-zinc-900/60 border border-zinc-700/40 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 tabular-nums"
+                  />
+                  <button
+                    onClick={() => onItemStackChange(sb.itemId, Math.min(sb.maxStacks, stacks + 1))}
                     className="w-5 h-5 flex items-center justify-center rounded bg-zinc-700/60 text-zinc-400 hover:text-zinc-200 text-xs font-bold"
                   >
                     +

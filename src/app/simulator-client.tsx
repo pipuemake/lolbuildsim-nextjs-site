@@ -39,6 +39,7 @@ import {
   calcFullCombo,
   calcComboPassiveOnHitDamage,
   calcComboPassiveSkillBonus,
+  recalcMissingHpSkillDamage,
 } from "@/lib/calc/damage";
 import { calcDPS } from "@/lib/calc/dps";
 import { calcEffectiveHP } from "@/lib/calc/effective-hp";
@@ -56,10 +57,16 @@ import { parseChampionDetail } from "@/lib/data/champions";
 import {
   getChampionBonuses,
   getRuneBonuses,
+  getItemBonuses,
 } from "@/lib/data/champion-bonuses";
 import {
   getItemOnHitEffects,
   getItemActiveEffects,
+  getItemStackBonuses,
+  getItemHealEffects,
+  getLifelineShield,
+  type ItemStackBonus,
+  type ItemHealEffect,
 } from "@/lib/data/item-effects";
 import { getChampionComboPassives } from "@/lib/data/champion-combo-effects";
 import { STAT_SHARDS } from "@/lib/data/runes";
@@ -208,6 +215,8 @@ interface SimulatorClientProps {
   champions: Champion[];
   items: Item[];
   runePaths: RunePath[];
+  enChampionNames: Record<string, string>;
+  enItemData: Record<string, { name: string; description: string }>;
   error: string | null;
 }
 
@@ -216,6 +225,8 @@ export function SimulatorClient({
   champions,
   items,
   runePaths,
+  enChampionNames,
+  enItemData,
   error,
 }: SimulatorClientProps) {
   return (
@@ -227,6 +238,8 @@ export function SimulatorClient({
             champions={champions}
             items={items}
             runePaths={runePaths}
+            enChampionNames={enChampionNames}
+            enItemData={enItemData}
             error={error}
           />
         </Suspense>
@@ -252,9 +265,18 @@ function SimulatorInner({
   champions,
   items,
   runePaths,
+  enChampionNames,
+  enItemData,
   error,
 }: SimulatorClientProps) {
   const { locale, setLocale, t } = useLocale();
+
+  /** Get display name for a champion respecting locale */
+  const getChampionDisplayName = useCallback((champ: Champion | null): string => {
+    if (!champ) return "";
+    if (locale === "en" && enChampionNames[champ.id]) return enChampionNames[champ.id];
+    return champ.name;
+  }, [locale, enChampionNames]);
 
   // Ally state
   const [allyChampion, setAllyChampion] = useState<Champion | null>(null);
@@ -298,6 +320,7 @@ function SimulatorInner({
     Record<string, number>
   >({ P: 0, Q: 1, W: 1, E: 1, R: 1 });
   const [allyAACounts, setAllyAACounts] = useState(1);
+  const [allyCritCount, setAllyCritCount] = useState(0);
   const [allySummoners, setAllySummoners] = useState<
     [SummonerSpell | null, SummonerSpell | null]
   >([null, null]);
@@ -305,17 +328,23 @@ function SimulatorInner({
     [boolean, boolean]
   >([false, false]);
   const [allyItemActiveToggles, setAllyItemActiveToggles] = useState<
-    Record<string, boolean>
+    Record<string, number>
   >({});
   const [allyOnHitToggles, setAllyOnHitToggles] = useState<
     Record<string, boolean>
   >({});
+  const [allyItemStacks, setAllyItemStacks] = useState<Record<string, number>>({});
+  const [allyHealCharges, setAllyHealCharges] = useState<Record<string, number>>({});
   const [allyComboPassiveValues, setAllyComboPassiveValues] = useState<
     Record<string, number>
   >({});
   const [allyFormGroup, setAllyFormGroup] = useState<string>('');
   const [allySylasRChampId, setAllySylasRChampId] = useState<string | null>(null);
   const [allySylasRSkill, setAllySylasRSkill] = useState<SkillData | null>(null);
+
+  // Target HP % for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
+  const [allyTargetHpPercent, setAllyTargetHpPercent] = useState(100);
+  const [enemyTargetHpPercent, setEnemyTargetHpPercent] = useState(100);
 
   // Enemy state
   const [enemyChampion, setEnemyChampion] = useState<Champion | null>(null);
@@ -356,6 +385,7 @@ function SimulatorInner({
     Record<string, number>
   >({ P: 0, Q: 1, W: 1, E: 1, R: 1 });
   const [enemyAACounts, setEnemyAACounts] = useState(1);
+  const [enemyCritCount, setEnemyCritCount] = useState(0);
   const [enemySummoners, setEnemySummoners] = useState<
     [SummonerSpell | null, SummonerSpell | null]
   >([null, null]);
@@ -363,11 +393,13 @@ function SimulatorInner({
     [boolean, boolean]
   >([false, false]);
   const [enemyItemActiveToggles, setEnemyItemActiveToggles] = useState<
-    Record<string, boolean>
+    Record<string, number>
   >({});
   const [enemyOnHitToggles, setEnemyOnHitToggles] = useState<
     Record<string, boolean>
   >({});
+  const [enemyItemStacks, setEnemyItemStacks] = useState<Record<string, number>>({});
+  const [enemyHealCharges, setEnemyHealCharges] = useState<Record<string, number>>({});
   const [enemyComboPassiveValues, setEnemyComboPassiveValues] = useState<
     Record<string, number>
   >({});
@@ -554,6 +586,7 @@ function SimulatorInner({
     setAllyGenericBonuses(DEFAULT_GENERIC_BONUSES);
     setAllyComboCounts({ P: 0, Q: 1, W: 1, E: 1, R: 1 });
     setAllyAACounts(1);
+    setAllyCritCount(0);
     setAllySummoners([null, null]);
     setAllySummonerActive([false, false]);
     setAllyItemActiveToggles({});
@@ -573,6 +606,7 @@ function SimulatorInner({
     setEnemyGenericBonuses(DEFAULT_GENERIC_BONUSES);
     setEnemyComboCounts({ P: 0, Q: 1, W: 1, E: 1, R: 1 });
     setEnemyAACounts(1);
+    setEnemyCritCount(0);
     setEnemySummoners([null, null]);
     setEnemySummonerActive([false, false]);
     setEnemyItemActiveToggles({});
@@ -619,9 +653,9 @@ function SimulatorInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enemyChampion?.id]);
 
-  // Fetch DDragon champion detail for spell/passive images
+  // Fetch DDragon champion detail for spell/passive images (refetch when locale changes)
   useEffect(() => {
-    if (!allyChampion || allyChampion.spells.length > 0) return;
+    if (!allyChampion) return;
     let cancelled = false;
     const ddLocale = locale === "ja" ? "ja_JP" : "en_US";
     getChampionDetail(version, allyChampion.id, ddLocale)
@@ -639,10 +673,10 @@ function SimulatorInner({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allyChampion?.id, version]);
+  }, [allyChampion?.id, version, locale]);
 
   useEffect(() => {
-    if (!enemyChampion || enemyChampion.spells.length > 0) return;
+    if (!enemyChampion) return;
     let cancelled = false;
     const ddLocale = locale === "ja" ? "ja_JP" : "en_US";
     getChampionDetail(version, enemyChampion.id, ddLocale)
@@ -660,7 +694,7 @@ function SimulatorInner({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enemyChampion?.id, version]);
+  }, [enemyChampion?.id, version, locale]);
 
   // Reset bonus values when champion changes
   useEffect(() => {
@@ -710,8 +744,8 @@ function SimulatorInner({
 
   // Champions list for Sylas R selector
   const championsForSylasR = useMemo(() => {
-    return champions.map(c => ({ id: c.id, name: c.name, image: c.image }));
-  }, [champions]);
+    return champions.map(c => ({ id: c.id, name: getChampionDisplayName(c), image: c.image }));
+  }, [champions, getChampionDisplayName]);
 
   // Effective skills with Sylas R replacement
   const allyEffectiveSkills = useMemo(() => {
@@ -736,6 +770,17 @@ function SimulatorInner({
   }, [enemyChampion]);
 
   const runeBonusList = useMemo(() => getRuneBonuses(), []);
+
+  // Item-based bonuses (Heartsteel, Hubris, etc.)
+  const allyItemBonuses = useMemo<ChampionBonusDefinition[]>(() => {
+    const ids = allyItems.filter((id): id is string => id !== null);
+    return getItemBonuses(ids);
+  }, [allyItems]);
+
+  const enemyItemBonuses = useMemo<ChampionBonusDefinition[]>(() => {
+    const ids = enemyItems.filter((id): id is string => id !== null);
+    return getItemBonuses(ids);
+  }, [enemyItems]);
 
   // Combo passives
   const allyComboPassives = useMemo<ChampionComboPassive[]>(() => {
@@ -779,54 +824,6 @@ function SimulatorInner({
     return result;
   }, [enemyComboPassives, enemyComboPassiveValues, enemyLevel]);
 
-  // Compute merged bonus stats (includes combo passive stat bonuses)
-  const allyMergedBonusStats = useMemo<BonusStats>(() => {
-    const allBonuses = [...allyChampionBonuses, ...runeBonusList];
-    const base = computeBonusStats(
-      allBonuses,
-      allyBonusValues,
-      allyGenericBonuses,
-      allyLevel,
-    );
-    // Merge combo passive stat bonuses
-    for (const [k, v] of Object.entries(allyComboPassiveStatBonus)) {
-      if (v)
-        (base as Record<string, number>)[k] =
-          ((base as Record<string, number>)[k] ?? 0) + (v as number);
-    }
-    return base;
-  }, [
-    allyChampionBonuses,
-    runeBonusList,
-    allyBonusValues,
-    allyGenericBonuses,
-    allyLevel,
-    allyComboPassiveStatBonus,
-  ]);
-
-  const enemyMergedBonusStats = useMemo<BonusStats>(() => {
-    const allBonuses = [...enemyChampionBonuses, ...runeBonusList];
-    const base = computeBonusStats(
-      allBonuses,
-      enemyBonusValues,
-      enemyGenericBonuses,
-      enemyLevel,
-    );
-    for (const [k, v] of Object.entries(enemyComboPassiveStatBonus)) {
-      if (v)
-        (base as Record<string, number>)[k] =
-          ((base as Record<string, number>)[k] ?? 0) + (v as number);
-    }
-    return base;
-  }, [
-    enemyChampionBonuses,
-    runeBonusList,
-    enemyBonusValues,
-    enemyGenericBonuses,
-    enemyLevel,
-    enemyComboPassiveStatBonus,
-  ]);
-
   // Stable callback handlers (functional setState to avoid closure over stale state)
   const handleAllySummonerChange = useCallback((idx: number, spell: SummonerSpell | null) => {
     setAllySummoners(prev => {
@@ -842,8 +839,8 @@ function SimulatorInner({
       return next;
     });
   }, []);
-  const handleAllyItemActiveToggle = useCallback((itemId: string, active: boolean) => {
-    setAllyItemActiveToggles(prev => ({ ...prev, [itemId]: active }));
+  const handleAllyItemActiveToggle = useCallback((itemId: string, count: number) => {
+    setAllyItemActiveToggles(prev => ({ ...prev, [itemId]: count }));
   }, []);
   const handleAllyOnHitToggle = useCallback((itemId: string, active: boolean) => {
     setAllyOnHitToggles(prev => ({ ...prev, [itemId]: active }));
@@ -879,8 +876,8 @@ function SimulatorInner({
       return next;
     });
   }, []);
-  const handleEnemyItemActiveToggle = useCallback((itemId: string, active: boolean) => {
-    setEnemyItemActiveToggles(prev => ({ ...prev, [itemId]: active }));
+  const handleEnemyItemActiveToggle = useCallback((itemId: string, count: number) => {
+    setEnemyItemActiveToggles(prev => ({ ...prev, [itemId]: count }));
   }, []);
   const handleEnemyOnHitToggle = useCallback((itemId: string, active: boolean) => {
     setEnemyOnHitToggles(prev => ({ ...prev, [itemId]: active }));
@@ -938,6 +935,116 @@ function SimulatorInner({
     return getItemActiveEffects(ids);
   }, [enemyItems]);
 
+  // Stackable items (Dark Seal, Mejai's, Yuntal)
+  const allyStackableItems = useMemo(() => {
+    const ids = allyItems.filter((id): id is string => id !== null);
+    return getItemStackBonuses(ids);
+  }, [allyItems]);
+
+  const enemyStackableItems = useMemo(() => {
+    const ids = enemyItems.filter((id): id is string => id !== null);
+    return getItemStackBonuses(ids);
+  }, [enemyItems]);
+
+  // Heal effects (potions)
+  const allyHealEffects = useMemo(() => {
+    const ids = allyItems.filter((id): id is string => id !== null);
+    return getItemHealEffects(ids);
+  }, [allyItems]);
+
+  const enemyHealEffects = useMemo(() => {
+    const ids = enemyItems.filter((id): id is string => id !== null);
+    return getItemHealEffects(ids);
+  }, [enemyItems]);
+
+  // Compute item stack stat bonuses
+  const allyItemStackStatBonus = useMemo<BonusStats>(() => {
+    const result: BonusStats = {};
+    for (const sb of allyStackableItems) {
+      const stacks = allyItemStacks[sb.itemId] ?? 0;
+      if (stacks <= 0) continue;
+      const bonus = sb.statBonus(stacks);
+      for (const [k, v] of Object.entries(bonus)) {
+        if (v) (result as Record<string, number>)[k] = ((result as Record<string, number>)[k] ?? 0) + v;
+      }
+    }
+    return result;
+  }, [allyStackableItems, allyItemStacks]);
+
+  const enemyItemStackStatBonus = useMemo<BonusStats>(() => {
+    const result: BonusStats = {};
+    for (const sb of enemyStackableItems) {
+      const stacks = enemyItemStacks[sb.itemId] ?? 0;
+      if (stacks <= 0) continue;
+      const bonus = sb.statBonus(stacks);
+      for (const [k, v] of Object.entries(bonus)) {
+        if (v) (result as Record<string, number>)[k] = ((result as Record<string, number>)[k] ?? 0) + v;
+      }
+    }
+    return result;
+  }, [enemyStackableItems, enemyItemStacks]);
+
+  // Compute merged bonus stats (includes combo passive stat bonuses + item stack bonuses)
+  const allyMergedBonusStats = useMemo<BonusStats>(() => {
+    const allBonuses = [...allyChampionBonuses, ...runeBonusList, ...allyItemBonuses];
+    const base = computeBonusStats(
+      allBonuses,
+      allyBonusValues,
+      allyGenericBonuses,
+      allyLevel,
+    );
+    for (const [k, v] of Object.entries(allyComboPassiveStatBonus)) {
+      if (v)
+        (base as Record<string, number>)[k] =
+          ((base as Record<string, number>)[k] ?? 0) + (v as number);
+    }
+    for (const [k, v] of Object.entries(allyItemStackStatBonus)) {
+      if (v)
+        (base as Record<string, number>)[k] =
+          ((base as Record<string, number>)[k] ?? 0) + (v as number);
+    }
+    return base;
+  }, [
+    allyChampionBonuses,
+    runeBonusList,
+    allyItemBonuses,
+    allyBonusValues,
+    allyGenericBonuses,
+    allyLevel,
+    allyComboPassiveStatBonus,
+    allyItemStackStatBonus,
+  ]);
+
+  const enemyMergedBonusStats = useMemo<BonusStats>(() => {
+    const allBonuses = [...enemyChampionBonuses, ...runeBonusList, ...enemyItemBonuses];
+    const base = computeBonusStats(
+      allBonuses,
+      enemyBonusValues,
+      enemyGenericBonuses,
+      enemyLevel,
+    );
+    for (const [k, v] of Object.entries(enemyComboPassiveStatBonus)) {
+      if (v)
+        (base as Record<string, number>)[k] =
+          ((base as Record<string, number>)[k] ?? 0) + (v as number);
+    }
+    for (const [k, v] of Object.entries(enemyItemStackStatBonus)) {
+      if (v)
+        (base as Record<string, number>)[k] =
+          ((base as Record<string, number>)[k] ?? 0) + (v as number);
+    }
+    return base;
+  }, [
+    enemyChampionBonuses,
+    runeBonusList,
+    enemyItemBonuses,
+    enemyBonusValues,
+    enemyGenericBonuses,
+    enemyLevel,
+    enemyComboPassiveStatBonus,
+    enemyItemStackStatBonus,
+  ]);
+
   // Compute stats
   const allyShards = useMemo(
     () => resolveStatShards(allyRunes, allyLevel),
@@ -988,6 +1095,17 @@ function SimulatorInner({
     enemyMergedBonusStats,
   ]);
 
+  // Lifeline shields (Maw, Sterak's, Shieldbow)
+  const allyLifelineShield = useMemo(() => {
+    const ids = allyItems.filter((id): id is string => id !== null);
+    return getLifelineShield(ids, allyStats, allyLevel)?.shield ?? 0;
+  }, [allyItems, allyStats, allyLevel]);
+
+  const enemyLifelineShield = useMemo(() => {
+    const ids = enemyItems.filter((id): id is string => id !== null);
+    return getLifelineShield(ids, enemyStats, enemyLevel)?.shield ?? 0;
+  }, [enemyItems, enemyStats, enemyLevel]);
+
   // On-hit effects filtered by toggle state (only enabled on-hit items are used in damage calc)
   const allyEnabledOnHitEffects = useMemo(() => {
     return allyOnHitEffects.filter((e) => allyOnHitToggles[e.itemId] ?? false);
@@ -1016,6 +1134,8 @@ function SimulatorInner({
       enemyStats,
       allyLevel,
       allyAAOnHitEffects,
+      allyCritCount > 0 ? allyCritCount : undefined,
+      allyCritCount > 0 ? allyAACounts : undefined,
     );
   }, [
     allyChampion,
@@ -1024,6 +1144,8 @@ function SimulatorInner({
     enemyStats,
     allyLevel,
     allyAAOnHitEffects,
+    allyCritCount,
+    allyAACounts,
   ]);
 
   // Damage calculations: enemy -> ally
@@ -1034,6 +1156,8 @@ function SimulatorInner({
       allyStats,
       enemyLevel,
       enemyAAOnHitEffects,
+      enemyCritCount > 0 ? enemyCritCount : undefined,
+      enemyCritCount > 0 ? enemyAACounts : undefined,
     );
   }, [
     allyChampion,
@@ -1042,6 +1166,8 @@ function SimulatorInner({
     enemyStats,
     enemyLevel,
     enemyAAOnHitEffects,
+    enemyCritCount,
+    enemyAACounts,
   ]);
 
   // DPS
@@ -1082,6 +1208,10 @@ function SimulatorInner({
   // Skill damages: ally -> enemy (including sub-casts, filtered by formGroup)
   const allySkillDamages = useMemo<SkillDamageResult[]>(() => {
     if (!allyChampion || !enemyChampion || allyEffectiveSkills.length === 0) return [];
+    // Adjust target HP for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
+    const adjustedEnemyStats = allyTargetHpPercent < 100
+      ? { ...enemyStats, hp: enemyStats.maxHp * (allyTargetHpPercent / 100) }
+      : enemyStats;
     const results: SkillDamageResult[] = [];
     for (const skill of allyEffectiveSkills) {
       if (skill.key === "P") continue;
@@ -1110,7 +1240,7 @@ function SimulatorInner({
               rank,
               skill.maxRank,
               allyStats,
-              enemyStats,
+              adjustedEnemyStats,
               allyLevel,
               distMult,
             ),
@@ -1121,7 +1251,7 @@ function SimulatorInner({
           skill,
           rank,
           allyStats,
-          enemyStats,
+          adjustedEnemyStats,
           allyLevel,
         );
         result.skillNameJa = getSpellNameJa(allyChampion, skill.key);
@@ -1139,12 +1269,17 @@ function SimulatorInner({
     allyLevel,
     allyDistanceMultipliers,
     allyFormGroup,
+    allyTargetHpPercent,
     getSpellNameJa,
   ]);
 
   // Skill damages: enemy -> ally (including sub-casts)
   const enemySkillDamages = useMemo<SkillDamageResult[]>(() => {
     if (!allyChampion || !enemyChampion || enemyEffectiveSkills.length === 0) return [];
+    // Adjust target HP for skill damage display
+    const adjustedAllyStats = enemyTargetHpPercent < 100
+      ? { ...allyStats, hp: allyStats.maxHp * (enemyTargetHpPercent / 100) }
+      : allyStats;
     const results: SkillDamageResult[] = [];
     for (const skill of enemyEffectiveSkills) {
       if (skill.key === "P") continue;
@@ -1172,7 +1307,7 @@ function SimulatorInner({
               rank,
               skill.maxRank,
               enemyStats,
-              allyStats,
+              adjustedAllyStats,
               enemyLevel,
               distMult,
             ),
@@ -1183,7 +1318,7 @@ function SimulatorInner({
           skill,
           rank,
           enemyStats,
-          allyStats,
+          adjustedAllyStats,
           enemyLevel,
         );
         result.skillNameJa = getSpellNameJa(enemyChampion, skill.key);
@@ -1201,6 +1336,7 @@ function SimulatorInner({
     enemyLevel,
     enemyDistanceMultipliers,
     enemyFormGroup,
+    enemyTargetHpPercent,
   ]);
 
   // Passive damage: ally -> enemy
@@ -1259,14 +1395,15 @@ function SimulatorInner({
     if (!allyChampion || !enemyChampion) return 0;
     let total = 0;
     for (const effect of allyItemActives) {
-      if (allyItemActiveToggles[effect.itemId]) {
+      const count = allyItemActiveToggles[effect.itemId] ?? 0;
+      if (count > 0) {
         const result = calcItemActiveDamage(
           effect,
           allyStats,
           enemyStats,
           allyLevel,
         );
-        total += result.effectiveDamage;
+        total += result.effectiveDamage * count;
       }
     }
     return total;
@@ -1284,14 +1421,15 @@ function SimulatorInner({
     if (!allyChampion || !enemyChampion) return 0;
     let total = 0;
     for (const effect of enemyItemActives) {
-      if (enemyItemActiveToggles[effect.itemId]) {
+      const count = enemyItemActiveToggles[effect.itemId] ?? 0;
+      if (count > 0) {
         const result = calcItemActiveDamage(
           effect,
           enemyStats,
           allyStats,
           enemyLevel,
         );
-        total += result.effectiveDamage;
+        total += result.effectiveDamage * count;
       }
     }
     return total;
@@ -1304,6 +1442,25 @@ function SimulatorInner({
     allyStats,
     enemyLevel,
   ]);
+
+  // Potion healing totals
+  const allyHealTotal = useMemo(() => {
+    let total = 0;
+    for (const effect of allyHealEffects) {
+      const charges = allyHealCharges[effect.itemId] ?? 0;
+      total += charges * effect.healPerCharge;
+    }
+    return total;
+  }, [allyHealEffects, allyHealCharges]);
+
+  const enemyHealTotal = useMemo(() => {
+    let total = 0;
+    for (const effect of enemyHealEffects) {
+      const charges = enemyHealCharges[effect.itemId] ?? 0;
+      total += charges * effect.healPerCharge;
+    }
+    return total;
+  }, [enemyHealEffects, enemyHealCharges]);
 
   // Spellblade damage per proc (computed once for combo calculations)
   const allySpellbladeProc = useMemo(() => {
@@ -1476,19 +1633,23 @@ function SimulatorInner({
   const allyComboDamage = useMemo(() => {
     let total =
       (allyAADamage.total + allyComboPassiveOnHitPerAA) * allyAACounts;
-    total += allyComboPassiveOnHitPerCombo; // perCombo passives (e.g. Jax R passive) — already multiplied by proc count
+    total += allyComboPassiveOnHitPerCombo;
     let skillUses = 0;
+    // Phase 1: non-missing-HP skills
+    const missingHpSkills: { sd: SkillDamageResult; count: number }[] = [];
     for (const sd of allySkillDamages) {
       const comboKey = sd.subCastId ?? sd.skillKey;
       const count = allyComboCounts[comboKey] ?? 0;
+      skillUses += count;
+      if (sd.hasMissingHpScaling && count > 0) {
+        missingHpSkills.push({ sd, count });
+        continue;
+      }
       let skillDmg = sd.totalAfterResist;
-      // Add combo passive skill bonus (e.g. Nasus Q stacks)
-      const skillBonusKey = sd.subCastId ? sd.skillKey : sd.skillKey;
-      if (allyComboPassiveSkillBonuses[skillBonusKey]) {
-        skillDmg += allyComboPassiveSkillBonuses[skillBonusKey];
+      if (allyComboPassiveSkillBonuses[sd.skillKey]) {
+        skillDmg += allyComboPassiveSkillBonuses[sd.skillKey];
       }
       total += skillDmg * count;
-      skillUses += count;
     }
     if (allyPassiveDamage) {
       total += allyPassiveDamage.totalAfterResist * (allyComboCounts["P"] ?? 0);
@@ -1498,6 +1659,16 @@ function SimulatorInner({
     }
     total += allySummonerDamage;
     total += allyItemActiveDamage;
+    // Phase 2: missing-HP skills (calculated with prior damage reducing target HP)
+    for (const { sd, count } of missingHpSkills) {
+      let skillDmg = recalcMissingHpSkillDamage(
+        sd, total, enemyStats.maxHp, enemyStats.hp, allyStats, enemyStats, allyLevel,
+      );
+      if (allyComboPassiveSkillBonuses[sd.skillKey]) {
+        skillDmg += allyComboPassiveSkillBonuses[sd.skillKey];
+      }
+      total += skillDmg * count;
+    }
     return total;
   }, [
     allyAADamage,
@@ -1511,33 +1682,48 @@ function SimulatorInner({
     allyComboPassiveOnHitPerAA,
     allyComboPassiveOnHitPerCombo,
     allyComboPassiveSkillBonuses,
+    allyStats,
+    enemyStats,
+    allyLevel,
   ]);
 
   const enemyComboDamage = useMemo(() => {
     let total =
       (enemyAADamage.total + enemyComboPassiveOnHitPerAA) * enemyAACounts;
-    total += enemyComboPassiveOnHitPerCombo; // perCombo passives — already multiplied by proc count
+    total += enemyComboPassiveOnHitPerCombo;
     let skillUses = 0;
+    const missingHpSkills: { sd: SkillDamageResult; count: number }[] = [];
     for (const sd of enemySkillDamages) {
       const comboKey = sd.subCastId ?? sd.skillKey;
       const count = enemyComboCounts[comboKey] ?? 0;
+      skillUses += count;
+      if (sd.hasMissingHpScaling && count > 0) {
+        missingHpSkills.push({ sd, count });
+        continue;
+      }
       let skillDmg = sd.totalAfterResist;
-      const skillBonusKey = sd.subCastId ? sd.skillKey : sd.skillKey;
-      if (enemyComboPassiveSkillBonuses[skillBonusKey]) {
-        skillDmg += enemyComboPassiveSkillBonuses[skillBonusKey];
+      if (enemyComboPassiveSkillBonuses[sd.skillKey]) {
+        skillDmg += enemyComboPassiveSkillBonuses[sd.skillKey];
       }
       total += skillDmg * count;
-      skillUses += count;
     }
     if (enemyPassiveDamage) {
-      total +=
-        enemyPassiveDamage.totalAfterResist * (enemyComboCounts["P"] ?? 0);
+      total += enemyPassiveDamage.totalAfterResist * (enemyComboCounts["P"] ?? 0);
     }
     if (enemySpellbladeProc > 0) {
       total += enemySpellbladeProc * Math.min(skillUses, enemyAACounts);
     }
     total += enemySummonerDamage;
     total += enemyItemActiveDamage;
+    for (const { sd, count } of missingHpSkills) {
+      let skillDmg = recalcMissingHpSkillDamage(
+        sd, total, allyStats.maxHp, allyStats.hp, enemyStats, allyStats, enemyLevel,
+      );
+      if (enemyComboPassiveSkillBonuses[sd.skillKey]) {
+        skillDmg += enemyComboPassiveSkillBonuses[sd.skillKey];
+      }
+      total += skillDmg * count;
+    }
     return total;
   }, [
     enemyAADamage,
@@ -1551,6 +1737,9 @@ function SimulatorInner({
     enemyComboPassiveOnHitPerAA,
     enemyComboPassiveOnHitPerCombo,
     enemyComboPassiveSkillBonuses,
+    enemyStats,
+    allyStats,
+    enemyLevel,
   ]);
 
   // HP bar damage segments (combo-count-based)
@@ -1822,7 +2011,7 @@ function SimulatorInner({
                 >
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${allyChampion.image}`}
-                    alt={allyChampion.name}
+                    alt={getChampionDisplayName(allyChampion)}
                     width={48}
                     height={48}
                     className=" border border-blue-500/50"
@@ -1836,7 +2025,7 @@ function SimulatorInner({
                 </span>
                 {allyChampion && (
                   <span className="text-xs text-zinc-400">
-                    {allyChampion.name}
+                    {getChampionDisplayName(allyChampion)}
                   </span>
                 )}
               </div>
@@ -1849,6 +2038,7 @@ function SimulatorInner({
               onDeselect={() => setAllyChampion(null)}
               locale={locale}
               version={version}
+              enChampionNames={enChampionNames}
             />
             <LevelSlider
               level={allyLevel}
@@ -1884,6 +2074,12 @@ function SimulatorInner({
                 onItemActiveToggle={handleAllyItemActiveToggle}
                 onOnHitToggle={handleAllyOnHitToggle}
                 onComboPassiveChange={handleAllyComboPassiveChange}
+                itemStackBonuses={allyStackableItems}
+                itemStacks={allyItemStacks}
+                onItemStackChange={(itemId, stacks) => setAllyItemStacks(prev => ({ ...prev, [itemId]: stacks }))}
+                itemHealEffects={allyHealEffects}
+                itemHealCharges={allyHealCharges}
+                onItemHealToggle={(itemId, charges) => setAllyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
               />
             )}
             <ItemShop
@@ -1892,6 +2088,7 @@ function SimulatorInner({
               onItemChange={handleAllyItemChange}
               locale={locale}
               version={version}
+              enItemData={enItemData}
             />
             <CollapsibleSection title={locale === "ja" ? "ルーン" : "Runes"}>
               <RuneSelector
@@ -1906,6 +2103,7 @@ function SimulatorInner({
               <BonusStatsPanel
                 championBonuses={allyChampionBonuses}
                 runeBonuses={runeBonusList}
+                itemBonuses={allyItemBonuses}
                 bonusValues={allyBonusValues}
                 genericBonuses={allyGenericBonuses}
                 onBonusChange={handleAllyBonusChange}
@@ -1914,7 +2112,7 @@ function SimulatorInner({
               />
             )}
 
-            <StatsPanel stats={allyStats} locale={locale} />
+            <StatsPanel stats={allyStats} locale={locale} aaCounts={allyAACounts} critHitCount={allyCritCount} onCritHitCountChange={setAllyCritCount} />
 
             {allyChampion && allyEffectiveSkills.length > 0 && enemyChampion && (
               <CollapsibleSection
@@ -1938,6 +2136,8 @@ function SimulatorInner({
                   }
                   version={version}
                   locale={locale}
+                  targetHpPercent={allyTargetHpPercent}
+                  onTargetHpPercentChange={setAllyTargetHpPercent}
                 />
               </CollapsibleSection>
             )}
@@ -1956,17 +2156,19 @@ function SimulatorInner({
                 <div className="w-full lol-card p-3 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                     <span className="text-blue-400 font-medium">
-                      {allyChampion.name}
+                      {getChampionDisplayName(allyChampion)}
                     </span>
                     <span>→</span>
                     <span className="text-red-400 font-medium">
-                      {enemyChampion.name}
+                      {getChampionDisplayName(enemyChampion)}
                     </span>
                   </div>
                   <HPBar
                     maxHP={enemyStats.maxHp}
                     damageSegments={allyDamageToEnemy}
-                    label={`${enemyChampion.name} HP`}
+                    shieldAmount={enemyLifelineShield}
+                    healAmount={enemyHealTotal}
+                    label={`${getChampionDisplayName(enemyChampion)} HP`}
                     locale={locale}
                   />
                 </div>
@@ -1986,17 +2188,19 @@ function SimulatorInner({
                 <div className="w-full lol-card p-3 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                     <span className="text-red-400 font-medium">
-                      {enemyChampion.name}
+                      {getChampionDisplayName(enemyChampion)}
                     </span>
                     <span>→</span>
                     <span className="text-blue-400 font-medium">
-                      {allyChampion.name}
+                      {getChampionDisplayName(allyChampion)}
                     </span>
                   </div>
                   <HPBar
                     maxHP={allyStats.maxHp}
                     damageSegments={enemyDamageToAlly}
-                    label={`${allyChampion.name} HP`}
+                    shieldAmount={allyLifelineShield}
+                    healAmount={allyHealTotal}
+                    label={`${getChampionDisplayName(allyChampion)} HP`}
                     locale={locale}
                   />
                 </div>
@@ -2057,7 +2261,7 @@ function SimulatorInner({
                 >
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${enemyChampion.image}`}
-                    alt={enemyChampion.name}
+                    alt={getChampionDisplayName(enemyChampion)}
                     width={48}
                     height={48}
                     className=" border border-red-500/50"
@@ -2071,7 +2275,7 @@ function SimulatorInner({
                 </span>
                 {enemyChampion && (
                   <span className="text-xs text-zinc-400">
-                    {enemyChampion.name}
+                    {getChampionDisplayName(enemyChampion)}
                   </span>
                 )}
               </div>
@@ -2084,6 +2288,7 @@ function SimulatorInner({
               onDeselect={() => setEnemyChampion(null)}
               locale={locale}
               version={version}
+              enChampionNames={enChampionNames}
             />
             <LevelSlider
               level={enemyLevel}
@@ -2119,6 +2324,12 @@ function SimulatorInner({
                 onItemActiveToggle={handleEnemyItemActiveToggle}
                 onOnHitToggle={handleEnemyOnHitToggle}
                 onComboPassiveChange={handleEnemyComboPassiveChange}
+                itemStackBonuses={enemyStackableItems}
+                itemStacks={enemyItemStacks}
+                onItemStackChange={(itemId, stacks) => setEnemyItemStacks(prev => ({ ...prev, [itemId]: stacks }))}
+                itemHealEffects={enemyHealEffects}
+                itemHealCharges={enemyHealCharges}
+                onItemHealToggle={(itemId, charges) => setEnemyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
               />
             )}
             <ItemShop
@@ -2127,6 +2338,7 @@ function SimulatorInner({
               onItemChange={handleEnemyItemChange}
               locale={locale}
               version={version}
+              enItemData={enItemData}
             />
             <CollapsibleSection title={locale === "ja" ? "ルーン" : "Runes"}>
               <RuneSelector
@@ -2141,6 +2353,7 @@ function SimulatorInner({
               <BonusStatsPanel
                 championBonuses={enemyChampionBonuses}
                 runeBonuses={runeBonusList}
+                itemBonuses={enemyItemBonuses}
                 bonusValues={enemyBonusValues}
                 genericBonuses={enemyGenericBonuses}
                 onBonusChange={handleEnemyBonusChange}
@@ -2149,7 +2362,7 @@ function SimulatorInner({
               />
             )}
 
-            <StatsPanel stats={enemyStats} locale={locale} />
+            <StatsPanel stats={enemyStats} locale={locale} aaCounts={enemyAACounts} critHitCount={enemyCritCount} onCritHitCountChange={setEnemyCritCount} />
 
             {enemyChampion && enemyEffectiveSkills.length > 0 && allyChampion && (
               <CollapsibleSection
@@ -2173,6 +2386,8 @@ function SimulatorInner({
                   }
                   version={version}
                   locale={locale}
+                  targetHpPercent={enemyTargetHpPercent}
+                  onTargetHpPercentChange={setEnemyTargetHpPercent}
                 />
               </CollapsibleSection>
             )}
