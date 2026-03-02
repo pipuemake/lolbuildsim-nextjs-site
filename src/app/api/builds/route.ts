@@ -32,7 +32,8 @@ export async function GET(request: Request) {
   const { data: builds, count, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to fetch builds:", error);
+    return NextResponse.json({ error: "Failed to fetch builds" }, { status: 500 });
   }
 
   const userIds = [...new Set((builds ?? []).map((b) => b.user_id))];

@@ -7,10 +7,12 @@ function PrivacyContent() {
   const { t } = useLocale();
 
   const sections = [
+    { title: t("privacy.auth.title"), body: t("privacy.auth.body") },
     { title: t("privacy.ads.title"), body: t("privacy.ads.body") },
     { title: t("privacy.cookies.title"), body: t("privacy.cookies.body") },
     { title: t("privacy.thirdParty.title"), body: t("privacy.thirdParty.body") },
     { title: t("privacy.personalInfo.title"), body: t("privacy.personalInfo.body") },
+    { title: t("privacy.dataDeletion.title"), body: t("privacy.dataDeletion.body") },
     { title: t("privacy.changes.title"), body: t("privacy.changes.body") },
   ];
 

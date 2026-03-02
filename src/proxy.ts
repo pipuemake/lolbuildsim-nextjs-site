@@ -1,7 +1,19 @@
 import { updateSession } from '@/lib/supabase/middleware';
-import { type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  // CSRF protection: reject cross-origin mutations to API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const method = request.method.toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      const origin = request.headers.get('origin');
+      const host = request.headers.get('host');
+      if (origin && host && !origin.endsWith(host)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+  }
+
   return await updateSession(request);
 }
 

@@ -233,11 +233,15 @@ export const en: Record<string, string> = {
   "privacy.cookies.body": "This site may use cookies to improve usability and for access analysis. Cookies are small text files stored in your browser and do not contain personally identifiable information. You can refuse to accept cookies through your browser settings, but some features may be limited. Build configuration data is stored in local storage on your device only and is not transmitted externally.",
   "privacy.thirdParty.title": "Third-Party Advertising",
   "privacy.thirdParty.body": "Third-party ad networks may use technologies such as cookies and web beacons to serve ads based on your interests, using information about your visits to websites (not including name, address, email, or phone number). Please refer to each advertiser's privacy policy for details.",
+  "privacy.auth.title": "User Authentication",
+  "privacy.auth.body": "This site offers OAuth authentication via Google or Discord accounts to enable build publishing and bookmark features. Information collected during authentication is limited to display name, email address, and profile image URL. This information is used solely for displaying build authorship and is not shared with third parties. Authentication data is securely stored in Supabase (database service). If you wish to delete your account, please contact us through the contact page.",
   "privacy.personalInfo.title": "Handling of Personal Information",
   "privacy.personalInfo.body": "This site may request personal information such as email addresses when you contact us. Collected personal information is used solely to respond to inquiries and will not be provided or disclosed to third parties, except as required by law. We take all appropriate security measures to manage personal information with the utmost care.",
+  "privacy.dataDeletion.title": "Data Deletion",
+  "privacy.dataDeletion.body": "Users can delete their published builds and bookmarks at any time. If you wish to delete your account entirely, please contact us through the contact page. Upon account deletion, all associated data (published builds, bookmarks, profile information) will be permanently removed.",
   "privacy.changes.title": "Changes to This Policy",
   "privacy.changes.body": "This site may change this privacy policy as needed. The revised policy becomes effective upon publication on this site.",
-  "privacy.updated": "Last updated: February 2025",
+  "privacy.updated": "Last updated: March 2026",
 
   // Contact page
   "contact.title": "Contact",
