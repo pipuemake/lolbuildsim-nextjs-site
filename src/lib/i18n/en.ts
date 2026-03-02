@@ -2,7 +2,8 @@ export const en: Record<string, string> = {
   // Navigation
   "nav.home": "1v1 Simulator",
   "nav.compare": "Build Compare",
-  "nav.builds": "Builds",
+  "nav.builds": "Build Creator",
+  "nav.championBuilds": "Champion Builds",
   "nav.language": "Language",
 
   // Champion Select
@@ -243,4 +244,50 @@ export const en: Record<string, string> = {
   "contact.body": "For inquiries, bug reports, or feature requests regarding LoL Build Simulator, please feel free to contact us at the email address below.",
   "contact.email": "Email Address",
   "contact.note": "When reporting bugs, please include the champion name, item build, level, and details of the issue for faster resolution. We typically respond within a few days.",
+
+  // Champion Builds
+  "championBuilds.title": "Champion Builds",
+  "championBuilds.search": "Search builds...",
+  "championBuilds.publish": "Publish",
+  "championBuilds.published": "Published",
+  "championBuilds.myBuilds": "My Builds",
+  "championBuilds.delete": "Delete",
+  "championBuilds.bookmark": "Bookmark",
+  "championBuilds.bookmarkFull": "Bookmark limit (20)",
+  "championBuilds.login": "Login to publish",
+  "championBuilds.noResults": "No builds found",
+  "championBuilds.lane": "Lane",
+  "championBuilds.role": "Role",
+  "championBuilds.loadToSim": "Load to Sim",
+  "championBuilds.allBuilds": "All Builds",
+  "championBuilds.bookmarked": "Bookmarked",
+
+  // Lanes
+  "lane.top": "Top",
+  "lane.jg": "Jungle",
+  "lane.mid": "Mid",
+  "lane.bot": "Bot",
+  "lane.sup": "Support",
+  "lane.none": "None",
+
+  // Roles
+  "role.warden": "Warden",
+  "role.vanguard": "Vanguard",
+  "role.juggernaut": "Juggernaut",
+  "role.diver": "Diver",
+  "role.skirmisher": "Skirmisher",
+  "role.assassin": "Assassin",
+  "role.marksman": "Marksman",
+  "role.battlemage": "Battle Mage",
+  "role.burstmage": "Burst Mage",
+  "role.artillery": "Artillery",
+  "role.enchanter": "Enchanter",
+  "role.catcher": "Catcher",
+  "role.specialist": "Specialist",
+  "role.none": "None",
+
+  // Auth
+  "auth.login": "Login",
+  "auth.logout": "Logout",
+  "auth.loginWith": "Login with",
 };

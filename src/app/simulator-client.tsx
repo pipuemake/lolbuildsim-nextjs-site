@@ -70,6 +70,8 @@ import {
 } from "@/lib/data/item-effects";
 import { getChampionComboPassives } from "@/lib/data/champion-combo-effects";
 import { STAT_SHARDS } from "@/lib/data/runes";
+import { SUMMONER_SPELLS } from "@/lib/data/summoner-spells";
+import { getSplashPosition } from "@/lib/data/splash-positions";
 import { decodeBuild } from "@/lib/build-codec";
 import {
   saveSimulatorState,
@@ -468,16 +470,22 @@ function SimulatorInner({
     if (loadInstruction) {
       const champ = champions.find((c) => c.id === loadInstruction.championId);
       if (champ) {
+        const resolvedSpells: [SummonerSpell | null, SummonerSpell | null] = [
+          loadInstruction.spells?.[0] ? SUMMONER_SPELLS.find((s) => s.id === loadInstruction.spells![0]) ?? null : null,
+          loadInstruction.spells?.[1] ? SUMMONER_SPELLS.find((s) => s.id === loadInstruction.spells![1]) ?? null : null,
+        ];
         if (loadInstruction.side === "ally") {
           setAllyChampion(champ);
           setAllyLevel(loadInstruction.level);
           setAllyItems(loadInstruction.items);
           setAllyRunes(loadInstruction.runes);
+          if (loadInstruction.spells) setAllySummoners(resolvedSpells);
         } else {
           setEnemyChampion(champ);
           setEnemyLevel(loadInstruction.level);
           setEnemyItems(loadInstruction.items);
           setEnemyRunes(loadInstruction.runes);
+          if (loadInstruction.spells) setEnemySummoners(resolvedSpells);
         }
       }
       // Restore the OTHER side from localStorage so it doesn't reset
@@ -1928,6 +1936,12 @@ function SimulatorInner({
             >
               {t("nav.builds")}
             </Link>
+            <Link
+              href="/champion-builds"
+              className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              {t("nav.championBuilds")}
+            </Link>
           </nav>
           <div className="flex items-center gap-2">
             <button
@@ -1995,41 +2009,54 @@ function SimulatorInner({
           <div
             className={`space-y-3 animate-fade-up stagger-1 min-w-0 ${mobileTab !== "ally" ? "hidden lg:block" : ""}`}
           >
-            <div className="flex items-center gap-3 px-1">
-              {allyChampion ? (
-                <div
-                  className="relative flex-shrink-0 cursor-pointer"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setAllyChampion(null);
-                  }}
-                  title={
-                    locale === "ja"
-                      ? "右クリックで選択解除"
-                      : "Right-click to deselect"
-                  }
-                >
+            {allyChampion ? (
+              <div
+                className="relative rounded-lg overflow-hidden h-24 cursor-pointer"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setAllyChampion(null);
+                }}
+                title={
+                  locale === "ja"
+                    ? "右クリックで選択解除"
+                    : "Right-click to deselect"
+                }
+              >
+                <img
+                  src={`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${allyChampion.image.replace(".png", "")}_0.jpg`}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: getSplashPosition(allyChampion.id) }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                <div className="relative h-full flex items-center gap-3 px-3 z-10">
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${allyChampion.image}`}
                     alt={getChampionDisplayName(allyChampion)}
-                    width={48}
-                    height={48}
-                    className=" border border-blue-500/50"
+                    width={40}
+                    height={40}
+                    className="rounded border border-blue-500/50"
                     unoptimized
                   />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-blue-400">
+                      {t("ally")}
+                    </span>
+                    <span className="text-sm font-bold text-white drop-shadow-md">
+                      {getChampionDisplayName(allyChampion)}
+                    </span>
+                  </div>
                 </div>
-              ) : null}
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-blue-400 text-xs">
-                  {t("ally")}
-                </span>
-                {allyChampion && (
-                  <span className="text-xs text-zinc-400">
-                    {getChampionDisplayName(allyChampion)}
-                  </span>
-                )}
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 px-1 h-16">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-blue-400">
+                    {t("ally")}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <ChampionSelect
               champions={champions}
@@ -2245,41 +2272,54 @@ function SimulatorInner({
           <div
             className={`space-y-3 animate-fade-up stagger-3 min-w-0 ${mobileTab !== "enemy" ? "hidden lg:block" : ""}`}
           >
-            <div className="flex items-center gap-3 px-1">
-              {enemyChampion ? (
-                <div
-                  className="relative flex-shrink-0 cursor-pointer"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setEnemyChampion(null);
-                  }}
-                  title={
-                    locale === "ja"
-                      ? "右クリックで選択解除"
-                      : "Right-click to deselect"
-                  }
-                >
+            {enemyChampion ? (
+              <div
+                className="relative rounded-lg overflow-hidden h-24 cursor-pointer"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setEnemyChampion(null);
+                }}
+                title={
+                  locale === "ja"
+                    ? "右クリックで選択解除"
+                    : "Right-click to deselect"
+                }
+              >
+                <img
+                  src={`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${enemyChampion.image.replace(".png", "")}_0.jpg`}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: getSplashPosition(enemyChampion.id) }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                <div className="relative h-full flex items-center gap-3 px-3 z-10">
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${enemyChampion.image}`}
                     alt={getChampionDisplayName(enemyChampion)}
-                    width={48}
-                    height={48}
-                    className=" border border-red-500/50"
+                    width={40}
+                    height={40}
+                    className="rounded border border-red-500/50"
                     unoptimized
                   />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-red-400">
+                      {t("enemy")}
+                    </span>
+                    <span className="text-sm font-bold text-white drop-shadow-md">
+                      {getChampionDisplayName(enemyChampion)}
+                    </span>
+                  </div>
                 </div>
-              ) : null}
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-red-400 text-xs">
-                  {t("enemy")}
-                </span>
-                {enemyChampion && (
-                  <span className="text-xs text-zinc-400">
-                    {getChampionDisplayName(enemyChampion)}
-                  </span>
-                )}
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 px-1 h-16">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-red-400">
+                    {t("enemy")}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <ChampionSelect
               champions={champions}
