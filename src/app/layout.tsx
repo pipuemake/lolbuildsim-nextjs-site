@@ -42,6 +42,13 @@ export const metadata: Metadata = {
   title: "LoLビルドシミュ(β版) | LoL Build Sim(Beta)",
   description:
     "League of Legendsのビルドシミュレーター。チャンピオンのステータス、ダメージ計算、DPS、有効HPを日本語で確認できます。",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     title: "LoLビルドシミュ(β版)",
     description:

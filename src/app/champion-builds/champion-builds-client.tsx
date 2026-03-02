@@ -282,7 +282,8 @@ function ChampionBuildsInner({
       {/* Navigation bar */}
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
         <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
-          <nav className="hidden sm:flex gap-1">
+          <nav className="hidden sm:flex gap-1 items-center">
+            <img src="/logo.png" alt="LoL Build Sim" className="w-6 h-6 rounded" />
             <Link
               href="/"
               className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
@@ -301,6 +302,7 @@ function ChampionBuildsInner({
           </nav>
           <div className="flex sm:hidden items-center gap-1">
             <MobileMenu currentPage="championBuilds" locale={locale} />
+            <img src="/logo.png" alt="" className="w-5 h-5 rounded" />
             <span className="text-xs font-medium text-foreground">{t("nav.championBuilds")}</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
