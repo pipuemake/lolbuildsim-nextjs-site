@@ -55,6 +55,7 @@ import {
 import { fetchMerakiChampion, applySkillOverrides } from "@/lib/data/meraki";
 import { getChampionDetail } from "@/lib/data/dragon";
 import { parseChampionDetail } from "@/lib/data/champions";
+import { useDragonData } from "@/lib/data/use-dragon-data";
 import {
   getChampionBonuses,
   getRuneBonuses,
@@ -213,38 +214,12 @@ const EMPTY_DPS: DPSResult = {
 
 const DEFAULT_GENERIC_BONUSES = { ad: 0, ap: 0, hp: 0, armor: 0, mr: 0 };
 
-interface SimulatorClientProps {
-  version: string;
-  champions: Champion[];
-  items: Item[];
-  runePaths: RunePath[];
-  enChampionNames: Record<string, string>;
-  enItemData: Record<string, { name: string; description: string }>;
-  error: string | null;
-}
-
-export function SimulatorClient({
-  version,
-  champions,
-  items,
-  runePaths,
-  enChampionNames,
-  enItemData,
-  error,
-}: SimulatorClientProps) {
+export function SimulatorClient() {
   return (
     <LocaleProvider>
       <TooltipProvider>
         <Suspense>
-          <SimulatorInner
-            version={version}
-            champions={champions}
-            items={items}
-            runePaths={runePaths}
-            enChampionNames={enChampionNames}
-            enItemData={enItemData}
-            error={error}
-          />
+          <SimulatorInner />
         </Suspense>
       </TooltipProvider>
     </LocaleProvider>
@@ -263,15 +238,8 @@ const VS_BADGE = (
   </div>
 );
 
-function SimulatorInner({
-  version,
-  champions,
-  items,
-  runePaths,
-  enChampionNames,
-  enItemData,
-  error,
-}: SimulatorClientProps) {
+function SimulatorInner() {
+  const { version, champions, items, runePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
 
   /** Get display name for a champion respecting locale */
@@ -1900,6 +1868,17 @@ function SimulatorInner({
     );
     return { stats, damageToYou: shots };
   }, [allyStats, gameMinute]);
+
+  if (dragonLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin h-10 w-10 border-4 border-[#C89B3C] border-t-transparent rounded-full mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading game data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

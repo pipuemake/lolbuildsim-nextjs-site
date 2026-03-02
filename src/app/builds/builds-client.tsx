@@ -29,6 +29,7 @@ import { AuthButton, useUser } from "@/components/auth-button";
 import { MobileMenu } from "@/components/mobile-menu";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProfileMap } from "@/lib/supabase/profiles";
+import { useDragonData } from "@/lib/data/use-dragon-data";
 import type { PublishedBuild } from "@/lib/supabase/bookmarks";
 import type {
   Champion,
@@ -200,33 +201,20 @@ function SpellSelector({
   );
 }
 
-interface BuildsClientProps {
-  version: string;
-  champions: Champion[];
-  items: Item[];
-  runePaths: RunePath[];
-  error: string | null;
-}
-
-export function BuildsClient(props: BuildsClientProps) {
+export function BuildsClient() {
   return (
     <LocaleProvider>
       <TooltipProvider>
         <Suspense>
-          <BuildsInner {...props} />
+          <BuildsInner />
         </Suspense>
       </TooltipProvider>
     </LocaleProvider>
   );
 }
 
-function BuildsInner({
-  version,
-  champions,
-  items,
-  runePaths,
-  error,
-}: BuildsClientProps) {
+function BuildsInner() {
+  const { version, champions, items, runePaths, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -533,6 +521,17 @@ function BuildsInner({
     setBuildName(stored.name);
     setEditingBuildId(stored.id);
   };
+
+  if (dragonLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin h-10 w-10 border-4 border-[#C89B3C] border-t-transparent rounded-full mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading game data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
