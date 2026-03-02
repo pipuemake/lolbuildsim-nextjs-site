@@ -10,6 +10,7 @@ import { AuthButton, useUser } from "@/components/auth-button";
 import { MobileMenu } from "@/components/mobile-menu";
 import { createClient } from "@/lib/supabase/client";
 import { setLoadBuildInstruction } from "@/lib/simulator-storage";
+import { useDragonData } from "@/lib/data/use-dragon-data";
 import { SUMMONER_SPELLS } from "@/lib/data/summoner-spells";
 import { championMatchesLane, type Lane } from "@/lib/data/champion-lanes";
 import { getSplashPosition } from "@/lib/data/splash-positions";
@@ -40,33 +41,18 @@ const CHAMP_LANE_LABELS: Record<string, Record<string, string>> = {
   en: { all: "All", TOP: "TOP", JG: "JG", MID: "MID", BOT: "BOT", SUP: "SUP" },
 };
 
-interface ChampionBuildsClientProps {
-  version: string;
-  champions: Champion[];
-  items: Item[];
-  runePaths: RunePath[];
-  enChampionNames: Record<string, string>;
-  error: string | null;
-}
-
-export function ChampionBuildsClient(props: ChampionBuildsClientProps) {
+export function ChampionBuildsClient() {
   return (
     <LocaleProvider>
       <TooltipProvider>
-        <ChampionBuildsInner {...props} />
+        <ChampionBuildsInner />
       </TooltipProvider>
     </LocaleProvider>
   );
 }
 
-function ChampionBuildsInner({
-  version,
-  champions,
-  items,
-  runePaths,
-  enChampionNames,
-  error,
-}: ChampionBuildsClientProps) {
+function ChampionBuildsInner() {
+  const { version, champions, items, runePaths, enChampionNames, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
   const { user } = useUser();
 
@@ -256,6 +242,17 @@ function ChampionBuildsInner({
     }
     return builds;
   }, [builds, activeTab, bookmarkedIds]);
+
+  if (dragonLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin h-10 w-10 border-4 border-[#C89B3C] border-t-transparent rounded-full mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading game data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
