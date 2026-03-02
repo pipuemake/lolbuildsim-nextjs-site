@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Slider } from "@/components/ui/slider";
 import { ComputedStats } from "@/types";
 
 interface StatRow {
@@ -256,25 +257,44 @@ export function StatsPanel({ stats, locale = "ja", aaCounts, critHitCount, onCri
               </div>
             );
           })}
-          {/* Critical hit count slider */}
+          {/* Critical hit count slider — disabled when crit chance is 0% */}
           {aaCounts != null && aaCounts > 0 && onCritHitCountChange && (
-            <div className="pt-2 border-t border-border/60">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-zinc-400">
-                  {isJa ? "クリティカル発動回数" : "Critical Hit Count"}
+            <div className={`pt-2 border-t border-border/60${stats.critChance <= 0 ? ' opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+                  {isJa ? 'クリティカル' : 'Crit'}
                 </span>
-                <span className="text-xs font-medium text-yellow-300 tabular-nums">
-                  {critHitCount ?? 0}/{aaCounts}
-                </span>
+                <Slider
+                  value={[stats.critChance <= 0 ? 0 : (critHitCount ?? 0)]}
+                  onValueChange={([v]) => onCritHitCountChange(v)}
+                  min={0}
+                  max={aaCounts}
+                  step={1}
+                  disabled={stats.critChance <= 0}
+                  className="flex-1 [&_[role=slider]]:bg-yellow-400 [&_[role=slider]]:border-yellow-400 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_.relative]:h-2"
+                />
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-xl font-bold text-zinc-200 w-8 text-center tabular-nums leading-none">
+                    {stats.critChance <= 0 ? 0 : (critHitCount ?? 0)}
+                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      onClick={() => onCritHitCountChange(Math.min(aaCounts, (critHitCount ?? 0) + 1))}
+                      disabled={stats.critChance <= 0}
+                      className="text-[10px] text-zinc-600 hover:text-zinc-300 leading-none transition-colors px-0.5"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => onCritHitCountChange(Math.max(0, (critHitCount ?? 0) - 1))}
+                      disabled={stats.critChance <= 0}
+                      className="text-[10px] text-zinc-600 hover:text-zinc-300 leading-none transition-colors px-0.5"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={aaCounts}
-                value={critHitCount ?? 0}
-                onChange={(e) => onCritHitCountChange(Number(e.target.value))}
-                className="w-full h-1.5 accent-yellow-400"
-              />
             </div>
           )}
         </div>

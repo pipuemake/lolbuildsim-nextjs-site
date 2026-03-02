@@ -2,7 +2,8 @@ export const ja: Record<string, string> = {
   // Navigation
   "nav.home": "1v1 シミュレーター",
   "nav.compare": "ビルド比較",
-  "nav.builds": "ビルド",
+  "nav.builds": "ビルド作成",
+  "nav.championBuilds": "チャンピオンビルド",
   "nav.language": "言語",
 
   // Champion Select
@@ -243,4 +244,50 @@ export const ja: Record<string, string> = {
   "contact.body": "LoL Build Simulator に関するお問い合わせ、バグ報告、ご要望などは以下のメールアドレスまでお気軽にご連絡ください。",
   "contact.email": "メールアドレス",
   "contact.note": "バグ報告の際は、使用していたチャンピオン名、アイテム構成、レベル、発生した問題の詳細をお知らせいただけると、迅速に対応できます。通常、数日以内にご返信いたします。",
+
+  // Champion Builds
+  "championBuilds.title": "チャンピオンビルド",
+  "championBuilds.search": "ビルドを検索...",
+  "championBuilds.publish": "公開",
+  "championBuilds.published": "公開済み",
+  "championBuilds.myBuilds": "自分のビルド",
+  "championBuilds.delete": "削除",
+  "championBuilds.bookmark": "ブックマーク",
+  "championBuilds.bookmarkFull": "ブックマーク上限(20)",
+  "championBuilds.login": "ログインして公開",
+  "championBuilds.noResults": "ビルドが見つかりません",
+  "championBuilds.lane": "レーン",
+  "championBuilds.role": "役割",
+  "championBuilds.loadToSim": "シミュに読み込む",
+  "championBuilds.allBuilds": "全てのビルド",
+  "championBuilds.bookmarked": "ブックマーク済み",
+
+  // Lanes
+  "lane.top": "トップ",
+  "lane.jg": "ジャングル",
+  "lane.mid": "ミッド",
+  "lane.bot": "ボット",
+  "lane.sup": "サポート",
+  "lane.none": "なし",
+
+  // Roles
+  "role.warden": "ワーデン",
+  "role.vanguard": "ヴァンガード",
+  "role.juggernaut": "ジャガーノート",
+  "role.diver": "ダイバー",
+  "role.skirmisher": "スカーミッシャー",
+  "role.assassin": "アサシン",
+  "role.marksman": "マークスマン",
+  "role.battlemage": "バトルメイジ",
+  "role.burstmage": "バーストメイジ",
+  "role.artillery": "アーティラリー",
+  "role.enchanter": "エンチャンター",
+  "role.catcher": "キャッチャー",
+  "role.specialist": "スペシャリスト",
+  "role.none": "なし",
+
+  // Auth
+  "auth.login": "ログイン",
+  "auth.logout": "ログアウト",
+  "auth.loginWith": "でログイン",
 };

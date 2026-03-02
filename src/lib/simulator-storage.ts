@@ -50,6 +50,10 @@ export interface StoredBuild {
   items: (string | null)[];
   runes: SelectedRunes;
   savedAt: number;
+  lane?: string | null;
+  role?: string | null;
+  spells?: [string | null, string | null];
+  edited?: boolean;
 }
 
 /** Instruction to load a build into a specific side on the simulator */
@@ -59,6 +63,7 @@ export interface LoadBuildInstruction {
   level: number;
   items: (string | null)[];
   runes: SelectedRunes;
+  spells?: [string | null, string | null];
 }
 
 // ===== Simulator State =====
@@ -130,6 +135,17 @@ export function saveBuild(build: Omit<StoredBuild, 'id' | 'savedAt'>): StoredBui
     localStorage.setItem(SAVED_BUILDS_KEY, JSON.stringify(trimmed));
   } catch {}
   return trimmed;
+}
+
+export function updateBuild(id: string, fields: Partial<Omit<StoredBuild, 'id' | 'savedAt'>>): StoredBuild[] {
+  const builds = getSavedBuilds();
+  const idx = builds.findIndex((b) => b.id === id);
+  if (idx === -1) return builds;
+  builds[idx] = { ...builds[idx], ...fields, edited: true, savedAt: Date.now() };
+  try {
+    localStorage.setItem(SAVED_BUILDS_KEY, JSON.stringify(builds));
+  } catch {}
+  return builds;
 }
 
 export function deleteSavedBuild(id: string): StoredBuild[] {
