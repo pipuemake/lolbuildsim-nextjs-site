@@ -29,6 +29,7 @@ import {
   computeBonusStats,
 } from "@/components/bonus-stats-panel";
 import { CollapsibleSection } from "@/components/collapsible-section";
+import { MobileMenu } from "@/components/mobile-menu";
 import { computeStats } from "@/lib/calc/stats";
 import {
   calcAutoAttackDamage,
@@ -1925,8 +1926,8 @@ function SimulatorInner({
 
       {/* Navigation bar */}
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
-        <div className="max-w-[1600px] mx-auto px-4 h-10 flex items-center justify-between">
-          <nav className="flex gap-1">
+        <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
+          <nav className="hidden sm:flex gap-1">
             <span className="text-sm px-2.5 py-1 rounded bg-secondary text-foreground font-medium">
               {t("nav.home")}
             </span>
@@ -1943,17 +1944,22 @@ function SimulatorInner({
               {t("nav.championBuilds")}
             </Link>
           </nav>
-          <div className="flex items-center gap-2">
+          {/* Mobile nav */}
+          <div className="flex sm:hidden items-center gap-1">
+            <MobileMenu currentPage="home" locale={locale} />
+            <span className="text-xs font-medium text-foreground">{t("nav.home")}</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={handleReset}
-              className="text-xs px-2.5 py-1 rounded bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-colors font-medium"
+              className="text-xs px-2 sm:px-2.5 py-1 rounded bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-colors font-medium"
             >
               {t("reset")}
             </button>
-            <span className="text-xs text-muted-foreground/50">v{version}</span>
+            <span className="text-xs text-muted-foreground/50 hidden sm:inline">v{version}</span>
             <button
               onClick={() => setLocale(locale === "ja" ? "en" : "ja")}
-              className="text-xs px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
+              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
             >
               {locale === "ja" ? "EN" : "JP"}
             </button>
