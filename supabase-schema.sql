@@ -5,13 +5,14 @@
 create table public.published_builds (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  champion_id text not null,
-  build_name text not null,
-  level int not null default 1,
+  champion_id varchar(30) not null,
+  build_name varchar(100) not null,
+  level int not null default 1 check (level >= 1 and level <= 18),
   items jsonb not null default '[]',
   runes jsonb not null,
-  lane text, -- 'top','jg','mid','bot','sup' or null
-  role text, -- 'warden','vanguard',... or null
+  spells jsonb,
+  lane text check (lane is null or lane in ('top','jg','mid','bot','sup')),
+  role text check (role is null or role in ('warden','vanguard','juggernaut','diver','skirmisher','assassin','marksman','battlemage','burstmage','artillery','enchanter','catcher','specialist')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -28,7 +29,7 @@ create table public.bookmarks (
 -- ユーザープロフィール（表示名保存用）
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  display_name text,
+  display_name varchar(50),
   avatar_url text,
   created_at timestamptz default now()
 );

@@ -20,7 +20,8 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to fetch bookmarks:", error);
+    return NextResponse.json({ error: "Failed to fetch bookmarks" }, { status: 500 });
   }
 
   if (!bookmarks || bookmarks.length === 0) {
@@ -36,9 +37,9 @@ export async function GET() {
   const userIds = [...new Set((builds ?? []).map((b) => b.user_id))];
   const profileMap = await fetchProfileMap(supabase, userIds);
 
-  const buildsWithProfiles = (builds ?? []).map((b) => ({
-    ...b,
-    profiles: profileMap[b.user_id] ?? null,
+  const buildsWithProfiles = (builds ?? []).map(({ user_id, ...rest }) => ({
+    ...rest,
+    profiles: profileMap[user_id] ?? null,
   }));
 
   const result = bookmarks.map((bm) => ({
@@ -59,7 +60,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { build_id } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { build_id } = body;
 
   if (!build_id || typeof build_id !== "string") {
     return NextResponse.json({ error: "Missing or invalid build_id" }, { status: 400 });
@@ -84,7 +92,8 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to create bookmark:", error);
+    return NextResponse.json({ error: "Failed to create bookmark" }, { status: 500 });
   }
 
   return NextResponse.json({ bookmark: data });
@@ -100,7 +109,14 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { build_id } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { build_id } = body;
 
   if (!build_id || typeof build_id !== "string") {
     return NextResponse.json({ error: "Missing or invalid build_id" }, { status: 400 });
@@ -113,7 +129,8 @@ export async function DELETE(request: Request) {
     .eq("build_id", build_id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to delete bookmark:", error);
+    return NextResponse.json({ error: "Failed to delete bookmark" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

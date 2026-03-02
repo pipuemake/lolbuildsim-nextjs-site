@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   getLatestVersion,
   getChampions,
@@ -8,6 +9,15 @@ import { parseChampionList } from "@/lib/data/champions";
 import { parseItems } from "@/lib/data/items";
 import { parseRunes } from "@/lib/data/runes";
 import { ChampionBuildsClient } from "./champion-builds-client";
+
+export const metadata: Metadata = {
+  title: "チャンピオンビルド | LoL Build Sim",
+  description: "コミュニティが共有したLeague of Legendsのビルドを検索・ブックマーク。チャンピオン、レーン、役割でフィルタリング。",
+  openGraph: {
+    title: "チャンピオンビルド | LoL Build Sim",
+    description: "LoLのコミュニティビルドを検索・ブックマーク・シミュレーターに読み込み。",
+  },
+};
 
 export default async function ChampionBuildsPage() {
   let version = "15.3.1";
