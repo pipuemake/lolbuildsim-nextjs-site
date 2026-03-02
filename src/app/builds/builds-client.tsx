@@ -432,24 +432,32 @@ function BuildsInner({
     if (!user || publishing || isAlreadyPublished(stored)) return;
     setPublishing(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("published_builds").insert({
-        user_id: user.id,
-        champion_id: stored.championId,
-        build_name: stored.name,
-        level: stored.level,
-        items: stored.items,
-        runes: stored.runes,
-        lane: stored.lane ?? null,
-        role: stored.role ?? null,
-        spells: stored.spells ?? null,
+      const res = await fetch("/api/builds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          champion_id: stored.championId,
+          build_name: stored.name,
+          level: stored.level,
+          items: stored.items,
+          runes: stored.runes,
+          lane: stored.lane ?? null,
+          role: stored.role ?? null,
+          spells: stored.spells ?? null,
+        }),
       });
-      if (!error) {
+      if (res.ok) {
         setPublishedNames((prev) =>
           new Set(prev).add(`${stored.championId}::${stored.name}`),
         );
       } else {
-        console.error("Failed to publish build:", error.message);
+        const data = await res.json().catch(() => ({}));
+        console.error("Failed to publish build:", data.error ?? res.status);
+        if (data.max) {
+          alert(locale === "ja"
+            ? `ビルド公開上限（${data.max}件）に達しています`
+            : `Build publish limit (${data.max}) reached`);
+        }
       }
     } catch (err) {
       console.error("Failed to publish build:", err);

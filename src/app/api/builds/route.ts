@@ -43,6 +43,9 @@ export async function GET(request: Request) {
   return NextResponse.json({ builds: buildsWithProfiles, total: count ?? 0 });
 }
 
+const MAX_PUBLISHED_BUILDS = 20;
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID ?? "";
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -53,11 +56,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
   const { champion_id, build_name, level, items, runes, lane, role, spells } = body;
 
   if (!champion_id || !build_name || !level || !items || !runes) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  // Validate field constraints
+  if (typeof build_name !== "string" || build_name.length > 100) {
+    return NextResponse.json({ error: "Invalid build name" }, { status: 400 });
+  }
+  if (typeof champion_id !== "string" || champion_id.length > 30) {
+    return NextResponse.json({ error: "Invalid champion" }, { status: 400 });
+  }
+  if (typeof level !== "number" || level < 1 || level > 18 || !Number.isInteger(level)) {
+    return NextResponse.json({ error: "Invalid level" }, { status: 400 });
+  }
+  if (!Array.isArray(items) || items.length > 6) {
+    return NextResponse.json({ error: "Invalid items" }, { status: 400 });
+  }
+
+  // Per-user build limit (admin is unlimited)
+  if (user.id !== ADMIN_USER_ID) {
+    const { count } = await supabase
+      .from("published_builds")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if ((count ?? 0) >= MAX_PUBLISHED_BUILDS) {
+      return NextResponse.json(
+        { error: "Build limit reached", max: MAX_PUBLISHED_BUILDS },
+        { status: 429 },
+      );
+    }
   }
 
   const { data, error } = await supabase
@@ -77,7 +115,8 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Build insert failed:", error);
+    return NextResponse.json({ error: "Failed to create build" }, { status: 500 });
   }
 
   return NextResponse.json({ build: data });
