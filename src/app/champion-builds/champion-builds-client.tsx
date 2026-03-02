@@ -105,33 +105,38 @@ function ChampionBuildsInner({
   const userRef = useRef(user);
   userRef.current = user;
 
-  // Fetch builds with abort support to prevent stale responses
+  // Fetch builds directly from Supabase (faster than API route round-trip)
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
     setLoading(true);
 
-    const params = new URLSearchParams();
-    if (selectedChampion) params.set("champion", selectedChampion);
-    if (selectedLane) params.set("lane", selectedLane);
-    if (selectedRole) params.set("role", selectedRole);
-    if (searchText.trim()) params.set("search", searchText.trim());
-    if (activeTab === "my" && userRef.current) params.set("user", userRef.current.id);
+    const supabase = createClient();
+    let query = supabase
+      .from("published_builds")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(0, 49);
 
-    fetch(`/api/builds?${params.toString()}`, { signal: controller.signal })
-      .then((res) => res.json())
-      .then((data) => {
-        setBuilds(data.builds ?? []);
-        setTotal(data.total ?? 0);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        console.error("Failed to fetch builds:", err);
+    if (selectedChampion) query = query.eq("champion_id", selectedChampion);
+    if (selectedLane) query = query.eq("lane", selectedLane);
+    if (selectedRole) query = query.eq("role", selectedRole);
+    if (searchText.trim()) query = query.ilike("build_name", `%${searchText.trim()}%`);
+    if (activeTab === "my" && userRef.current) query = query.eq("user_id", userRef.current.id);
+
+    query.then(({ data, count, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to fetch builds:", error.message);
         setBuilds([]);
         setLoading(false);
-      });
+        return;
+      }
+      setBuilds((data ?? []) as PublishedBuild[]);
+      setTotal(count ?? 0);
+      setLoading(false);
+    });
 
-    return () => controller.abort();
+    return () => { cancelled = true; };
   }, [selectedChampion, selectedLane, selectedRole, searchText, activeTab]);
 
   // Load bookmarks
@@ -161,51 +166,61 @@ function ChampionBuildsInner({
     return () => { cancelled = true; };
   }, [user]);
 
-  const toggleBookmark = async (buildId: string) => {
+  const toggleBookmark = (buildId: string) => {
     if (!user) return;
     const isBookmarked = bookmarkedIds.has(buildId);
 
     if (!isBookmarked && bookmarkCount >= MAX_BOOKMARKS) return;
 
-    try {
+    // Optimistic update — update UI immediately
+    if (isBookmarked) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(buildId);
+        return next;
+      });
+      setBookmarkCount((c) => c - 1);
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(buildId));
+      setBookmarkCount((c) => c + 1);
+    }
+
+    // Fire API call in background, rollback on failure
+    fetch("/api/bookmarks", {
+      method: isBookmarked ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ build_id: buildId }),
+    }).then((res) => {
+      if (!res.ok) throw new Error(`${res.status}`);
+    }).catch((err) => {
+      console.error("Failed to toggle bookmark:", err);
+      // Rollback
       if (isBookmarked) {
-        await fetch("/api/bookmarks", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ build_id: buildId }),
-        });
+        setBookmarkedIds((prev) => new Set(prev).add(buildId));
+        setBookmarkCount((c) => c + 1);
+      } else {
         setBookmarkedIds((prev) => {
           const next = new Set(prev);
           next.delete(buildId);
           return next;
         });
         setBookmarkCount((c) => c - 1);
-      } else {
-        await fetch("/api/bookmarks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ build_id: buildId }),
-        });
-        setBookmarkedIds((prev) => new Set(prev).add(buildId));
-        setBookmarkCount((c) => c + 1);
       }
-    } catch (err) {
-      console.error("Failed to toggle bookmark:", err);
-    }
+    });
   };
 
-  const handleDeleteBuild = async (buildId: string) => {
-    try {
-      const res = await fetch(`/api/builds/${buildId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error("Failed to delete build:", res.status, body);
-        return;
-      }
-      setBuilds((prev) => prev.filter((b) => b.id !== buildId));
-    } catch (err) {
+  const handleDeleteBuild = (buildId: string) => {
+    // Optimistic update — remove from UI immediately
+    const previousBuilds = builds;
+    setBuilds((prev) => prev.filter((b) => b.id !== buildId));
+
+    // Fire API call in background, rollback on failure
+    fetch(`/api/builds/${buildId}`, { method: "DELETE" }).then((res) => {
+      if (!res.ok) throw new Error(`${res.status}`);
+    }).catch((err) => {
       console.error("Failed to delete build:", err);
-    }
+      setBuilds(previousBuilds);
+    });
   };
 
   const handleLoadToSimulator = (
