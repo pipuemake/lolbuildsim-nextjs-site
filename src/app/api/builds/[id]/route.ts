@@ -22,7 +22,8 @@ export async function DELETE(
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to delete build:", error);
+    return NextResponse.json({ error: "Failed to delete build" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

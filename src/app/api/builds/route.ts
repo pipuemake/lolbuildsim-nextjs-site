@@ -24,7 +24,10 @@ export async function GET(request: Request) {
   if (lane) query = query.eq("lane", lane);
   if (role) query = query.eq("role", role);
   if (userId) query = query.eq("user_id", userId);
-  if (search) query = query.ilike("build_name", `%${search}%`);
+  if (search) {
+    const escaped = search.replace(/[%_\\]/g, "\\$&");
+    query = query.ilike("build_name", `%${escaped}%`);
+  }
 
   const { data: builds, count, error } = await query;
 
@@ -35,9 +38,9 @@ export async function GET(request: Request) {
   const userIds = [...new Set((builds ?? []).map((b) => b.user_id))];
   const profileMap = await fetchProfileMap(supabase, userIds);
 
-  const buildsWithProfiles = (builds ?? []).map((b) => ({
-    ...b,
-    profiles: profileMap[b.user_id] ?? null,
+  const buildsWithProfiles = (builds ?? []).map(({ user_id, ...rest }) => ({
+    ...rest,
+    profiles: profileMap[user_id] ?? null,
   }));
 
   return NextResponse.json({ builds: buildsWithProfiles, total: count ?? 0 });

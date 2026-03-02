@@ -168,7 +168,7 @@ export const en: Record<string, string> = {
   "footer.contact": "Contact",
   "footer.howToUse": "How to Use",
   "footer.faq": "FAQ",
-  "footer.disclaimer": "LoL Build Simulator is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
+  "footer.disclaimer": "LoL Build Simulator was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
 
   // Home page description
   "home.aboutTitle": "About This Site",

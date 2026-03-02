@@ -92,6 +92,7 @@ function ChampionBuildsInner({
   // Bookmarks
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [bookmarkCount, setBookmarkCount] = useState(0);
+  const pendingBookmarks = useRef(new Set<string>());
 
   // Champion filtering for the champion grid (by lane)
   const filteredChampions = useMemo(() => {
@@ -120,7 +121,10 @@ function ChampionBuildsInner({
     if (selectedChampion) query = query.eq("champion_id", selectedChampion);
     if (selectedLane) query = query.eq("lane", selectedLane);
     if (selectedRole) query = query.eq("role", selectedRole);
-    if (searchText.trim()) query = query.ilike("build_name", `%${searchText.trim()}%`);
+    if (searchText.trim()) {
+      const escaped = searchText.trim().replace(/[%_\\]/g, "\\$&");
+      query = query.ilike("build_name", `%${escaped}%`);
+    }
     if (activeTab === "my" && userRef.current) query = query.eq("user_id", userRef.current.id);
 
     query.then(({ data, count, error }) => {
@@ -168,9 +172,12 @@ function ChampionBuildsInner({
 
   const toggleBookmark = (buildId: string) => {
     if (!user) return;
+    if (pendingBookmarks.current.has(buildId)) return; // Prevent double-click
     const isBookmarked = bookmarkedIds.has(buildId);
 
     if (!isBookmarked && bookmarkCount >= MAX_BOOKMARKS) return;
+
+    pendingBookmarks.current.add(buildId);
 
     // Optimistic update — update UI immediately
     if (isBookmarked) {
@@ -206,10 +213,13 @@ function ChampionBuildsInner({
         });
         setBookmarkCount((c) => c - 1);
       }
+    }).finally(() => {
+      pendingBookmarks.current.delete(buildId);
     });
   };
 
   const handleDeleteBuild = (buildId: string) => {
+    if (!window.confirm(locale === "ja" ? "このビルドを削除しますか？" : "Delete this build?")) return;
     // Optimistic update — remove from UI immediately
     const previousBuilds = builds;
     setBuilds((prev) => prev.filter((b) => b.id !== buildId));
@@ -672,9 +682,9 @@ function ChampionBuildsInner({
 
       <footer className="border-t border-border mt-8">
         <div className="max-w-[1600px] mx-auto px-4 py-4 text-center text-xs text-muted-foreground/50">
-          LoL Build Simulator is not endorsed by Riot Games and does not reflect
-          the views or opinions of Riot Games. League of Legends and Riot Games
-          are trademarks of Riot Games, Inc.
+          LoL Build Simulator was created under Riot Games&apos; &quot;Legal Jibber Jabber&quot; policy
+          using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.
+          League of Legends and Riot Games are trademarks of Riot Games, Inc.
         </div>
       </footer>
     </div>

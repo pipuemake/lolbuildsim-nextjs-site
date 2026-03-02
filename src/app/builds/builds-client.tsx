@@ -963,9 +963,9 @@ function BuildsInner({
 
       <footer className="border-t border-border mt-8">
         <div className="max-w-[1600px] mx-auto px-4 py-4 text-center text-xs text-muted-foreground/50">
-          LoL Build Simulator is not endorsed by Riot Games and does not reflect
-          the views or opinions of Riot Games. League of Legends and Riot Games
-          are trademarks of Riot Games, Inc.
+          LoL Build Simulator was created under Riot Games&apos; &quot;Legal Jibber Jabber&quot; policy
+          using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.
+          League of Legends and Riot Games are trademarks of Riot Games, Inc.
         </div>
       </footer>
     </div>
