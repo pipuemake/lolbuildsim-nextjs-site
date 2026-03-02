@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider, useLocale } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthButton, useUser } from "@/components/auth-button";
+import { MobileMenu } from "@/components/mobile-menu";
 import { createClient } from "@/lib/supabase/client";
 import { setLoadBuildInstruction } from "@/lib/simulator-storage";
 import { SUMMONER_SPELLS } from "@/lib/data/summoner-spells";
@@ -280,8 +281,8 @@ function ChampionBuildsInner({
 
       {/* Navigation bar */}
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
-        <div className="max-w-[1600px] mx-auto px-4 h-10 flex items-center justify-between">
-          <nav className="flex gap-1">
+        <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
+          <nav className="hidden sm:flex gap-1">
             <Link
               href="/"
               className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
@@ -298,11 +299,15 @@ function ChampionBuildsInner({
               {t("nav.championBuilds")}
             </span>
           </nav>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground/50 font-mono">v{version}</span>
+          <div className="flex sm:hidden items-center gap-1">
+            <MobileMenu currentPage="championBuilds" locale={locale} />
+            <span className="text-xs font-medium text-foreground">{t("nav.championBuilds")}</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-xs text-muted-foreground/50 font-mono hidden sm:inline">v{version}</span>
             <button
               onClick={() => setLocale(locale === "ja" ? "en" : "ja")}
-              className="text-xs px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
+              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
             >
               {locale === "ja" ? "EN" : "JP"}
             </button>

@@ -1,7 +1,7 @@
 import { updateSession } from '@/lib/supabase/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // CSRF protection: reject cross-origin mutations to API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const method = request.method.toUpperCase();
