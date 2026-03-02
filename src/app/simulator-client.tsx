@@ -1927,7 +1927,8 @@ function SimulatorInner({
       {/* Navigation bar */}
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
         <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
-          <nav className="hidden sm:flex gap-1">
+          <nav className="hidden sm:flex gap-1 items-center">
+            <img src="/logo.png" alt="LoL Build Sim" className="w-6 h-6 rounded" />
             <span className="text-sm px-2.5 py-1 rounded bg-secondary text-foreground font-medium">
               {t("nav.home")}
             </span>
@@ -1947,6 +1948,7 @@ function SimulatorInner({
           {/* Mobile nav */}
           <div className="flex sm:hidden items-center gap-1">
             <MobileMenu currentPage="home" locale={locale} />
+            <img src="/logo.png" alt="" className="w-5 h-5 rounded" />
             <span className="text-xs font-medium text-foreground">{t("nav.home")}</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
