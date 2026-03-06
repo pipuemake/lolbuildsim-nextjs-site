@@ -271,7 +271,7 @@ function ChampionBuildsInner() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            LoL Build Forge
+            LoL Build Sim(Beta)
           </h1>
         </div>
       </div>
@@ -280,7 +280,7 @@ function ChampionBuildsInner() {
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
         <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
           <nav className="hidden sm:flex gap-1 items-center">
-            <img src="/logo.png" alt="LoL Build Forge" className="w-6 h-6 rounded" />
+            <img src="/logo.png" alt="LoL Build Sim" className="w-6 h-6 rounded" />
             <Link
               href="/"
               className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
@@ -688,7 +688,7 @@ function ChampionBuildsInner() {
 
       <footer className="border-t border-border mt-8">
         <div className="max-w-[1600px] mx-auto px-4 py-4 text-center text-xs text-muted-foreground/50">
-          LoL Build Forge was created under Riot Games&apos; &quot;Legal Jibber Jabber&quot; policy
+          LoL Build Sim was created under Riot Games&apos; &quot;Legal Jibber Jabber&quot; policy
           using assets owned by Riot Games. Riot Games does not endorse or sponsor this project.
           League of Legends and Riot Games are trademarks of Riot Games, Inc.
         </div>
