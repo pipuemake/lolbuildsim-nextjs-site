@@ -169,11 +169,11 @@ export const ja: Record<string, string> = {
   "footer.howToUse": "使い方ガイド",
   "footer.faq": "よくある質問",
   "footer.support": "サポート",
-  "footer.disclaimer": "LoL Build Forge は Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が所有するアセットを使用して作成されました。Riot Games はこのプロジェクトを承認またはスポンサーしていません。League of Legends および Riot Games は Riot Games, Inc. の商標です。",
+  "footer.disclaimer": "LoL Build Sim は Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が所有するアセットを使用して作成されました。Riot Games はこのプロジェクトを承認またはスポンサーしていません。League of Legends および Riot Games は Riot Games, Inc. の商標です。",
 
   // Support page
   "support.title": "このプロジェクトを応援する",
-  "support.description": "LoL Build Forge は無料で使えるツールです。もし役に立ったなら、サーバー費用や開発の支援としてコーヒーをおごっていただけると嬉しいです。",
+  "support.description": "LoL Build Sim は無料で使えるツールです。もし役に立ったなら、サーバー費用や開発の支援としてコーヒーをおごっていただけると嬉しいです。",
   "support.bmcButton": "Buy Me a Coffee",
   "support.thanks": "ご支援ありがとうございます！",
 
@@ -192,7 +192,7 @@ export const ja: Record<string, string> = {
   // About page
   "about.title": "このサイトについて",
   "about.purpose.title": "サイトの目的",
-  "about.purpose.body": "LoL Build Forge は、League of Legends（LoL）プレイヤーがゲーム外でビルドを検討・シミュレーションするための非公式ツールです。チャンピオンのステータス計算、アイテムの効果確認、ルーンの組み合わせ検証、1v1でのダメージシミュレーションなど、ビルドに関する判断材料を提供することを目的としています。初心者の方がアイテム選択を学ぶ場としても、経験者がパッチ後のビルドを素早く検証する場としてもご活用いただけます。",
+  "about.purpose.body": "LoL Build Sim は、League of Legends（LoL）プレイヤーがゲーム外でビルドを検討・シミュレーションするための非公式ツールです。チャンピオンのステータス計算、アイテムの効果確認、ルーンの組み合わせ検証、1v1でのダメージシミュレーションなど、ビルドに関する判断材料を提供することを目的としています。初心者の方がアイテム選択を学ぶ場としても、経験者がパッチ後のビルドを素早く検証する場としてもご活用いただけます。",
   "about.tech.title": "使用技術",
   "about.tech.body": "本サイトは Next.js（App Router）をベースに、React、TypeScript、Tailwind CSS、shadcn/ui を使用して構築されています。チャンピオンやアイテムのデータは Riot Games が提供する Data Dragon API から取得しており、スキルデータの一部は Meraki Analytics のデータを参照しています。",
   "about.developer.title": "開発者情報",
@@ -202,7 +202,7 @@ export const ja: Record<string, string> = {
 
   // How to Use page
   "howToUse.title": "使い方ガイド",
-  "howToUse.intro": "LoL Build Forge の基本的な使い方をご紹介します。",
+  "howToUse.intro": "LoL Build Sim の基本的な使い方をご紹介します。",
   "howToUse.champion.title": "1. チャンピオン選択",
   "howToUse.champion.body": "画面の左側（青側）と右側（赤側）にそれぞれチャンピオン選択エリアがあります。検索バーにチャンピオン名を入力するか、ロール別のフィルターを使って目的のチャンピオンを素早く見つけることができます。チャンピオンを選択すると、そのチャンピオンの基礎ステータスが自動的に読み込まれます。レベルスライダーでレベルを1〜18の間で変更でき、レベルに応じたステータスが即座に反映されます。",
   "howToUse.item.title": "2. アイテム選択",
@@ -233,7 +233,7 @@ export const ja: Record<string, string> = {
 
   // Privacy page
   "privacy.title": "プライバシーポリシー",
-  "privacy.intro": "LoL Build Forge（以下「当サイト」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めています。以下に、当サイトにおける個人情報の取り扱いについて説明いたします。",
+  "privacy.intro": "LoL Build Sim（以下「当サイト」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めています。以下に、当サイトにおける個人情報の取り扱いについて説明いたします。",
   "privacy.ads.title": "広告について",
   "privacy.ads.body": "当サイトでは、第三者配信の広告サービス（Google AdSense）を利用しています。Google AdSense は、ユーザーの興味に基づいた広告を表示するために Cookie を使用することがあります。Google が Cookie を使用して、ユーザーがそのサイトや他のサイトにアクセスした際の情報に基づいて広告を配信します。ユーザーは Google の広告設定ページ（https://adssettings.google.com）で、パーソナライズ広告をオプトアウトすることができます。",
   "privacy.cookies.title": "Cookie の使用について",
@@ -252,7 +252,7 @@ export const ja: Record<string, string> = {
 
   // Contact page
   "contact.title": "お問い合わせ",
-  "contact.body": "LoL Build Forge に関するお問い合わせ、バグ報告、ご要望などは以下のメールアドレスまでお気軽にご連絡ください。",
+  "contact.body": "LoL Build Sim に関するお問い合わせ、バグ報告、ご要望などは以下のメールアドレスまでお気軽にご連絡ください。",
   "contact.email": "メールアドレス",
   "contact.note": "バグ報告の際は、使用していたチャンピオン名、アイテム構成、レベル、発生した問題の詳細をお知らせいただけると、迅速に対応できます。通常、数日以内にご返信いたします。",
 

@@ -69,7 +69,7 @@ function PageLayoutInner({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-1.5 text-sm px-2.5 py-1 rounded text-[#C89B3C] font-bold hover:bg-secondary/50 transition-colors"
             >
               <img src="/logo.png" alt="" className="w-5 h-5 rounded" />
-              LoL Build Forge
+              LoL Build Sim(Beta)
             </Link>
             <nav className="hidden sm:flex gap-1 items-center">
               <Link
