@@ -12,6 +12,8 @@ const SEGMENT_COLORS: Record<string, string> = {
   P: "#a855f7",
   SUM: "#f59e0b",
   ITEM: "#14b8a6",
+  PtA: "#eab308",
+  LT: "#f472b6",
 };
 
 interface HPBarProps {

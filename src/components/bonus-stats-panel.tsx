@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import type { ChampionBonusDefinition, BonusStats } from "@/types";
+import type { ChampionBonusDefinition, BonusStats, SelectedRunes } from "@/types";
 
 interface BonusStatsValues {
   [bonusId: string]: number;
@@ -25,6 +25,7 @@ interface BonusStatsPanelProps {
   onBonusChange: (bonusId: string, value: number) => void;
   onGenericChange: (stat: keyof GenericBonusValues, value: number) => void;
   locale: string;
+  selectedRunes?: SelectedRunes;
 }
 
 export function BonusStatsPanel({
@@ -36,8 +37,24 @@ export function BonusStatsPanel({
   onBonusChange,
   onGenericChange,
   locale,
+  selectedRunes,
 }: BonusStatsPanelProps) {
-  const allBonuses = [...championBonuses, ...runeBonuses, ...itemBonuses];
+  // Filter rune bonuses: only show runes that are currently selected
+  const selectedRuneIds = selectedRunes
+    ? new Set([
+        selectedRunes.keystone,
+        selectedRunes.primarySlot1,
+        selectedRunes.primarySlot2,
+        selectedRunes.primarySlot3,
+        selectedRunes.secondarySlot1,
+        selectedRunes.secondarySlot2,
+      ])
+    : null;
+  const filteredRuneBonuses = selectedRuneIds
+    ? runeBonuses.filter((b) => !b.runeId || selectedRuneIds.has(b.runeId))
+    : runeBonuses;
+
+  const allBonuses = [...championBonuses, ...filteredRuneBonuses, ...itemBonuses];
 
   if (allBonuses.length === 0 && !genericBonuses) return null;
 
@@ -66,12 +83,12 @@ export function BonusStatsPanel({
       )}
 
       {/* Rune bonuses */}
-      {runeBonuses.length > 0 && (
+      {filteredRuneBonuses.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] text-zinc-400 uppercase tracking-wide">
             {locale === "ja" ? "ルーン" : "Runes"}
           </div>
-          {runeBonuses.map((bonus) => (
+          {filteredRuneBonuses.map((bonus) => (
             <BonusRow
               key={bonus.id}
               bonus={bonus}

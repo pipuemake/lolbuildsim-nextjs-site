@@ -246,6 +246,7 @@ export interface ChampionBonusDefinition {
   id: string;
   championId?: string; // undefined = generic / rune
   itemId?: string; // if set, only shown when this item is equipped
+  runeId?: number; // DDragon rune ID — if set, only shown when this rune is selected
   type: ChampionBonusType;
   nameEn: string;
   nameJa: string;
@@ -466,7 +467,7 @@ export interface ChampionComboPassive {
 
 // ===== HP Bar visualization =====
 export interface DamageSegment {
-  source: 'Q' | 'W' | 'E' | 'R' | 'AA' | 'P' | 'SUM' | 'ITEM';
+  source: 'Q' | 'W' | 'E' | 'R' | 'AA' | 'P' | 'SUM' | 'ITEM' | 'PtA' | 'LT';
   amount: number;
   color: string;
 }

@@ -41,7 +41,17 @@ import {
   calcComboPassiveOnHitDamage,
   calcComboPassiveSkillBonus,
   recalcMissingHpSkillDamage,
+  calcAdaptiveDamage,
 } from "@/lib/calc/damage";
+import {
+  KEYSTONE_IDS,
+  isMelee as checkIsMelee,
+  calcPtaDamage,
+  PTA_AMP,
+  LETHAL_TEMPO_MAX_STACKS,
+  calcLethalTempoOnHit,
+  calcFleetHeal,
+} from "@/lib/data/keystone-effects";
 import { calcDPS } from "@/lib/calc/dps";
 import { calcEffectiveHP } from "@/lib/calc/effective-hp";
 import { getHasteInfo } from "@/lib/calc/haste";
@@ -323,6 +333,10 @@ function SimulatorInner() {
   const [allySylasRChampId, setAllySylasRChampId] = useState<string | null>(null);
   const [allySylasRSkill, setAllySylasRSkill] = useState<SkillData | null>(null);
 
+  // Fleet Footwork charges (number of procs in combo)
+  const [allyFleetCharges, setAllyFleetCharges] = useState(0);
+  const [enemyFleetCharges, setEnemyFleetCharges] = useState(0);
+
   // Target HP % for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
   const [allyTargetHpPercent, setAllyTargetHpPercent] = useState(100);
   const [enemyTargetHpPercent, setEnemyTargetHpPercent] = useState(100);
@@ -583,6 +597,7 @@ function SimulatorInner() {
     setAllyFormGroup('');
     setAllySylasRChampId(null);
     setAllySylasRSkill(null);
+    setAllyFleetCharges(0);
   }, [runePaths]);
 
   // Reset enemy side
@@ -618,6 +633,7 @@ function SimulatorInner() {
     setEnemyFormGroup('');
     setEnemySylasRChampId(null);
     setEnemySylasRSkill(null);
+    setEnemyFleetCharges(0);
   }, [runePaths]);
 
   // Reset all state
@@ -627,6 +643,95 @@ function SimulatorInner() {
     setGameMinute(0);
     clearSimulatorState();
   }, [handleResetAlly, handleResetEnemy]);
+
+  // Swap ally and enemy sides
+  const handleSwapSides = useCallback(() => {
+    const tmpChamp = allyChampion;
+    const tmpLevel = allyLevel;
+    const tmpItems = allyItems;
+    const tmpRunes = allyRunes;
+    const tmpSkillRanks = allySkillRanks;
+    const tmpSkills = allySkills;
+    const tmpBonusValues = allyBonusValues;
+    const tmpGenericBonuses = allyGenericBonuses;
+    const tmpComboCounts = allyComboCounts;
+    const tmpAACounts = allyAACounts;
+    const tmpCritCount = allyCritCount;
+    const tmpSummoners = allySummoners;
+    const tmpSummonerActive = allySummonerActive;
+    const tmpItemActiveToggles = allyItemActiveToggles;
+    const tmpOnHitToggles = allyOnHitToggles;
+    const tmpItemStacks = allyItemStacks;
+    const tmpHealCharges = allyHealCharges;
+    const tmpComboPassiveValues = allyComboPassiveValues;
+    const tmpDistanceMultipliers = allyDistanceMultipliers;
+    const tmpFormGroup = allyFormGroup;
+    const tmpSylasRChampId = allySylasRChampId;
+    const tmpSylasRSkill = allySylasRSkill;
+    const tmpTargetHpPercent = allyTargetHpPercent;
+    const tmpFleetCharges = allyFleetCharges;
+
+    setAllyChampion(enemyChampion);
+    setAllyLevel(enemyLevel);
+    setAllyItems(enemyItems);
+    setAllyRunes(enemyRunes);
+    setAllySkillRanks(enemySkillRanks);
+    setAllySkills(enemySkills);
+    setAllyBonusValues(enemyBonusValues);
+    setAllyGenericBonuses(enemyGenericBonuses);
+    setAllyComboCounts(enemyComboCounts);
+    setAllyAACounts(enemyAACounts);
+    setAllyCritCount(enemyCritCount);
+    setAllySummoners(enemySummoners);
+    setAllySummonerActive(enemySummonerActive);
+    setAllyItemActiveToggles(enemyItemActiveToggles);
+    setAllyOnHitToggles(enemyOnHitToggles);
+    setAllyItemStacks(enemyItemStacks);
+    setAllyHealCharges(enemyHealCharges);
+    setAllyComboPassiveValues(enemyComboPassiveValues);
+    setAllyDistanceMultipliers(enemyDistanceMultipliers);
+    setAllyFormGroup(enemyFormGroup);
+    setAllySylasRChampId(enemySylasRChampId);
+    setAllySylasRSkill(enemySylasRSkill);
+    setAllyTargetHpPercent(enemyTargetHpPercent);
+    setAllyFleetCharges(enemyFleetCharges);
+
+    setEnemyChampion(tmpChamp);
+    setEnemyLevel(tmpLevel);
+    setEnemyItems(tmpItems);
+    setEnemyRunes(tmpRunes);
+    setEnemySkillRanks(tmpSkillRanks);
+    setEnemySkills(tmpSkills);
+    setEnemyBonusValues(tmpBonusValues);
+    setEnemyGenericBonuses(tmpGenericBonuses);
+    setEnemyComboCounts(tmpComboCounts);
+    setEnemyAACounts(tmpAACounts);
+    setEnemyCritCount(tmpCritCount);
+    setEnemySummoners(tmpSummoners);
+    setEnemySummonerActive(tmpSummonerActive);
+    setEnemyItemActiveToggles(tmpItemActiveToggles);
+    setEnemyOnHitToggles(tmpOnHitToggles);
+    setEnemyItemStacks(tmpItemStacks);
+    setEnemyHealCharges(tmpHealCharges);
+    setEnemyComboPassiveValues(tmpComboPassiveValues);
+    setEnemyDistanceMultipliers(tmpDistanceMultipliers);
+    setEnemyFormGroup(tmpFormGroup);
+    setEnemySylasRChampId(tmpSylasRChampId);
+    setEnemySylasRSkill(tmpSylasRSkill);
+    setEnemyTargetHpPercent(tmpTargetHpPercent);
+    setEnemyFleetCharges(tmpFleetCharges);
+  }, [
+    allyChampion, allyLevel, allyItems, allyRunes, allySkillRanks, allySkills,
+    allyBonusValues, allyGenericBonuses, allyComboCounts, allyAACounts, allyCritCount,
+    allySummoners, allySummonerActive, allyItemActiveToggles, allyOnHitToggles,
+    allyItemStacks, allyHealCharges, allyComboPassiveValues, allyDistanceMultipliers,
+    allyFormGroup, allySylasRChampId, allySylasRSkill, allyTargetHpPercent, allyFleetCharges,
+    enemyChampion, enemyLevel, enemyItems, enemyRunes, enemySkillRanks, enemySkills,
+    enemyBonusValues, enemyGenericBonuses, enemyComboCounts, enemyAACounts, enemyCritCount,
+    enemySummoners, enemySummonerActive, enemyItemActiveToggles, enemyOnHitToggles,
+    enemyItemStacks, enemyHealCharges, enemyComboPassiveValues, enemyDistanceMultipliers,
+    enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyTargetHpPercent, enemyFleetCharges,
+  ]);
 
   // Fetch Meraki skill data when champion changes, then apply overrides
   useEffect(() => {
@@ -992,9 +1097,26 @@ function SimulatorInner() {
     return result;
   }, [enemyStackableItems, enemyItemStacks]);
 
+  // Filter rune bonuses by selected runes (only include bonuses for runes actually selected)
+  const allyFilteredRuneBonuses = useMemo(() => {
+    const ids = new Set([
+      allyRunes.keystone, allyRunes.primarySlot1, allyRunes.primarySlot2,
+      allyRunes.primarySlot3, allyRunes.secondarySlot1, allyRunes.secondarySlot2,
+    ]);
+    return runeBonusList.filter((b) => !b.runeId || ids.has(b.runeId));
+  }, [runeBonusList, allyRunes]);
+
+  const enemyFilteredRuneBonuses = useMemo(() => {
+    const ids = new Set([
+      enemyRunes.keystone, enemyRunes.primarySlot1, enemyRunes.primarySlot2,
+      enemyRunes.primarySlot3, enemyRunes.secondarySlot1, enemyRunes.secondarySlot2,
+    ]);
+    return runeBonusList.filter((b) => !b.runeId || ids.has(b.runeId));
+  }, [runeBonusList, enemyRunes]);
+
   // Compute merged bonus stats (includes combo passive stat bonuses + item stack bonuses)
   const allyMergedBonusStats = useMemo<BonusStats>(() => {
-    const allBonuses = [...allyChampionBonuses, ...runeBonusList, ...allyItemBonuses];
+    const allBonuses = [...allyChampionBonuses, ...allyFilteredRuneBonuses, ...allyItemBonuses];
     const base = computeBonusStats(
       allBonuses,
       allyBonusValues,
@@ -1014,7 +1136,7 @@ function SimulatorInner() {
     return base;
   }, [
     allyChampionBonuses,
-    runeBonusList,
+    allyFilteredRuneBonuses,
     allyItemBonuses,
     allyBonusValues,
     allyGenericBonuses,
@@ -1024,7 +1146,7 @@ function SimulatorInner() {
   ]);
 
   const enemyMergedBonusStats = useMemo<BonusStats>(() => {
-    const allBonuses = [...enemyChampionBonuses, ...runeBonusList, ...enemyItemBonuses];
+    const allBonuses = [...enemyChampionBonuses, ...enemyFilteredRuneBonuses, ...enemyItemBonuses];
     const base = computeBonusStats(
       allBonuses,
       enemyBonusValues,
@@ -1044,7 +1166,7 @@ function SimulatorInner() {
     return base;
   }, [
     enemyChampionBonuses,
-    runeBonusList,
+    enemyFilteredRuneBonuses,
     enemyItemBonuses,
     enemyBonusValues,
     enemyGenericBonuses,
@@ -1451,15 +1573,21 @@ function SimulatorInner() {
     enemyLevel,
   ]);
 
-  // Potion healing totals
+  // Potion + Fleet Footwork healing totals
   const allyHealTotal = useMemo(() => {
     let total = 0;
     for (const effect of allyHealEffects) {
       const charges = allyHealCharges[effect.itemId] ?? 0;
       total += charges * effect.healPerCharge;
     }
+    // Fleet Footwork heal
+    if (allyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && allyFleetCharges > 0 && allyChampion) {
+      const melee = checkIsMelee(allyStats.attackRange);
+      const bonusAD = allyStats.ad - allyStats.baseAd;
+      total += allyFleetCharges * calcFleetHeal(allyLevel, melee, bonusAD, allyStats.ap);
+    }
     return total;
-  }, [allyHealEffects, allyHealCharges]);
+  }, [allyHealEffects, allyHealCharges, allyRunes.keystone, allyFleetCharges, allyChampion, allyStats, allyLevel]);
 
   const enemyHealTotal = useMemo(() => {
     let total = 0;
@@ -1467,8 +1595,14 @@ function SimulatorInner() {
       const charges = enemyHealCharges[effect.itemId] ?? 0;
       total += charges * effect.healPerCharge;
     }
+    // Fleet Footwork heal
+    if (enemyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && enemyFleetCharges > 0 && enemyChampion) {
+      const melee = checkIsMelee(enemyStats.attackRange);
+      const bonusAD = enemyStats.ad - enemyStats.baseAd;
+      total += enemyFleetCharges * calcFleetHeal(enemyLevel, melee, bonusAD, enemyStats.ap);
+    }
     return total;
-  }, [enemyHealEffects, enemyHealCharges]);
+  }, [enemyHealEffects, enemyHealCharges, enemyRunes.keystone, enemyFleetCharges, enemyChampion, enemyStats, enemyLevel]);
 
   // Spellblade damage per proc (computed once for combo calculations)
   const allySpellbladeProc = useMemo(() => {
@@ -1637,7 +1771,7 @@ function SimulatorInner() {
     enemyLevel,
   ]);
 
-  // Combo damage (combo counts * each skill + AA * count + spellblade procs + summoners + passives)
+  // Combo damage (combo counts * each skill + AA * count + spellblade procs + summoners + passives + keystones)
   const allyComboDamage = useMemo(() => {
     let total =
       (allyAADamage.total + allyComboPassiveOnHitPerAA) * allyAACounts;
@@ -1667,6 +1801,37 @@ function SimulatorInner() {
     }
     total += allySummonerDamage;
     total += allyItemActiveDamage;
+
+    // Keystone: Press the Attack
+    const allyKeystoneId = allyRunes.keystone;
+    if (allyKeystoneId === KEYSTONE_IDS.PRESS_THE_ATTACK && allyAACounts >= 3) {
+      // 3rd AA proc: adaptive damage
+      const ptaRaw = calcPtaDamage(allyLevel);
+      const ptaDmg = calcAdaptiveDamage(ptaRaw, allyStats, enemyStats, allyLevel);
+      total += ptaDmg;
+      // Remaining AAs (after 3rd) and all skill damage amplified by 8%
+      const preAmpTotal = total;
+      // Amplify: AAs after the 3rd + all skill/passive/summoner/active damage
+      const aaBeforeProc = 3;
+      const aaDmgBeforeProc = (allyAADamage.total + allyComboPassiveOnHitPerAA) * aaBeforeProc;
+      const aaDmgAfterProc = (allyAADamage.total + allyComboPassiveOnHitPerAA) * Math.max(0, allyAACounts - aaBeforeProc);
+      // Everything except the first 3 AAs gets amplified
+      const ampBase = preAmpTotal - aaDmgBeforeProc - ptaDmg;
+      total = aaDmgBeforeProc + ptaDmg + ampBase * (1 + PTA_AMP);
+    }
+
+    // Keystone: Lethal Tempo (on-hit after 6 stacks)
+    if (allyKeystoneId === KEYSTONE_IDS.LETHAL_TEMPO && allyAACounts > LETHAL_TEMPO_MAX_STACKS) {
+      const melee = checkIsMelee(allyStats.attackRange);
+      // Bonus AS% approximation: (attackSpeed / baseAS - 1) * 100
+      // We don't have baseAS separately, so use a simplified approach
+      const bonusASPercent = Math.max(0, (allyStats.attackSpeed - 0.625) / 0.625 * 100);
+      const ltOnHitRaw = calcLethalTempoOnHit(allyLevel, melee, bonusASPercent);
+      const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, allyStats, enemyStats, allyLevel);
+      const ltHits = allyAACounts - LETHAL_TEMPO_MAX_STACKS;
+      total += ltOnHitDmg * ltHits;
+    }
+
     // Phase 2: missing-HP skills (calculated with prior damage reducing target HP)
     for (const { sd, count } of missingHpSkills) {
       let skillDmg = recalcMissingHpSkillDamage(
@@ -1693,6 +1858,7 @@ function SimulatorInner() {
     allyStats,
     enemyStats,
     allyLevel,
+    allyRunes.keystone,
   ]);
 
   const enemyComboDamage = useMemo(() => {
@@ -1723,6 +1889,30 @@ function SimulatorInner() {
     }
     total += enemySummonerDamage;
     total += enemyItemActiveDamage;
+
+    // Keystone: Press the Attack
+    const enemyKeystoneId = enemyRunes.keystone;
+    if (enemyKeystoneId === KEYSTONE_IDS.PRESS_THE_ATTACK && enemyAACounts >= 3) {
+      const ptaRaw = calcPtaDamage(enemyLevel);
+      const ptaDmg = calcAdaptiveDamage(ptaRaw, enemyStats, allyStats, enemyLevel);
+      total += ptaDmg;
+      const preAmpTotal = total;
+      const aaBeforeProc = 3;
+      const aaDmgBeforeProc = (enemyAADamage.total + enemyComboPassiveOnHitPerAA) * aaBeforeProc;
+      const ampBase = preAmpTotal - aaDmgBeforeProc - ptaDmg;
+      total = aaDmgBeforeProc + ptaDmg + ampBase * (1 + PTA_AMP);
+    }
+
+    // Keystone: Lethal Tempo (on-hit after 6 stacks)
+    if (enemyKeystoneId === KEYSTONE_IDS.LETHAL_TEMPO && enemyAACounts > LETHAL_TEMPO_MAX_STACKS) {
+      const melee = checkIsMelee(enemyStats.attackRange);
+      const bonusASPercent = Math.max(0, (enemyStats.attackSpeed - 0.625) / 0.625 * 100);
+      const ltOnHitRaw = calcLethalTempoOnHit(enemyLevel, melee, bonusASPercent);
+      const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, enemyStats, allyStats, enemyLevel);
+      const ltHits = enemyAACounts - LETHAL_TEMPO_MAX_STACKS;
+      total += ltOnHitDmg * ltHits;
+    }
+
     for (const { sd, count } of missingHpSkills) {
       let skillDmg = recalcMissingHpSkillDamage(
         sd, total, allyStats.maxHp, allyStats.hp, enemyStats, allyStats, enemyLevel,
@@ -1748,6 +1938,7 @@ function SimulatorInner() {
     enemyStats,
     allyStats,
     enemyLevel,
+    enemyRunes.keystone,
   ]);
 
   // HP bar damage segments (combo-count-based)
@@ -1791,6 +1982,21 @@ function SimulatorInner() {
     if (allyItemActiveDamage > 0) {
       segs.push({ source: "ITEM", amount: allyItemActiveDamage, color: "" });
     }
+    // Keystone damage segments
+    const allyKs = allyRunes.keystone;
+    if (allyKs === KEYSTONE_IDS.PRESS_THE_ATTACK && allyAACounts >= 3) {
+      const ptaRaw = calcPtaDamage(allyLevel);
+      const ptaDmg = calcAdaptiveDamage(ptaRaw, allyStats, enemyStats, allyLevel);
+      segs.push({ source: "PtA", amount: ptaDmg, color: "" });
+    }
+    if (allyKs === KEYSTONE_IDS.LETHAL_TEMPO && allyAACounts > LETHAL_TEMPO_MAX_STACKS) {
+      const melee = checkIsMelee(allyStats.attackRange);
+      const bonusASPercent = Math.max(0, (allyStats.attackSpeed - 0.625) / 0.625 * 100);
+      const ltOnHitRaw = calcLethalTempoOnHit(allyLevel, melee, bonusASPercent);
+      const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, allyStats, enemyStats, allyLevel);
+      const ltHits = allyAACounts - LETHAL_TEMPO_MAX_STACKS;
+      segs.push({ source: "LT", amount: ltOnHitDmg * ltHits, color: "" });
+    }
     return segs;
   }, [
     allyAADamage,
@@ -1804,6 +2010,10 @@ function SimulatorInner() {
     allyComboPassiveOnHitPerAA,
     allyComboPassiveOnHitPerCombo,
     allyComboPassiveSkillBonuses,
+    allyRunes.keystone,
+    allyStats,
+    enemyStats,
+    allyLevel,
   ]);
 
   const enemyDamageToAlly = useMemo<DamageSegment[]>(() => {
@@ -1846,6 +2056,21 @@ function SimulatorInner() {
     if (enemyItemActiveDamage > 0) {
       segs.push({ source: "ITEM", amount: enemyItemActiveDamage, color: "" });
     }
+    // Keystone damage segments
+    const enemyKs = enemyRunes.keystone;
+    if (enemyKs === KEYSTONE_IDS.PRESS_THE_ATTACK && enemyAACounts >= 3) {
+      const ptaRaw = calcPtaDamage(enemyLevel);
+      const ptaDmg = calcAdaptiveDamage(ptaRaw, enemyStats, allyStats, enemyLevel);
+      segs.push({ source: "PtA", amount: ptaDmg, color: "" });
+    }
+    if (enemyKs === KEYSTONE_IDS.LETHAL_TEMPO && enemyAACounts > LETHAL_TEMPO_MAX_STACKS) {
+      const melee = checkIsMelee(enemyStats.attackRange);
+      const bonusASPercent = Math.max(0, (enemyStats.attackSpeed - 0.625) / 0.625 * 100);
+      const ltOnHitRaw = calcLethalTempoOnHit(enemyLevel, melee, bonusASPercent);
+      const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, enemyStats, allyStats, enemyLevel);
+      const ltHits = enemyAACounts - LETHAL_TEMPO_MAX_STACKS;
+      segs.push({ source: "LT", amount: ltOnHitDmg * ltHits, color: "" });
+    }
     return segs;
   }, [
     enemyAADamage,
@@ -1859,6 +2084,10 @@ function SimulatorInner() {
     enemyComboPassiveOnHitPerAA,
     enemyComboPassiveOnHitPerCombo,
     enemyComboPassiveSkillBonuses,
+    enemyRunes.keystone,
+    enemyStats,
+    allyStats,
+    enemyLevel,
   ]);
 
   // Haste info with skill cooldowns
@@ -1899,6 +2128,35 @@ function SimulatorInner() {
     );
     return { stats, damageToYou: shots };
   }, [allyStats, gameMinute]);
+
+  // Fleet Footwork rune icon/name for combo bar
+  const allyFleetInfo = useMemo(() => {
+    if (allyRunes.keystone !== KEYSTONE_IDS.FLEET_FOOTWORK) return null;
+    for (const path of runePaths) {
+      for (const slot of path.slots) {
+        for (const rune of slot.runes) {
+          if (rune.id === KEYSTONE_IDS.FLEET_FOOTWORK) {
+            return { icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name };
+          }
+        }
+      }
+    }
+    return null;
+  }, [allyRunes.keystone, runePaths]);
+
+  const enemyFleetInfo = useMemo(() => {
+    if (enemyRunes.keystone !== KEYSTONE_IDS.FLEET_FOOTWORK) return null;
+    for (const path of runePaths) {
+      for (const slot of path.slots) {
+        for (const rune of slot.runes) {
+          if (rune.id === KEYSTONE_IDS.FLEET_FOOTWORK) {
+            return { icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name };
+          }
+        }
+      }
+    }
+    return null;
+  }, [enemyRunes.keystone, runePaths]);
 
   if (dragonLoading) {
     return (
@@ -1985,7 +2243,7 @@ function SimulatorInner() {
               <option value="en" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">EN (English)</option>
               <option value="ja" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">JP (日本語)</option>
             </select>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
           </div>
         </div>
       </header>
@@ -2140,6 +2398,10 @@ function SimulatorInner() {
                 itemHealEffects={allyHealEffects}
                 itemHealCharges={allyHealCharges}
                 onItemHealToggle={(itemId, charges) => setAllyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
+                keystoneIcon={allyFleetInfo?.icon}
+                keystoneName={allyFleetInfo?.name}
+                keystoneCharges={allyFleetCharges}
+                onKeystoneChargeChange={allyFleetInfo ? setAllyFleetCharges : undefined}
               />
             )}
             <ItemShop
@@ -2170,6 +2432,7 @@ function SimulatorInner() {
                 onBonusChange={handleAllyBonusChange}
                 onGenericChange={handleAllyGenericChange}
                 locale={locale}
+                selectedRunes={allyRunes}
               />
             )}
 
@@ -2210,6 +2473,18 @@ function SimulatorInner() {
           >
             {/* VS badge */}
             {VS_BADGE}
+
+            {/* Swap sides button */}
+            <button
+              onClick={handleSwapSides}
+              className="text-xs px-3 py-1.5 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors font-medium flex items-center gap-1.5"
+              title={locale === "ja" ? "青側と赤側を入れ替え" : "Swap Blue and Red sides"}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 7H4m0 0l4-4M4 7l4 4M16 17h4m0 0l-4 4m4-4l-4-4" />
+              </svg>
+              {locale === "ja" ? "入れ替え" : "Swap"}
+            </button>
 
             {allyChampion && enemyChampion ? (
               <>
@@ -2409,6 +2684,10 @@ function SimulatorInner() {
                 itemHealEffects={enemyHealEffects}
                 itemHealCharges={enemyHealCharges}
                 onItemHealToggle={(itemId, charges) => setEnemyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
+                keystoneIcon={enemyFleetInfo?.icon}
+                keystoneName={enemyFleetInfo?.name}
+                keystoneCharges={enemyFleetCharges}
+                onKeystoneChargeChange={enemyFleetInfo ? setEnemyFleetCharges : undefined}
               />
             )}
             <ItemShop
@@ -2439,6 +2718,7 @@ function SimulatorInner() {
                 onBonusChange={handleEnemyBonusChange}
                 onGenericChange={handleEnemyGenericChange}
                 locale={locale}
+                selectedRunes={enemyRunes}
               />
             )}
 
