@@ -169,11 +169,11 @@ export const en: Record<string, string> = {
   "footer.howToUse": "How to Use",
   "footer.faq": "FAQ",
   "footer.support": "Support Us",
-  "footer.disclaimer": "LoL Build Simulator was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
+  "footer.disclaimer": "LoL Build Forge was created under Riot Games' \"Legal Jibber Jabber\" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
 
   // Support page
   "support.title": "Support This Project",
-  "support.description": "LoL Build Simulator is a free, open tool. If you find it useful, consider buying us a coffee to help cover server costs and development time.",
+  "support.description": "LoL Build Forge is a free, open tool. If you find it useful, consider buying us a coffee to help cover server costs and development time.",
   "support.bmcButton": "Buy Me a Coffee",
   "support.thanks": "Thank you for your support!",
 
@@ -192,7 +192,7 @@ export const en: Record<string, string> = {
   // About page
   "about.title": "About This Site",
   "about.purpose.title": "Purpose",
-  "about.purpose.body": "LoL Build Simulator is an unofficial tool for League of Legends (LoL) players to explore and simulate builds outside of the game. It provides champion stat calculations, item effect verification, rune combination testing, and 1v1 damage simulation to help inform build decisions. Whether you're a beginner learning item selection or an experienced player quickly testing post-patch builds, this tool is designed to help.",
+  "about.purpose.body": "LoL Build Forge is an unofficial tool for League of Legends (LoL) players to explore and simulate builds outside of the game. It provides champion stat calculations, item effect verification, rune combination testing, and 1v1 damage simulation to help inform build decisions. Whether you're a beginner learning item selection or an experienced player quickly testing post-patch builds, this tool is designed to help.",
   "about.tech.title": "Technology Stack",
   "about.tech.body": "This site is built with Next.js (App Router), React, TypeScript, Tailwind CSS, and shadcn/ui. Champion and item data is sourced from the Data Dragon API provided by Riot Games, with some skill data referencing Meraki Analytics data.",
   "about.developer.title": "Developer",
@@ -202,7 +202,7 @@ export const en: Record<string, string> = {
 
   // How to Use page
   "howToUse.title": "How to Use",
-  "howToUse.intro": "Here's a guide to using LoL Build Simulator.",
+  "howToUse.intro": "Here's a guide to using LoL Build Forge.",
   "howToUse.champion.title": "1. Champion Selection",
   "howToUse.champion.body": "There are champion selection areas on the left (Blue side) and right (Red side) of the screen. You can type a champion name in the search bar or use role filters to quickly find your champion. When selected, the champion's base stats are automatically loaded. Use the level slider to adjust between levels 1-18, and stats will update instantly.",
   "howToUse.item.title": "2. Item Selection",
@@ -233,7 +233,7 @@ export const en: Record<string, string> = {
 
   // Privacy page
   "privacy.title": "Privacy Policy",
-  "privacy.intro": "LoL Build Simulator (hereinafter \"this site\") respects user privacy and is committed to protecting personal information. Below is an explanation of how personal information is handled on this site.",
+  "privacy.intro": "LoL Build Forge (hereinafter \"this site\") respects user privacy and is committed to protecting personal information. Below is an explanation of how personal information is handled on this site.",
   "privacy.ads.title": "Advertising",
   "privacy.ads.body": "This site uses third-party advertising services (Google AdSense). Google AdSense may use cookies to display ads based on user interests. Google uses cookies to serve ads based on information from visits to this and other sites. Users can opt out of personalized advertising through Google's ad settings page (https://adssettings.google.com).",
   "privacy.cookies.title": "Use of Cookies",
@@ -252,7 +252,7 @@ export const en: Record<string, string> = {
 
   // Contact page
   "contact.title": "Contact",
-  "contact.body": "For inquiries, bug reports, or feature requests regarding LoL Build Simulator, please feel free to contact us at the email address below.",
+  "contact.body": "For inquiries, bug reports, or feature requests regarding LoL Build Forge, please feel free to contact us at the email address below.",
   "contact.email": "Email Address",
   "contact.note": "When reporting bugs, please include the champion name, item build, level, and details of the issue for faster resolution. We typically respond within a few days.",
 

@@ -69,7 +69,7 @@ function PageLayoutInner({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-1.5 text-sm px-2.5 py-1 rounded text-[#C89B3C] font-bold hover:bg-secondary/50 transition-colors"
             >
               <img src="/logo.png" alt="" className="w-5 h-5 rounded" />
-              LoL Build Sim
+              LoL Build Forge
             </Link>
             <nav className="hidden sm:flex gap-1 items-center">
               <Link
@@ -101,7 +101,7 @@ function PageLayoutInner({ children }: { children: React.ReactNode }) {
               <option value="en" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">EN (English)</option>
               <option value="ja" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">JP (日本語)</option>
             </select>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
           </div>
         </div>
       </header>

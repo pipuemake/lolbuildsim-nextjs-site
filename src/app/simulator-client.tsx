@@ -2187,7 +2187,7 @@ function SimulatorInner() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            {locale === "ja" ? "LoLビルドシミュ(β版)" : "LoL Build Sim(Beta)"}
+            LoL Build Forge
           </h1>
         </div>
       </div>
@@ -2196,7 +2196,7 @@ function SimulatorInner() {
       <header className="sticky top-0 z-50 bg-background border-b border-border font-[family-name:var(--font-space-grotesk)]">
         <div className="max-w-[1600px] mx-auto px-2 sm:px-4 h-10 flex items-center justify-between">
           <nav className="hidden sm:flex gap-1 items-center">
-            <img src="/logo.png" alt="LoL Build Sim" className="w-6 h-6 rounded" />
+            <img src="/logo.png" alt="LoL Build Forge" className="w-6 h-6 rounded" />
             <span className="text-sm px-2.5 py-1 rounded bg-secondary text-foreground font-medium">
               {t("nav.home")}
             </span>
