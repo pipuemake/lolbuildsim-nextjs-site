@@ -39,7 +39,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LoLビルドシミュ(β版) | LoL Build Sim(Beta)",
+  title: "LoL Build Forge",
   description:
     "League of Legendsのビルドシミュレーター。チャンピオンのステータス、ダメージ計算、DPS、有効HPを日本語で確認できます。",
   icons: {
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "LoLビルドシミュ(β版)",
+    title: "LoL Build Forge",
     description:
       "League of Legendsのビルドシミュレーター。1v1ダメージ計算、ビルド比較、スキルダメージを日本語で。",
     type: "website",
