@@ -304,12 +304,14 @@ function ChampionBuildsInner() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="text-xs text-muted-foreground/50 font-mono hidden sm:inline">v{version}</span>
-            <button
-              onClick={() => setLocale(locale === "ja" ? "en" : "ja")}
-              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as "en" | "ja")}
+              className="text-xs px-1 sm:px-1.5 py-1 rounded bg-secondary/60 text-muted-foreground border border-border transition-colors cursor-pointer focus:outline-none"
             >
-              {locale === "ja" ? "EN" : "JP"}
-            </button>
+              <option value="en" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">EN (English)</option>
+              <option value="ja" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">JP (日本語)</option>
+            </select>
             <ThemeToggle />
             <AuthButton locale={locale} />
           </div>

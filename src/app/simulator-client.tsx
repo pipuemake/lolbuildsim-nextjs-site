@@ -107,6 +107,16 @@ import type {
   ChampionComboPassive,
 } from "@/types";
 
+/** Splash art URL with Community Dragon CDN override for champions with outdated DDragon splash */
+const SPLASH_OVERRIDES: Record<string, string> = {
+  Fiddlesticks: "https://cdn.communitydragon.org/latest/champion/9/splash-art",
+};
+
+function getSplashUrl(imageFileName: string, championId: string): string {
+  if (SPLASH_OVERRIDES[championId]) return SPLASH_OVERRIDES[championId];
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${imageFileName.replace(".png", "")}_0.jpg`;
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -239,7 +249,7 @@ const VS_BADGE = (
 );
 
 function SimulatorInner() {
-  const { version, champions, items, runePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
+  const { version, champions, items, runePaths, enRunePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
 
   /** Get display name for a champion respecting locale */
@@ -540,8 +550,8 @@ function SimulatorInner() {
     enemySkillRanks,
   ]);
 
-  // Reset all state
-  const handleReset = useCallback(() => {
+  // Reset ally side
+  const handleResetAlly = useCallback(() => {
     const defaultRuneValues: SelectedRunes = {
       ...DEFAULT_RUNES,
       primaryPath: runePaths[0]?.id ?? 0,
@@ -573,6 +583,21 @@ function SimulatorInner() {
     setAllyFormGroup('');
     setAllySylasRChampId(null);
     setAllySylasRSkill(null);
+  }, [runePaths]);
+
+  // Reset enemy side
+  const handleResetEnemy = useCallback(() => {
+    const defaultRuneValues: SelectedRunes = {
+      ...DEFAULT_RUNES,
+      primaryPath: runePaths[0]?.id ?? 0,
+      keystone: runePaths[0]?.slots[0]?.runes[0]?.id ?? 0,
+      primarySlot1: runePaths[0]?.slots[1]?.runes[0]?.id ?? 0,
+      primarySlot2: runePaths[0]?.slots[2]?.runes[0]?.id ?? 0,
+      primarySlot3: runePaths[0]?.slots[3]?.runes[0]?.id ?? 0,
+      secondaryPath: runePaths[1]?.id ?? 0,
+      secondarySlot1: runePaths[1]?.slots[1]?.runes[0]?.id ?? 0,
+      secondarySlot2: runePaths[1]?.slots[2]?.runes[0]?.id ?? 0,
+    };
     setEnemyChampion(null);
     setEnemyLevel(1);
     setEnemyItems([null, null, null, null, null, null]);
@@ -593,9 +618,15 @@ function SimulatorInner() {
     setEnemyFormGroup('');
     setEnemySylasRChampId(null);
     setEnemySylasRSkill(null);
+  }, [runePaths]);
+
+  // Reset all state
+  const handleReset = useCallback(() => {
+    handleResetAlly();
+    handleResetEnemy();
     setGameMinute(0);
     clearSimulatorState();
-  }, [runePaths]);
+  }, [handleResetAlly, handleResetEnemy]);
 
   // Fetch Meraki skill data when champion changes, then apply overrides
   useEffect(() => {
@@ -1932,18 +1963,28 @@ function SimulatorInner() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <button
-              onClick={handleReset}
-              className="text-xs px-2 sm:px-2.5 py-1 rounded bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-colors font-medium"
+              onClick={handleResetAlly}
+              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/25 transition-colors font-medium"
+              title={locale === "ja" ? "青側リセット" : "Reset Blue Side"}
             >
-              {t("reset")}
+              {locale === "ja" ? "青リセット" : "Blue Reset"}
+            </button>
+            <button
+              onClick={handleResetEnemy}
+              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/25 transition-colors font-medium"
+              title={locale === "ja" ? "赤側リセット" : "Reset Red Side"}
+            >
+              {locale === "ja" ? "赤リセット" : "Red Reset"}
             </button>
             <span className="text-xs text-muted-foreground/50 hidden sm:inline">v{version}</span>
-            <button
-              onClick={() => setLocale(locale === "ja" ? "en" : "ja")}
-              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as "en" | "ja")}
+              className="text-xs px-1 sm:px-1.5 py-1 rounded bg-secondary/60 text-muted-foreground border border-border transition-colors cursor-pointer focus:outline-none"
             >
-              {locale === "ja" ? "EN" : "JP"}
-            </button>
+              <option value="en" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">EN (English)</option>
+              <option value="ja" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">JP (日本語)</option>
+            </select>
             <ThemeToggle />
           </div>
         </div>
@@ -1996,54 +2037,59 @@ function SimulatorInner() {
           <div
             className={`space-y-3 animate-fade-up stagger-1 min-w-0 ${mobileTab !== "ally" ? "hidden lg:block" : ""}`}
           >
-            {allyChampion ? (
-              <div
-                className="relative rounded-lg overflow-hidden h-24 cursor-pointer"
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setAllyChampion(null);
-                }}
-                title={
-                  locale === "ja"
+            <div
+              className={`relative rounded-lg overflow-hidden h-20 ${allyChampion ? "cursor-pointer bg-zinc-900" : ""}`}
+              onContextMenu={(e) => {
+                if (!allyChampion) return;
+                e.preventDefault();
+                setAllyChampion(null);
+              }}
+              title={
+                allyChampion
+                  ? locale === "ja"
                     ? "右クリックで選択解除"
                     : "Right-click to deselect"
-                }
-              >
-                <img
-                  src={`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${allyChampion.image.replace(".png", "")}_0.jpg`}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ objectPosition: getSplashPosition(allyChampion.id) }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
-                <div className="relative h-full flex items-center gap-3 px-3 z-10">
-                  <Image
-                    src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${allyChampion.image}`}
-                    alt={getChampionDisplayName(allyChampion)}
-                    width={40}
-                    height={40}
-                    className="rounded border border-blue-500/50"
-                    unoptimized
+                  : undefined
+              }
+            >
+              {allyChampion ? (
+                <>
+                  <img
+                    src={getSplashUrl(allyChampion.image, allyChampion.id)}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ objectPosition: getSplashPosition(allyChampion.id) }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                  <div className="relative h-full flex items-center gap-3 px-3 z-10">
+                    <Image
+                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${allyChampion.image}`}
+                      alt={getChampionDisplayName(allyChampion)}
+                      width={40}
+                      height={40}
+                      className="rounded border border-blue-500/50"
+                      unoptimized
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-blue-400">
+                        {t("ally")}
+                      </span>
+                      <span className="text-sm font-bold text-white drop-shadow-md">
+                        {getChampionDisplayName(allyChampion)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 px-1 h-full">
                   <div className="flex flex-col">
                     <span className="text-xs font-semibold text-blue-400">
                       {t("ally")}
                     </span>
-                    <span className="text-sm font-bold text-white drop-shadow-md">
-                      {getChampionDisplayName(allyChampion)}
-                    </span>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 px-1 h-16">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-blue-400">
-                    {t("ally")}
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <ChampionSelect
               champions={champions}
@@ -2110,6 +2156,7 @@ function SimulatorInner() {
                 selectedRunes={allyRunes}
                 onRuneChange={setAllyRunes}
                 locale={locale}
+                enRunePaths={enRunePaths}
               />
             </CollapsibleSection>
 
@@ -2259,54 +2306,59 @@ function SimulatorInner() {
           <div
             className={`space-y-3 animate-fade-up stagger-3 min-w-0 ${mobileTab !== "enemy" ? "hidden lg:block" : ""}`}
           >
-            {enemyChampion ? (
-              <div
-                className="relative rounded-lg overflow-hidden h-24 cursor-pointer"
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setEnemyChampion(null);
-                }}
-                title={
-                  locale === "ja"
+            <div
+              className={`relative rounded-lg overflow-hidden h-20 ${enemyChampion ? "cursor-pointer bg-zinc-900" : ""}`}
+              onContextMenu={(e) => {
+                if (!enemyChampion) return;
+                e.preventDefault();
+                setEnemyChampion(null);
+              }}
+              title={
+                enemyChampion
+                  ? locale === "ja"
                     ? "右クリックで選択解除"
                     : "Right-click to deselect"
-                }
-              >
-                <img
-                  src={`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${enemyChampion.image.replace(".png", "")}_0.jpg`}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ objectPosition: getSplashPosition(enemyChampion.id) }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
-                <div className="relative h-full flex items-center gap-3 px-3 z-10">
-                  <Image
-                    src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${enemyChampion.image}`}
-                    alt={getChampionDisplayName(enemyChampion)}
-                    width={40}
-                    height={40}
-                    className="rounded border border-red-500/50"
-                    unoptimized
+                  : undefined
+              }
+            >
+              {enemyChampion ? (
+                <>
+                  <img
+                    src={getSplashUrl(enemyChampion.image, enemyChampion.id)}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ objectPosition: getSplashPosition(enemyChampion.id) }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                  <div className="relative h-full flex items-center gap-3 px-3 z-10">
+                    <Image
+                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${enemyChampion.image}`}
+                      alt={getChampionDisplayName(enemyChampion)}
+                      width={40}
+                      height={40}
+                      className="rounded border border-red-500/50"
+                      unoptimized
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-red-400">
+                        {t("enemy")}
+                      </span>
+                      <span className="text-sm font-bold text-white drop-shadow-md">
+                        {getChampionDisplayName(enemyChampion)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 px-1 h-full">
                   <div className="flex flex-col">
                     <span className="text-xs font-semibold text-red-400">
                       {t("enemy")}
                     </span>
-                    <span className="text-sm font-bold text-white drop-shadow-md">
-                      {getChampionDisplayName(enemyChampion)}
-                    </span>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 px-1 h-16">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-red-400">
-                    {t("enemy")}
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <ChampionSelect
               champions={champions}
@@ -2373,6 +2425,7 @@ function SimulatorInner() {
                 selectedRunes={enemyRunes}
                 onRuneChange={setEnemyRunes}
                 locale={locale}
+                enRunePaths={enRunePaths}
               />
             </CollapsibleSection>
 

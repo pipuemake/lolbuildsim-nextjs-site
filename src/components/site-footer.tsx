@@ -46,6 +46,14 @@ export function SiteFooter() {
           >
             {t("footer.contact")}
           </Link>
+          {/* Support link - hidden for now
+          <Link
+            href="/support"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("footer.support")}
+          </Link>
+          */}
         </nav>
         <div className="text-center text-xs text-muted-foreground/50">
           {t("footer.disclaimer")}

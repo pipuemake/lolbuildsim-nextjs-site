@@ -4,6 +4,11 @@ import React from "react";
 import Image from "next/image";
 import { RunePath, SelectedRunes } from "@/types";
 import { STAT_SHARDS } from "@/lib/data/runes";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn/img/";
 const CDRAGON_CDN =
@@ -27,6 +32,33 @@ interface RuneSelectorProps {
   selectedRunes: SelectedRunes;
   onRuneChange: (runes: SelectedRunes) => void;
   locale?: string;
+  enRunePaths?: RunePath[];
+}
+
+/** Build a lookup map: runeId -> { name, shortDesc } from an EN RunePath array */
+function buildEnRuneMap(enPaths: RunePath[]): Map<number, { name: string; shortDesc: string }> {
+  const map = new Map<number, { name: string; shortDesc: string }>();
+  for (const path of enPaths) {
+    map.set(path.id, { name: path.name, shortDesc: "" });
+    for (const slot of path.slots) {
+      for (const rune of slot.runes) {
+        map.set(rune.id, { name: rune.name, shortDesc: rune.shortDesc });
+      }
+    }
+  }
+  return map;
+}
+
+function RuneTooltipContent({ name, html }: { name: string; html: string }) {
+  return (
+    <div className="max-w-[280px]">
+      <div className="font-semibold text-xs mb-1">{name}</div>
+      <div
+        className="text-[11px] leading-relaxed opacity-90 [&_br]:hidden"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
 }
 
 export function RuneSelector({
@@ -34,7 +66,23 @@ export function RuneSelector({
   selectedRunes,
   onRuneChange,
   locale = "ja",
+  enRunePaths,
 }: RuneSelectorProps) {
+  const enMap = React.useMemo(
+    () => (enRunePaths ? buildEnRuneMap(enRunePaths) : null),
+    [enRunePaths],
+  );
+
+  /** Get locale-appropriate name for a rune/path */
+  const getRuneName = (id: number, jaName: string) => {
+    if (locale === "en" && enMap) return enMap.get(id)?.name ?? jaName;
+    return jaName;
+  };
+  /** Get locale-appropriate shortDesc */
+  const getRuneDesc = (id: number, jaDesc: string) => {
+    if (locale === "en" && enMap) return enMap.get(id)?.shortDesc ?? jaDesc;
+    return jaDesc;
+  };
   const primaryPath = runePaths.find((p) => p.id === selectedRunes.primaryPath);
   const secondaryPath = runePaths.find(
     (p) => p.id === selectedRunes.secondaryPath,
@@ -139,24 +187,29 @@ export function RuneSelector({
         </span>
         <div className="flex gap-1">
           {runePaths.map((path) => (
-            <button
-              key={path.id}
-              onClick={() => selectPrimaryPath(path.id)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                selectedRunes.primaryPath === path.id
-                  ? "ring-2 ring-amber-500 bg-zinc-700"
-                  : "bg-zinc-800 hover:bg-zinc-700 opacity-50"
-              }`}
-              title={path.name}
-            >
-              <Image
-                src={`${DDRAGON_CDN}${path.icon}`}
-                alt={path.name}
-                width={24}
-                height={24}
-                unoptimized
-              />
-            </button>
+            <Tooltip key={path.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => selectPrimaryPath(path.id)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    selectedRunes.primaryPath === path.id
+                      ? "ring-2 ring-amber-500 bg-zinc-700"
+                      : "bg-zinc-800 hover:bg-zinc-700 opacity-50"
+                  }`}
+                >
+                  <Image
+                    src={`${DDRAGON_CDN}${path.icon}`}
+                    alt={path.name}
+                    width={24}
+                    height={24}
+                    unoptimized
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                <span className="font-semibold text-xs">{getRuneName(path.id, path.name)}</span>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       </div>
@@ -165,24 +218,29 @@ export function RuneSelector({
       {primaryPath && primaryPath.slots[0] && (
         <div className="flex gap-1 ml-14">
           {primaryPath.slots[0].runes.map((rune) => (
-            <button
-              key={rune.id}
-              onClick={() => updateRune("keystone", rune.id)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                selectedRunes.keystone === rune.id
-                  ? "ring-2 ring-amber-400 bg-zinc-700"
-                  : "bg-zinc-800 opacity-40 hover:opacity-70"
-              }`}
-              title={rune.name}
-            >
-              <Image
-                src={`${DDRAGON_CDN}${rune.icon}`}
-                alt={rune.name}
-                width={32}
-                height={32}
-                unoptimized
-              />
-            </button>
+            <Tooltip key={rune.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => updateRune("keystone", rune.id)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    selectedRunes.keystone === rune.id
+                      ? "ring-2 ring-amber-400 bg-zinc-700"
+                      : "bg-zinc-800 opacity-40 hover:opacity-70"
+                  }`}
+                >
+                  <Image
+                    src={`${DDRAGON_CDN}${rune.icon}`}
+                    alt={rune.name}
+                    width={32}
+                    height={32}
+                    unoptimized
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                <RuneTooltipContent name={getRuneName(rune.id, rune.name)} html={getRuneDesc(rune.id, rune.shortDesc)} />
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       )}
@@ -202,24 +260,29 @@ export function RuneSelector({
           return (
             <div key={slotIdx} className="flex gap-1 ml-14">
               {slot.runes.map((rune) => (
-                <button
-                  key={rune.id}
-                  onClick={() => updateRune(field, rune.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    selectedRunes[field] === rune.id
-                      ? "ring-2 ring-amber-400 bg-zinc-700"
-                      : "bg-zinc-800 opacity-40 hover:opacity-70"
-                  }`}
-                  title={rune.name}
-                >
-                  <Image
-                    src={`${DDRAGON_CDN}${rune.icon}`}
-                    alt={rune.name}
-                    width={24}
-                    height={24}
-                    unoptimized
-                  />
-                </button>
+                <Tooltip key={rune.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => updateRune(field, rune.id)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                        selectedRunes[field] === rune.id
+                          ? "ring-2 ring-amber-400 bg-zinc-700"
+                          : "bg-zinc-800 opacity-40 hover:opacity-70"
+                      }`}
+                    >
+                      <Image
+                        src={`${DDRAGON_CDN}${rune.icon}`}
+                        alt={rune.name}
+                        width={24}
+                        height={24}
+                        unoptimized
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                    <RuneTooltipContent name={getRuneName(rune.id, rune.name)} html={getRuneDesc(rune.id, rune.shortDesc)} />
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           );
@@ -234,24 +297,29 @@ export function RuneSelector({
           {runePaths
             .filter((p) => p.id !== selectedRunes.primaryPath)
             .map((path) => (
-              <button
-                key={path.id}
-                onClick={() => selectSecondaryPath(path.id)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                  selectedRunes.secondaryPath === path.id
-                    ? "ring-2 ring-amber-500 bg-zinc-700"
-                    : "bg-zinc-800 hover:bg-zinc-700 opacity-50"
-                }`}
-                title={path.name}
-              >
-                <Image
-                  src={`${DDRAGON_CDN}${path.icon}`}
-                  alt={path.name}
-                  width={24}
-                  height={24}
-                  unoptimized
-                />
-              </button>
+              <Tooltip key={path.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => selectSecondaryPath(path.id)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      selectedRunes.secondaryPath === path.id
+                        ? "ring-2 ring-amber-500 bg-zinc-700"
+                        : "bg-zinc-800 hover:bg-zinc-700 opacity-50"
+                    }`}
+                  >
+                    <Image
+                      src={`${DDRAGON_CDN}${path.icon}`}
+                      alt={path.name}
+                      width={24}
+                      height={24}
+                      unoptimized
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                  <span className="font-semibold text-xs">{getRuneName(path.id, path.name)}</span>
+                </TooltipContent>
+              </Tooltip>
             ))}
         </div>
       </div>
@@ -268,24 +336,29 @@ export function RuneSelector({
                   selectedRunes.secondarySlot1 === rune.id ||
                   selectedRunes.secondarySlot2 === rune.id;
                 return (
-                  <button
-                    key={rune.id}
-                    onClick={() => selectSecondaryRune(rune.id, slotIdx)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                      isSelected
-                        ? "ring-2 ring-amber-400 bg-zinc-700"
-                        : "bg-zinc-800 opacity-40 hover:opacity-70"
-                    }`}
-                    title={rune.name}
-                  >
-                    <Image
-                      src={`${DDRAGON_CDN}${rune.icon}`}
-                      alt={rune.name}
-                      width={24}
-                      height={24}
-                      unoptimized
-                    />
-                  </button>
+                  <Tooltip key={rune.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => selectSecondaryRune(rune.id, slotIdx)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "ring-2 ring-amber-400 bg-zinc-700"
+                            : "bg-zinc-800 opacity-40 hover:opacity-70"
+                        }`}
+                      >
+                        <Image
+                          src={`${DDRAGON_CDN}${rune.icon}`}
+                          alt={rune.name}
+                          width={24}
+                          height={24}
+                          unoptimized
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                      <RuneTooltipContent name={getRuneName(rune.id, rune.name)} html={getRuneDesc(rune.id, rune.shortDesc)} />
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -309,30 +382,38 @@ export function RuneSelector({
               const isSelected = currentValue === shard.id;
               const imageFile = SHARD_IMAGES[shard.id];
               return (
-                <button
-                  key={shard.id}
-                  onClick={() => updateRune(field, shard.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    isSelected
-                      ? "ring-2 ring-amber-400 bg-zinc-700"
-                      : "bg-zinc-800 opacity-40 hover:opacity-70"
-                  }`}
-                  title={shard.description}
-                >
-                  {imageFile ? (
-                    <Image
-                      src={`${CDRAGON_CDN}${imageFile}`}
-                      alt={shard.name}
-                      width={24}
-                      height={24}
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-xs text-zinc-400">
-                      {shard.name.charAt(0)}
-                    </span>
-                  )}
-                </button>
+                <Tooltip key={shard.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => updateRune(field, shard.id)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                        isSelected
+                          ? "ring-2 ring-amber-400 bg-zinc-700"
+                          : "bg-zinc-800 opacity-40 hover:opacity-70"
+                      }`}
+                    >
+                      {imageFile ? (
+                        <Image
+                          src={`${CDRAGON_CDN}${imageFile}`}
+                          alt={shard.name}
+                          width={24}
+                          height={24}
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="text-xs text-zinc-400">
+                          {shard.name.charAt(0)}
+                        </span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-zinc-900 text-zinc-100 border border-zinc-700">
+                    <div className="max-w-[200px]">
+                      <div className="font-semibold text-xs">{shard.name}</div>
+                      <div className="text-[11px] opacity-90">{shard.description}</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>

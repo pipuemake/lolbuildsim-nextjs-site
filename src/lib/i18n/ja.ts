@@ -168,7 +168,14 @@ export const ja: Record<string, string> = {
   "footer.contact": "お問い合わせ",
   "footer.howToUse": "使い方ガイド",
   "footer.faq": "よくある質問",
+  "footer.support": "サポート",
   "footer.disclaimer": "LoL Build Simulator は Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が所有するアセットを使用して作成されました。Riot Games はこのプロジェクトを承認またはスポンサーしていません。League of Legends および Riot Games は Riot Games, Inc. の商標です。",
+
+  // Support page
+  "support.title": "このプロジェクトを応援する",
+  "support.description": "LoL Build Simulator は無料で使えるツールです。もし役に立ったなら、サーバー費用や開発の支援としてコーヒーをおごっていただけると嬉しいです。",
+  "support.bmcButton": "Buy Me a Coffee",
+  "support.thanks": "ご支援ありがとうございます！",
 
   // Home page description
   "home.aboutTitle": "このサイトについて",

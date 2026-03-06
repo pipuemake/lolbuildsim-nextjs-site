@@ -30,6 +30,7 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProfileMap } from "@/lib/supabase/profiles";
 import { useDragonData } from "@/lib/data/use-dragon-data";
+import { getSplashPosition } from "@/lib/data/splash-positions";
 import type { PublishedBuild } from "@/lib/supabase/bookmarks";
 import type {
   Champion,
@@ -39,6 +40,15 @@ import type {
   ComputedStats,
   StatShard,
 } from "@/types";
+
+const SPLASH_OVERRIDES: Record<string, string> = {
+  Fiddlesticks: "https://cdn.communitydragon.org/latest/champion/9/splash-art",
+};
+
+function getSplashUrl(imageFileName: string, championId: string): string {
+  if (SPLASH_OVERRIDES[championId]) return SPLASH_OVERRIDES[championId];
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${imageFileName.replace(".png", "")}_0.jpg`;
+}
 
 const HP_SCALING_SHARD_IDS = new Set(["shard_hp_scaling", "shard_hp_scaling2"]);
 
@@ -214,7 +224,7 @@ export function BuildsClient() {
 }
 
 function BuildsInner() {
-  const { version, champions, items, runePaths, loading: dragonLoading, error } = useDragonData();
+  const { version, champions, items, runePaths, enRunePaths, enChampionNames, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -510,6 +520,11 @@ function BuildsInner() {
   };
 
   const handleLoadSavedBuild = (stored: StoredBuild) => {
+    // Click again to deselect
+    if (editingBuildId === stored.id) {
+      handleCancelEdit();
+      return;
+    }
     const champ = champions.find((c) => c.id === stored.championId);
     if (champ) setChampion(champ);
     setLevel(stored.level);
@@ -520,6 +535,18 @@ function BuildsInner() {
     setSpells(stored.spells ?? [null, null]);
     setBuildName(stored.name);
     setEditingBuildId(stored.id);
+  };
+
+  const handleResetBuild = () => {
+    setEditingBuildId(null);
+    setBuildName("");
+    setChampion(null);
+    setLevel(1);
+    setSelectedItems([null, null, null, null, null, null]);
+    setRunes(defaultRunes);
+    setLane(null);
+    setRole(null);
+    setSpells([null, null]);
   };
 
   if (dragonLoading) {
@@ -583,12 +610,14 @@ function BuildsInner() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="text-xs text-muted-foreground/50 font-mono hidden sm:inline">v{version}</span>
-            <button
-              onClick={() => setLocale(locale === "ja" ? "en" : "ja")}
-              className="text-xs px-1.5 sm:px-2 py-1 rounded bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border transition-colors"
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as "en" | "ja")}
+              className="text-xs px-1 sm:px-1.5 py-1 rounded bg-secondary/60 text-muted-foreground border border-border transition-colors cursor-pointer focus:outline-none"
             >
-              {locale === "ja" ? "EN" : "JP"}
-            </button>
+              <option value="en" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">EN (English)</option>
+              <option value="ja" className="bg-white text-black dark:bg-zinc-800 dark:text-zinc-200">JP (日本語)</option>
+            </select>
             <ThemeToggle />
             <AuthButton locale={locale} />
           </div>
@@ -790,29 +819,56 @@ function BuildsInner() {
           </div>
         )}
 
-        {/* Champion + Level */}
-        <div className="flex items-center gap-3 px-1">
-          {champion ? (
-            <div className="relative flex-shrink-0">
-              <Image
-                src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image}`}
-                alt={champion.name}
-                width={48}
-                height={48}
-                className=" border border-zinc-600"
-                unoptimized
-              />
+        {/* Champion Banner */}
+        {champion ? (
+          <div className="relative rounded-lg overflow-hidden h-20 mb-2">
+            <img
+              src={getSplashUrl(champion.image, champion.id)}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: getSplashPosition(champion.id) }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+            <div className="relative h-full flex items-center justify-between px-3 z-10">
+              <div className="flex items-center gap-3">
+                <Image
+                  src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image}`}
+                  alt={champion.name}
+                  width={40}
+                  height={40}
+                  className="rounded border border-[#C89B3C]/50"
+                  unoptimized
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-[#C89B3C]">
+                    {locale === "ja" ? "ビルド作成" : "Build Creator"}
+                  </span>
+                  <span className="text-sm font-bold text-white drop-shadow-md">
+                    {locale === "en" && enChampionNames[champion.id] ? enChampionNames[champion.id] : champion.name}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleResetBuild}
+                className="text-xs px-2.5 py-1 rounded bg-black/40 hover:bg-black/60 text-zinc-300 hover:text-white border border-zinc-600/50 transition-colors font-medium"
+              >
+                {locale === "ja" ? "リセット" : "Reset"}
+              </button>
             </div>
-          ) : null}
-          <div className="flex flex-col">
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-1 mb-2">
             <span className="text-sm font-semibold text-zinc-300">
               {locale === "ja" ? "ビルド作成" : "Build Creator"}
             </span>
-            {champion && (
-              <span className="text-xs text-zinc-400">{champion.name}</span>
-            )}
+            <button
+              onClick={handleResetBuild}
+              className="text-xs px-2.5 py-1 rounded bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
+              {locale === "ja" ? "リセット" : "Reset"}
+            </button>
           </div>
-        </div>
+        )}
 
         <ChampionSelect
           champions={champions}
@@ -820,6 +876,7 @@ function BuildsInner() {
           onSelect={setChampion}
           locale={locale}
           version={version}
+          enChampionNames={enChampionNames}
         />
 
         <LevelSlider level={level} onLevelChange={setLevel} locale={locale} />
@@ -842,6 +899,7 @@ function BuildsInner() {
             selectedRunes={runes}
             onRuneChange={setRunes}
             locale={locale}
+            enRunePaths={enRunePaths}
           />
         </CollapsibleSection>
 

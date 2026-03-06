@@ -13,6 +13,7 @@ interface DragonData {
   champions: Champion[];
   items: Item[];
   runePaths: RunePath[];
+  enRunePaths: RunePath[];
   enChampionNames: Record<string, string>;
   enItemData: Record<string, { name: string; description: string }>;
 }
@@ -38,32 +39,36 @@ async function fetchDragonData(): Promise<DragonData> {
     runeJa: `${BASE_URL}/cdn/${version}/data/ja_JP/runesReforged.json`,
     champEn: `${BASE_URL}/cdn/${version}/data/en_US/champion.json`,
     itemEn: `${BASE_URL}/cdn/${version}/data/en_US/item.json`,
+    runeEn: `${BASE_URL}/cdn/${version}/data/en_US/runesReforged.json`,
   };
 
-  const [champJaRes, itemJaRes, runeJaRes, champEnRes, itemEnRes] =
+  const [champJaRes, itemJaRes, runeJaRes, champEnRes, itemEnRes, runeEnRes] =
     await Promise.all([
       fetch(urls.champJa),
       fetch(urls.itemJa),
       fetch(urls.runeJa),
       fetch(urls.champEn),
       fetch(urls.itemEn),
+      fetch(urls.runeEn),
     ]);
 
-  if (!champJaRes.ok || !itemJaRes.ok || !runeJaRes.ok || !champEnRes.ok || !itemEnRes.ok) {
+  if (!champJaRes.ok || !itemJaRes.ok || !runeJaRes.ok || !champEnRes.ok || !itemEnRes.ok || !runeEnRes.ok) {
     throw new Error("Failed to fetch DDragon data");
   }
 
-  const [champJa, itemJa, runeJa, champEn, itemEn] = await Promise.all([
+  const [champJa, itemJa, runeJa, champEn, itemEn, runeEn] = await Promise.all([
     champJaRes.json(),
     itemJaRes.json(),
     runeJaRes.json(),
     champEnRes.json(),
     itemEnRes.json(),
+    runeEnRes.json(),
   ]);
 
   const champions = parseChampionList(champJa.data);
   const items = parseItems(itemJa.data);
   const runePaths = parseRunes(runeJa);
+  const enRunePaths = parseRunes(runeEn);
 
   const enChampionNames: Record<string, string> = {};
   for (const [, champ] of Object.entries(champEn.data as Record<string, { id: string; name: string }>)) {
@@ -75,7 +80,7 @@ async function fetchDragonData(): Promise<DragonData> {
     enItemData[id] = { name: item.name, description: item.description };
   }
 
-  return { version, champions, items, runePaths, enChampionNames, enItemData };
+  return { version, champions, items, runePaths, enRunePaths, enChampionNames, enItemData };
 }
 
 export function useDragonData(): UseDragonDataResult {
@@ -126,6 +131,7 @@ export function useDragonData(): UseDragonDataResult {
     champions: [],
     items: [],
     runePaths: [],
+    enRunePaths: [],
     enChampionNames: {},
     enItemData: {},
     loading,
