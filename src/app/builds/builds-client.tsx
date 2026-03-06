@@ -224,7 +224,7 @@ export function BuildsClient() {
 }
 
 function BuildsInner() {
-  const { version, champions, items, runePaths, enRunePaths, enChampionNames, loading: dragonLoading, error } = useDragonData();
+  const { version, champions, items, runePaths, enRunePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
   const { locale, setLocale, t } = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -891,6 +891,7 @@ function BuildsInner() {
           }}
           locale={locale}
           version={version}
+          enItemData={enItemData}
         />
 
         <CollapsibleSection title={locale === "ja" ? "ルーン" : "Runes"}>
