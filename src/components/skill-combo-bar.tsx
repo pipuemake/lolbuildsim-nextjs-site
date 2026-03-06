@@ -48,6 +48,10 @@ interface SkillComboBarProps {
   itemHealEffects?: ItemHealEffect[];
   itemHealCharges?: Record<string, number>;
   onItemHealToggle?: (itemId: string, charges: number) => void;
+  keystoneIcon?: string;
+  keystoneName?: string;
+  keystoneCharges?: number;
+  onKeystoneChargeChange?: (charges: number) => void;
 }
 
 const SKILL_KEYS = ["P", "Q", "W", "E", "R"] as const;
@@ -116,6 +120,10 @@ export function SkillComboBar({
   itemHealEffects,
   itemHealCharges,
   onItemHealToggle,
+  keystoneIcon,
+  keystoneName,
+  keystoneCharges,
+  onKeystoneChargeChange,
 }: SkillComboBarProps) {
   const isJa = locale === "ja";
   const [dropdownIndex, setDropdownIndex] = useState<0 | 1 | null>(null);
@@ -694,6 +702,40 @@ export function SkillComboBar({
                   </button>
                 );
               })}
+            </div>
+          </>
+        )}
+
+        {/* Keystone charges (Fleet Footwork) */}
+        {keystoneIcon && onKeystoneChargeChange && (
+          <>
+            <div className="w-px h-9 bg-zinc-700/60" />
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onKeystoneChargeChange((keystoneCharges ?? 0) + 1)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if ((keystoneCharges ?? 0) > 0) onKeystoneChargeChange((keystoneCharges ?? 0) - 1);
+                }}
+                className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${(keystoneCharges ?? 0) > 0 ? "ring-2 ring-yellow-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                title={keystoneName ?? "Keystone"}
+              >
+                <Image
+                  src={keystoneIcon}
+                  alt={keystoneName ?? "Keystone"}
+                  width={36}
+                  height={36}
+                  className="rounded border border-black/50"
+                  unoptimized
+                />
+                {(keystoneCharges ?? 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-yellow-600 text-white rounded-full leading-none font-bold px-0.5">
+                    {keystoneCharges}
+                  </span>
+                )}
+              </button>
             </div>
           </>
         )}

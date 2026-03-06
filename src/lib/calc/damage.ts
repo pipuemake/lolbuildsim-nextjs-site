@@ -491,3 +491,24 @@ export function calcComboPassiveSkillBonus(
       return rawDmg;
   }
 }
+
+/**
+ * Apply adaptive damage (physical if AD >= AP, else magic) through resists.
+ * Used for keystone procs like Press the Attack and Lethal Tempo on-hit.
+ */
+export function calcAdaptiveDamage(
+  rawDmg: number,
+  attacker: ComputedStats,
+  target: ComputedStats,
+  level: number,
+): number {
+  const isPhysical = attacker.ad >= attacker.ap;
+  if (isPhysical) {
+    const flatArmorPen = calcLethality(attacker.lethality, level);
+    const effAR = calcEffectiveArmor(target.armor, 0, 0, attacker.percentArmorPen, flatArmorPen);
+    return calcPhysicalDamage(rawDmg, effAR);
+  } else {
+    const effMR = calcEffectiveMR(target.mr, attacker.flatMagicPen, attacker.percentMagicPen);
+    return calcMagicDamage(rawDmg, effMR);
+  }
+}

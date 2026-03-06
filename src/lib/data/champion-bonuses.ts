@@ -187,6 +187,7 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
   {
     id: 'grasp',
     type: 'rune',
+    runeId: 8437,
     nameEn: 'Grasp of the Undying',
     nameJa: '不死者の握撃',
     descriptionEn: '+5 HP per proc',
@@ -200,32 +201,41 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
   {
     id: 'conqueror-ad',
     type: 'rune',
+    runeId: 8010,
     nameEn: 'Conqueror (AD)',
     nameJa: '征服者 (AD)',
-    descriptionEn: '+2 AD per stack (0-12)',
-    descriptionJa: 'スタック毎に+2 AD (0-12)',
+    descriptionEn: 'Adaptive AD per stack (0-12), scales with level',
+    descriptionJa: 'スタック毎にAD加算 (0-12)、レベルでスケール',
     inputType: 'number',
     min: 0,
     max: 12,
     defaultValue: 0,
-    calc: (stacks) => ({ ad: stacks * 2 }),
+    calc: (stacks, level) => {
+      const perStack = 1.8 + ((4 - 1.8) / 17) * ((level ?? 1) - 1);
+      return { ad: stacks * perStack * 0.6 };
+    },
   },
   {
     id: 'conqueror-ap',
     type: 'rune',
+    runeId: 8010,
     nameEn: 'Conqueror (AP)',
     nameJa: '征服者 (AP)',
-    descriptionEn: '+3.5 AP per stack (0-12)',
-    descriptionJa: 'スタック毎に+3.5 AP (0-12)',
+    descriptionEn: 'Adaptive AP per stack (0-12), scales with level',
+    descriptionJa: 'スタック毎にAP加算 (0-12)、レベルでスケール',
     inputType: 'number',
     min: 0,
     max: 12,
     defaultValue: 0,
-    calc: (stacks) => ({ ap: stacks * 3.5 }),
+    calc: (stacks, level) => {
+      const perStack = 1.8 + ((4 - 1.8) / 17) * ((level ?? 1) - 1);
+      return { ap: stacks * perStack };
+    },
   },
   {
     id: 'dark-harvest',
     type: 'rune',
+    runeId: 8128,
     nameEn: 'Dark Harvest',
     nameJa: '魂の収穫',
     descriptionEn: '+5 base damage per stack (bonus damage on proc, modeled as +AD)',
@@ -239,6 +249,7 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
   {
     id: 'gathering-storm-ad',
     type: 'rune',
+    runeId: 8236,
     nameEn: 'Gathering Storm (AD)',
     nameJa: '集めた嵐 (AD)',
     descriptionEn: '+AD based on game time (10min: +8, 20min: +24, 30min: +48...)',
@@ -257,6 +268,7 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
   {
     id: 'gathering-storm-ap',
     type: 'rune',
+    runeId: 8236,
     nameEn: 'Gathering Storm (AP)',
     nameJa: '集めた嵐 (AP)',
     descriptionEn: '+AP based on game time (10min: +8, 20min: +24, 30min: +48...)',
