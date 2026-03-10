@@ -220,6 +220,2140 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
       },
     },
   },
+  // --- Akali: Assassin's Mark (P) ---
+  // Ring proc: 35-212 (level) + 60% bonus AD + 55% AP magic
+  {
+    id: 'akali-passive',
+    championId: 'Akali',
+    nameEn: "Assassin's Mark (P) Procs",
+    nameJa: '暗殺者の刻印 (P) 発動回数',
+    descriptionEn: 'Ring proc: 35-212 (level) + 60% bonus AD + 55% AP magic.',
+    descriptionJa: '輪発動: 35-212 (レベル) + 60%増加AD + 55%AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const base = 35 + (177 / 17) * (level - 1);
+        return (base + 0.60 * bonusAd + 0.55 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Diana: Moonsilver Blade (P) ---
+  // Every 3rd AA: 20-250 (level) + 50% AP magic damage
+  {
+    id: 'diana-passive',
+    championId: 'Diana',
+    nameEn: 'Moonsilver Blade (P) Procs',
+    nameJa: '月銀の刃 (P) 発動回数',
+    descriptionEn: 'Every 3rd AA: 20-250 (by level) + 50% AP magic. Set procs in combo.',
+    descriptionJa: '3回目AA毎: 20-250 (レベル) + 50% AP 魔法DM。コンボ内の発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 20 + (230 / 17) * (level - 1);
+        return (base + 0.50 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Nocturne: Umbra Blades (P) ---
+  // Periodic enhanced AA: 20% AD bonus physical + heals. Set procs in combo.
+  {
+    id: 'nocturne-passive',
+    championId: 'Nocturne',
+    nameEn: 'Umbra Blades (P) Procs',
+    nameJa: 'アンブラブレード (P) 発動回数',
+    descriptionEn: 'Periodic enhanced AA: 120% AD physical (cleave). Set procs in combo.',
+    descriptionJa: '定期的な強化AA: 120% AD 物理DM (範囲)。コンボ内の発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        return 0.20 * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Lillia: Dream-Laden Bough (P) ---
+  // Abilities apply: 5% (+1.25% per 100 AP) target maxHP magic over 3s
+  {
+    id: 'lillia-passive',
+    championId: 'Lillia',
+    nameEn: 'Dream-Laden Bough (P) Procs',
+    nameJa: '夢見の枝 (P) 発動回数',
+    descriptionEn: '5% target maxHP (+1.25% per 100 AP) magic over 3s per proc.',
+    descriptionJa: '5% 対象最大HP (+100AP毎+1.25%) 魔法DM/3秒。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, target) => {
+        if (procCount <= 0) return 0;
+        const hpPct = 0.05 + (attacker.ap / 100) * 0.0125;
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Lux: Illumination (P) ---
+  // AA detonates passive mark: 20-212 (level) + 20% AP magic damage
+  {
+    id: 'lux-passive',
+    championId: 'Lux',
+    nameEn: 'Illumination (P) Procs',
+    nameJa: 'イルミネーション (P) 発動回数',
+    descriptionEn: 'AA detonation after spell: 20-212 (by level) + 20% AP magic. Set procs.',
+    descriptionJa: 'スキル後AA爆発: 20-212 (レベル) + 20% AP 魔法DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 20 + (192 / 17) * (level - 1);
+        return (base + 0.20 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Lucian: Lightslinger (P) ---
+  // After spell: next AA is a double-shot. 2nd shot deals reduced damage.
+  // 2nd shot: 50/55/60% AD (levels 1/7/13)
+  {
+    id: 'lucian-passive',
+    championId: 'Lucian',
+    nameEn: 'Lightslinger (P) Procs',
+    nameJa: 'ライトスリンガー (P) 発動回数',
+    descriptionEn: 'After spell: 2nd shot deals 50/55/60% AD (lv1/7/13). Set procs.',
+    descriptionJa: 'スキル後2発目: 50/55/60% AD (lv1/7/13)。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const ratio = level >= 13 ? 0.60 : level >= 7 ? 0.55 : 0.50;
+        return ratio * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Volibear: The Relentless Storm (P) ---
+  // Basic attacks grant a stack (max 5). At 5 stacks: AA chains lightning
+  // Lightning: 11-60 (level) + 40% AP magic per target
+  {
+    id: 'volibear-passive',
+    championId: 'Volibear',
+    nameEn: 'The Relentless Storm (P)',
+    nameJa: '嵐の咆哮 (P)',
+    descriptionEn: 'At 5 stacks: AA chains lightning: 11-60 (level) + 40% AP magic. Set procs.',
+    descriptionJa: '5スタック時: AA雷撃: 11-60 (レベル) + 40% AP 魔法DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 11 + (49 / 17) * (level - 1);
+        return (base + 0.40 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Talon: Blade's End (P) ---
+  // 3 Wound stacks → bleed: 80-303.53 (level) + 210% bonus AD physical over 2s
+  {
+    id: 'talon-passive',
+    championId: 'Talon',
+    nameEn: "Blade's End (P) Procs",
+    nameJa: '刃の終焉 (P) 発動回数',
+    descriptionEn: 'At 3 stacks: 80-303.5 (level) + 210% bonus AD physical bleed. Set procs.',
+    descriptionJa: '3スタック時: 80-303.5 (レベル) + 210%増加AD 物理出血DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const base = 80 + (223.53 / 17) * (level - 1);
+        return (base + 2.10 * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Caitlyn: Headshot (P) ---
+  // Enhanced AA: 60-210% AD (by level, increased by crit) + 1.3125 AD (crit)
+  {
+    id: 'caitlyn-passive',
+    championId: 'Caitlyn',
+    nameEn: 'Headshot (P) Procs',
+    nameJa: 'ヘッドショット (P) 発動回数',
+    descriptionEn: 'Headshot: 60-210% (level) + crit bonus AD physical.',
+    descriptionJa: 'ヘッドショット: 60-210% (レベル) + クリティカル補正 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const ratio = 0.60 + (1.50 / 17) * (level - 1);
+        return ratio * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Draven: Spinning Axe (Q) ---
+  // Q-empowered AA: 40/45/50/55/60 + 75/85/95/105/115% bonus AD physical
+  {
+    id: 'draven-q',
+    championId: 'Draven',
+    nameEn: 'Spinning Axe (Q) Hits',
+    nameJa: 'スピニングアックス (Q) ヒット数',
+    descriptionEn: 'Q-empowered AA: 40-60 + 75-115% bonus AD physical per hit.',
+    descriptionJa: 'Q強化AA: 40-60 + 75-115%増加AD 物理DM。ヒット数。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        // Approximate Q rank from level (Q maxed first typically)
+        // Q rank 1-5: base 40/45/50/55/60, ratio 75/85/95/105/115%
+        const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 35 + 5 * qRank;
+        const ratio = 0.65 + 0.10 * qRank;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        return (base + ratio * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Camille: Adaptive Defenses (P) ---
+  // Shield on AA against champion, not a damage passive.
+  // But her Q passive (Precision Protocol) is handled in skill overrides.
+
+  // --- Gangplank: Trial by Fire (P) ---
+  // Next AA: 50-273.53 (level) + 100% bonus AD true damage burn over 2.5s
+  {
+    id: 'gangplank-passive',
+    championId: 'Gangplank',
+    nameEn: 'Trial by Fire (P) Procs',
+    nameJa: '烈火の試練 (P) 発動回数',
+    descriptionEn: 'Next AA burn: 50-274 (level) + 100% bonus AD true dmg.',
+    descriptionJa: '次AA炎上: 50-274 (レベル) + 100%増加AD 確定DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const base = 50 + (223.53 / 17) * (level - 1);
+        return (base + 1.0 * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Katarina: Voracity (P) ---
+  // Dagger pickup: 68-275 (level) + 60% bonus AD + 70-100% AP (level) magic
+  {
+    id: 'katarina-passive',
+    championId: 'Katarina',
+    nameEn: 'Voracity (P) Dagger Pickups',
+    nameJa: '貪欲 (P) 短剣回収数',
+    descriptionEn: 'Dagger: 68-275 (level) + 60% bonus AD + 70-100% AP magic.',
+    descriptionJa: '短剣回収: 68-275 (レベル) + 60%増加AD + 70-100%AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const base = 68 + (207 / 17) * (level - 1);
+        const apRatio = 0.70 + (0.30 / 17) * (level - 1);
+        return (base + 0.60 * bonusAd + apRatio * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Master Yi: Double Strike (P) ---
+  // Every 3rd AA: 2nd strike deals 50% AD physical
+  {
+    id: 'masteryi-passive',
+    championId: 'MasterYi',
+    nameEn: 'Double Strike (P) Procs',
+    nameJa: 'ダブルストライク (P) 発動回数',
+    descriptionEn: 'Every 3rd AA: extra hit deals 50% AD physical.',
+    descriptionJa: '3回目AA: 追加打撃 50% AD 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        return 0.50 * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Master Yi: Wuju Style (E) ---
+  // True damage on-hit: 20/25/30/35/40 + 35% bonus AD
+  {
+    id: 'masteryi-e',
+    championId: 'MasterYi',
+    nameEn: 'Wuju Style (E) On-Hit',
+    nameJa: '無慈悲なる悟り (E) ヒット数',
+    descriptionEn: 'E active: 20-40 + 35% bonus AD true on-hit per AA.',
+    descriptionJa: 'E発動: 20-40 + 35%増加AD 確定DM/AA。ヒット数。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 15 + 5 * eRank;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        return (base + 0.35 * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Mordekaiser: Darkness Rise (P) ---
+  // After 3 hits: aura deals 5 + 30% AP + 1-5.47% maxHP per second
+  {
+    id: 'mordekaiser-passive',
+    championId: 'Mordekaiser',
+    nameEn: 'Darkness Rise (P) Ticks',
+    nameJa: '闇の隆盛 (P) ティック数',
+    descriptionEn: 'Aura per second: 5 + 30% AP + 1-5.47% maxHP magic.',
+    descriptionJa: 'オーラ毎秒: 5 + 30%AP + 1-5.47%maxHP 魔法DM。ティック数。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (ticks, attacker, _target, level) => {
+        if (ticks <= 0) return 0;
+        const hpPct = 0.01 + (0.0447 / 17) * (level - 1);
+        return (5 + 0.30 * attacker.ap + hpPct * attacker.maxHp) * ticks;
+      },
+    },
+  },
+
+  // --- Vi: Denting Blows (W) ---
+  // Every 3rd hit: 4-8% target maxHP physical + armor shred
+  {
+    id: 'vi-w',
+    championId: 'Vi',
+    nameEn: 'Denting Blows (W) Procs',
+    nameJa: '牙砕き (W) 発動回数',
+    descriptionEn: 'Every 3rd hit: 4-8% target maxHP physical.',
+    descriptionJa: '3回目毎: 4-8% 対象最大HP 物理DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const hpPct = 0.03 + 0.01 * wRank;
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Fizz: Seastone Trident (W) On-Hit ---
+  // W passive bleed: 30/45/60/75/90 + 25% AP magic total over 3s
+  {
+    id: 'fizz-w-passive',
+    championId: 'Fizz',
+    nameEn: 'Seastone Trident (W) Bleed Procs',
+    nameJa: 'シーストーントライデント (W) 出血回数',
+    descriptionEn: 'W passive: 30-90 + 25% AP magic bleed over 3s per hit.',
+    descriptionJa: 'Wパッシブ: 30-90 + 25% AP 魔法出血DM/3秒。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 15 + 15 * wRank;
+        return (base + 0.25 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Ziggs: Short Fuse (P) ---
+  // Periodic enhanced AA: 16-130 (level) + 50% AP magic
+  {
+    id: 'ziggs-passive',
+    championId: 'Ziggs',
+    nameEn: 'Short Fuse (P) Procs',
+    nameJa: 'ショートフューズ (P) 発動回数',
+    descriptionEn: 'Periodic enhanced AA: 16-130 (level) + 50% AP magic.',
+    descriptionJa: '定期強化AA: 16-130 (レベル) + 50% AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 16 + (114 / 17) * (level - 1);
+        return (base + 0.50 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Cassiopeia: Twin Fang (E) Poisoned Bonus ---
+  // E on poisoned: 52-120 (level) + 10% AP bonus magic
+  {
+    id: 'cassiopeia-e-poison',
+    championId: 'Cassiopeia',
+    nameEn: 'Twin Fang (E) Poison Bonus',
+    nameJa: 'ツインファング (E) 毒追加ダメージ',
+    descriptionEn: 'E on poisoned target: +52-120 (level) + 10% AP magic.',
+    descriptionJa: '毒状態へのE: +52-120 (レベル) + 10% AP 魔法DM追加。',
+    inputType: 'toggle',
+    defaultValue: 1,
+    statBonus: () => ({}),
+  },
+
+  // --- Vel'Koz: Organic Deconstruction (P) ---
+  // 3 stacks: 33-169 (level) true damage proc
+  {
+    id: 'velkoz-passive',
+    championId: 'Velkoz',
+    nameEn: 'Organic Deconstruction (P) Procs',
+    nameJa: '有機物分解 (P) 発動回数',
+    descriptionEn: 'At 3 stacks: 33-169 (level) true damage.',
+    descriptionJa: '3スタック時: 33-169 (レベル) 確定DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, _attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 33 + (136 / 17) * (level - 1);
+        return base * procCount;
+      },
+    },
+  },
+
+  // --- Vayne: Silver Bolts (W) ---
+  // Every 3rd hit: 6/7/8/9/10% target maxHP true damage (min 50-110)
+  {
+    id: 'vayne-w',
+    championId: 'Vayne',
+    nameEn: 'Silver Bolts (W) Procs',
+    nameJa: 'シルバーボルト (W) 発動回数',
+    descriptionEn: 'Every 3rd hit: 6-10% target maxHP true damage.',
+    descriptionJa: '3回目毎: 6-10% 対象最大HP 確定DM。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const hpPct = 0.05 + 0.01 * wRank;
+        const minDmg = 35 + 15 * wRank;
+        const dmgPerProc = Math.max(minDmg, hpPct * target.maxHp);
+        return dmgPerProc * procCount;
+      },
+    },
+  },
+
+  // --- Sett: Pit Grit (P) ---
+  // Left punch: normal AA. Right punch: 5-90 (level) + 50% AD physical
+  {
+    id: 'sett-passive',
+    championId: 'Sett',
+    nameEn: 'Pit Grit (P) Right Punches',
+    nameJa: 'ピットグリット (P) 右パンチ数',
+    descriptionEn: 'Right punch: 5-90 (level) + 50% AD physical. Set count in combo.',
+    descriptionJa: '右パンチ: 5-90 (レベル) + 50% AD 物理DM。コンボ内の回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 5 + (85 / 17) * (level - 1);
+        return (base + 0.50 * attacker.ad) * procCount;
+      },
+    },
+  },
+
+  // --- Riven: Runic Blade (P) ---
+  // After spell: next 3 AAs deal 25-50% (by level) total AD bonus physical
+  {
+    id: 'riven-passive',
+    championId: 'Riven',
+    nameEn: 'Runic Blade (P) Procs',
+    nameJa: 'ルーンブレード (P) 発動回数',
+    descriptionEn: 'After spell: AA deals 25-50% (by level) total AD bonus physical. Set procs.',
+    descriptionJa: 'スキル後AA: 25-50% (レベル) 合計AD 物理DM追加。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 12,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const ratio = 0.25 + (0.25 / 17) * (level - 1);
+        return ratio * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Ekko: Z-Drive Resonance (P) ---
+  // Every 3rd hit on same target: 30-140 (level) + 80% AP magic
+  {
+    id: 'ekko-passive',
+    championId: 'Ekko',
+    nameEn: 'Z-Drive Resonance (P) Procs',
+    nameJa: 'Z-ドライブ共鳴 (P) 発動回数',
+    descriptionEn: 'Every 3rd hit: 30-140 (level) + 80% AP magic.',
+    descriptionJa: '3回目毎: 30-140 (レベル) + 80% AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 30 + (110 / 17) * (level - 1);
+        return (base + 0.80 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Yone: Way of the Hunter (P) ---
+  // Every 2nd AA: 50% AD magic damage (replaces that portion of physical)
+  {
+    id: 'yone-passive-hit',
+    championId: 'Yone',
+    nameEn: 'Way of the Hunter (P) Magic Hits',
+    nameJa: '巡る命 (P) 魔法打撃数',
+    descriptionEn: 'Every 2nd AA deals bonus magic damage equal to a portion of AD.',
+    descriptionJa: '2回毎のAAでADの一部が魔法DMに変換。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        // Yone's 2nd AA converts ~50% physical to magic
+        return 0.50 * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Brand: Blaze (P) ---
+  // Abilities apply Ablaze: 3% maxHP magic over 4s. 3 stacks = detonate: 10-14% maxHP magic
+  {
+    id: 'brand-passive',
+    championId: 'Brand',
+    nameEn: 'Blaze (P) Procs',
+    nameJa: 'ブレイズ (P) 発動回数',
+    descriptionEn: 'Ablaze: 3% target maxHP magic over 4s per proc. Set total procs.',
+    descriptionJa: '炎上: 3% 対象最大HP 魔法DM/4秒。合計発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, target) => {
+        if (procCount <= 0) return 0;
+        return 0.03 * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Brand: Blaze Detonation ---
+  // At 3 Ablaze stacks: detonation deals 10-14% maxHP magic
+  {
+    id: 'brand-detonate',
+    championId: 'Brand',
+    nameEn: 'Blaze Detonation Procs',
+    nameJa: 'ブレイズ爆発 発動回数',
+    descriptionEn: '3-stack detonation: 10-14% (by level) target maxHP magic.',
+    descriptionJa: '3スタック爆発: 10-14% (レベル) 対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const hpPct = 0.10 + (0.04 / 17) * (level - 1);
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Kog'Maw: Bio-Arcane Barrage (W) ---
+  // W active: AA deals 3.5/4.25/5/5.75/6.5% target maxHP magic on-hit
+  {
+    id: 'kogmaw-w',
+    championId: 'KogMaw',
+    nameEn: 'Bio-Arcane Barrage (W) Hits',
+    nameJa: 'バイオアーケインバレッジ (W) ヒット数',
+    descriptionEn: 'W active: +3.5-6.5% target maxHP (+1% per 100 AP) magic on-hit.',
+    descriptionJa: 'W発動時: +3.5-6.5% 対象最大HP (+100AP毎+1%) 魔法オンヒット。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const hpPct = 0.0275 + 0.0075 * wRank + (attacker.ap / 100) * 0.01;
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Teemo: Toxic Shot (E) ---
+  // On-hit: 11/22/33/44/55 + 30% AP magic + poison 12/24/36/48/60 + 40% AP over 4s
+  {
+    id: 'teemo-e',
+    championId: 'Teemo',
+    nameEn: 'Toxic Shot (E) Hits',
+    nameJa: 'トキシックショット (E) ヒット数',
+    descriptionEn: 'E on-hit: 11-55 + 30% AP magic + 12-60 + 40% AP poison.',
+    descriptionJa: 'Eオンヒット: 11-55 + 30%AP 魔法DM + 12-60 + 40%AP 毒DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const onHitBase = 11 * eRank;
+        const poisonBase = 12 * eRank;
+        return (onHitBase + 0.30 * attacker.ap + poisonBase + 0.40 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Gnar: Hyper (W) ---
+  // Every 3rd hit: 0-100% maxHP magic + flat based on rank
+  {
+    id: 'gnar-w',
+    championId: 'Gnar',
+    nameEn: 'Hyper (W) Procs',
+    nameJa: 'ハイパー (W) 発動回数',
+    descriptionEn: 'Every 3rd hit: 0-10% target maxHP + flat magic.',
+    descriptionJa: '3回目毎: 0-10% 対象最大HP + 固定 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const flat = [0, 25, 30, 35, 40][wRank - 1];
+        const hpPct = [0.06, 0.08, 0.10, 0.12, 0.14][wRank - 1];
+        return (flat + hpPct * target.maxHp + 1.0 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Kennen: Mark of the Storm (P) ---
+  // 3 marks → stun + 30-160 (level) magic damage
+  {
+    id: 'kennen-passive',
+    championId: 'Kennen',
+    nameEn: 'Mark of the Storm (P) Stun Procs',
+    nameJa: '嵐の刻印 (P) スタン発動回数',
+    descriptionEn: '3 marks: stun + 30-160 (level) magic.',
+    descriptionJa: '3スタック時: スタン + 30-160 (レベル) 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 30 + (130 / 17) * (level - 1);
+        return base * procCount;
+      },
+    },
+  },
+
+  // --- Thresh: Flay (E) Passive ---
+  // Charged AA: up to 80-200% AD magic based on charge time
+  {
+    id: 'thresh-e-passive',
+    championId: 'Thresh',
+    nameEn: 'Flay (E) Passive Hits',
+    nameJa: 'フレイ (E) パッシブヒット数',
+    descriptionEn: 'Charged AA: up to 80-200% AD magic based on souls + charge.',
+    descriptionJa: '溜めAA: 最大80-200%AD 魔法DM (ソウル+チャージ)。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const ratio = [0.80, 1.10, 1.40, 1.70, 2.00][eRank - 1];
+        return ratio * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Warwick: Eternal Hunger (P) ---
+  // On-hit: 12-46 (level) magic damage. Below 50% HP: heals same.
+  {
+    id: 'warwick-passive',
+    championId: 'Warwick',
+    nameEn: 'Eternal Hunger (P) Hits',
+    nameJa: 'エターナルハンガー (P) ヒット数',
+    descriptionEn: 'On-hit: 12-46 (level) magic. Below 50% HP: heals equal.',
+    descriptionJa: 'オンヒット: 12-46 (レベル) 魔法DM。HP50%以下で同量回復。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 12 + (34 / 17) * (level - 1);
+        return base * procCount;
+      },
+    },
+  },
+
+  // --- Xin Zhao: Determination (P) ---
+  // Every 3rd AA: 15/25/35/45% AD + 7.5% target currentHP
+  {
+    id: 'xinzhao-passive',
+    championId: 'XinZhao',
+    nameEn: 'Determination (P) Procs',
+    nameJa: 'デターミネーション (P) 発動回数',
+    descriptionEn: 'Every 3rd AA: 15-45% AD + 7.5% target current HP physical.',
+    descriptionJa: '3回目AA: 15-45% AD + 7.5% 対象現在HP 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const pRank = level >= 13 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1;
+        const adRatio = [0.15, 0.25, 0.35, 0.45][pRank - 1];
+        return (adRatio * attacker.ad + 0.075 * target.maxHp) * procCount;
+      },
+    },
+  },
+
+  // --- Zed: Contempt for the Weak (P) ---
+  // AA vs below 50% HP: 6/8/10% target maxHP magic (once per target per 10s)
+  {
+    id: 'zed-passive',
+    championId: 'Zed',
+    nameEn: 'Contempt for the Weak (P)',
+    nameJa: '弱者必衰 (P)',
+    descriptionEn: 'AA vs <50% HP: 6/8/10% (lv1/7/17) target maxHP magic.',
+    descriptionJa: 'HP50%以下AA: 6/8/10% (lv1/7/17) 対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 3,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const hpPct = level >= 17 ? 0.10 : level >= 7 ? 0.08 : 0.06;
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Kai'Sa: Second Skin (P) ---
+  // Plasma stacks: 5th stack detonates for 15% (+6% per 100 AP) target missing HP magic
+  {
+    id: 'kaisa-passive',
+    championId: 'Kaisa',
+    nameEn: 'Second Skin (P) Rupture Procs',
+    nameJa: 'セカンドスキン (P) 破裂発動回数',
+    descriptionEn: '5th plasma stack: 15% (+6% per 100 AP) target missing HP magic.',
+    descriptionJa: '5スタック破裂: 15% (+100AP毎+6%) 対象減少HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, target) => {
+        if (procCount <= 0) return 0;
+        const missingHpPct = 0.15 + (attacker.ap / 100) * 0.06;
+        const missingHp = target.maxHp * 0.5; // assume 50% HP target
+        return missingHpPct * missingHp * procCount;
+      },
+    },
+  },
+
+  // --- Kayle: Starfire Spellblade (E) Passive ---
+  // On-hit: 15-35 (level) + 25% AP + 10% bonus AD magic
+  {
+    id: 'kayle-e-passive',
+    championId: 'Kayle',
+    nameEn: 'Starfire Spellblade (E) On-Hit',
+    nameJa: 'スターファイアスペルブレイド (E) ヒット数',
+    descriptionEn: 'E passive on-hit: 15-35 (E rank) + 25% AP + 10% bonus AD magic.',
+    descriptionJa: 'Eパッシブ: 15-35 (Eランク) + 25%AP + 10%増加AD 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 10 + 5 * eRank;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        return (base + 0.25 * attacker.ap + 0.10 * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Braum: Concussive Blows (P) ---
+  // 4th stack: 16-126 (level) magic + stun
+  {
+    id: 'braum-passive',
+    championId: 'Braum',
+    nameEn: 'Concussive Blows (P) Procs',
+    nameJa: 'コンカッシブブロウ (P) 発動回数',
+    descriptionEn: '4th stack: 16-126 (level) magic + stun.',
+    descriptionJa: '4スタック: 16-126 (レベル) 魔法DM + スタン。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 16 + (110 / 17) * (level - 1);
+        return base * procCount;
+      },
+    },
+  },
+
+  // --- Varus: Blight (W) ---
+  // W passive: AAs apply Blight. Skills detonate: 3/3.5/4/4.5/5% target maxHP + 1.3% per 100 AP per stack
+  {
+    id: 'varus-w',
+    championId: 'Varus',
+    nameEn: 'Blight (W) Detonation (3 stacks)',
+    nameJa: 'ブライト (W) 爆発 (3スタック)',
+    descriptionEn: '3-stack detonate: 9-15% target maxHP (+3.9% per 100 AP) magic.',
+    descriptionJa: '3スタック爆発: 9-15% 対象最大HP (+100AP毎+3.9%) 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const pctPerStack = [0.03, 0.035, 0.04, 0.045, 0.05][wRank - 1];
+        const apBonusPerStack = (attacker.ap / 100) * 0.013;
+        // 3 stacks detonated per proc
+        return 3 * (pctPerStack + apBonusPerStack) * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Twitch: Deadly Venom (P) ---
+  // Poison: 1/2/3/4/5 true damage per second per stack (6 max stacks), 6s duration
+  {
+    id: 'twitch-passive',
+    championId: 'Twitch',
+    nameEn: 'Deadly Venom (P) Stacks Applied',
+    nameJa: 'デッドリーヴェノム (P) 付与スタック数',
+    descriptionEn: 'Total venom ticks (1-5 true dmg/sec/stack, 6 stacks max).',
+    descriptionJa: '毒合計 (1-5確定DM/秒/スタック、最大6スタック)。',
+    inputType: 'stack',
+    min: 0,
+    max: 36,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (ticks, _attacker, _target, level) => {
+        if (ticks <= 0) return 0;
+        // Damage per second per stack scales: 1/2/3/4/5 at lv1/5/9/13/17
+        const dmgPerTick = level >= 17 ? 5 : level >= 13 ? 4 : level >= 9 ? 3 : level >= 5 ? 2 : 1;
+        return dmgPerTick * ticks;
+      },
+    },
+  },
+
+  // --- Kled: Violent Tendencies (W) ---
+  // 4th hit: 4/4.5/5/5.5/6% target maxHP + bonus physical
+  {
+    id: 'kled-w',
+    championId: 'Kled',
+    nameEn: 'Violent Tendencies (W) 4th Hit',
+    nameJa: 'ヴァイオレントテンデンシー (W) 4撃目',
+    descriptionEn: '4th hit: 4-6% target maxHP physical.',
+    descriptionJa: '4撃目: 4-6% 対象最大HP 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const hpPct = 0.035 + 0.005 * wRank;
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Bel'Veth: Death in Lavender (P) ---
+  // Bonus permanent AS from takedowns and jungle camps
+  {
+    id: 'belveth-passive',
+    championId: 'BelVeth',
+    nameEn: "Death in Lavender (P) AS Stacks",
+    nameJa: 'ラベンダーの死 (P) ASスタック',
+    descriptionEn: 'Permanent bonus AS from takedowns.',
+    descriptionJa: 'テイクダウンで永続AS増加。',
+    inputType: 'stack',
+    min: 0,
+    max: 100,
+    defaultValue: 0,
+    statBonus: (stacks) => {
+      if (stacks <= 0) return {};
+      return { attackSpeed: stacks * 0.01 };
+    },
+  },
+
+  // --- Tahm Kench: An Acquired Taste (P) ---
+  // AA applies stack. At 3 stacks: Q stuns, W devours. On-hit: 8-60 (level) + 2.5% bonusHP magic
+  {
+    id: 'tahmkench-passive',
+    championId: 'TahmKench',
+    nameEn: 'An Acquired Taste (P) Hits',
+    nameJa: '味蕾の報い (P) ヒット数',
+    descriptionEn: 'On-hit: 8-60 (level) + 2.5% bonus HP magic.',
+    descriptionJa: 'オンヒット: 8-60 (レベル) + 2.5%増加HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 8 + (52 / 17) * (level - 1);
+        const bonusHp = attacker.maxHp - (580 + 95 * (level - 1)); // rough base HP estimate
+        return (base + 0.025 * Math.max(0, bonusHp)) * procCount;
+      },
+    },
+  },
+
+  // --- Naafiri: We Are More (P) ---
+  // Packmate damage: 3-66 (level) + 10% bonus AD physical per packmate hit
+  {
+    id: 'naafiri-passive',
+    championId: 'Naafiri',
+    nameEn: 'We Are More (P) Packmate Hits',
+    nameJa: 'ウィーアーモア (P) パックメイト攻撃数',
+    descriptionEn: 'Packmate hit: 3-66 (level) + 10% bonus AD physical.',
+    descriptionJa: 'パックメイト攻撃: 3-66 (レベル) + 10%増加AD 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const base = 3 + (63 / 17) * (level - 1);
+        return (base + 0.10 * bonusAd) * procCount;
+      },
+    },
+  },
+
+  // --- Briar: Crimson Curse (P) ---
+  // Bleed on-hit: 3% of damage dealt as physical bleed (modeled as fixed on-hit for simplicity)
+  // Plus: heals for damage dealt (not damage-related here)
+
+  // --- Rumble: Junkyard Titan (P) ---
+  // Overheat: AAs deal 5-40 (level) + 25% AP bonus magic for 5.25s
+  {
+    id: 'rumble-passive',
+    championId: 'Rumble',
+    nameEn: 'Junkyard Titan (P) Overheat Hits',
+    nameJa: 'ジャンクヤードタイタン (P) オーバーヒートAA数',
+    descriptionEn: 'Overheat AA: 5-40 (level) + 25% AP magic on-hit.',
+    descriptionJa: 'オーバーヒートAA: 5-40 (レベル) + 25%AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 5 + (35 / 17) * (level - 1);
+        return (base + 0.25 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Fiora: Grand Challenge (P/R) ---
+  // Vital proc: 3-7% target maxHP true damage
+  {
+    id: 'fiora-vital',
+    championId: 'Fiora',
+    nameEn: 'Duelist\'s Dance (P) Vital Procs',
+    nameJa: 'デュエリストダンス (P) 急所発動数',
+    descriptionEn: 'Vital hit: 3-7% (by level) target maxHP true dmg.',
+    descriptionJa: '急所: 3-7% (レベル) 対象最大HP 確定DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 8,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const pct = 0.03 + (0.04 / 17) * (level - 1) + 0.045 * (attacker.ad / 100);
+        return pct * target.maxHp * procCount;
+      },
+    },
+  },
+
+  // --- Kassadin: Nether Blade (W) ---
+  // W active: next AA deals 50-90 + 80% AP magic
+  {
+    id: 'kassadin-w',
+    championId: 'Kassadin',
+    nameEn: 'Nether Blade (W) Active Hits',
+    nameJa: 'ネザーブレイド (W) 発動数',
+    descriptionEn: 'W active AA: 50-90 + 80% AP magic.',
+    descriptionJa: 'W強化AA: 50-90 + 80%AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 40 + 10 * wRank;
+        return (base + 0.80 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Darius: Hemorrhage (P) Bleed ---
+  // 5 stacks: bleed total = 12-42 (level) + 30% bonus AD per stack per 5s
+  {
+    id: 'darius-bleed',
+    championId: 'Darius',
+    nameEn: 'Hemorrhage (P) Bleed (5 stacks)',
+    nameJa: 'ヘモレイジ (P) 出血 (5スタック)',
+    descriptionEn: '5-stack bleed total: 60-210 (lv) + 150% bonus AD physical over 5s.',
+    descriptionJa: '5スタック出血合計: 60-210 (レベル) + 150%増加AD 物理DM/5秒。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (enabled, attacker, _target, level) => {
+        if (!enabled) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const perStack = (12 + (30 / 17) * (level - 1));
+        return 5 * perStack + 5 * 0.30 * bonusAd;
+      },
+    },
+  },
+
+  // --- Gwen: Snip Snip! Center (Q) ---
+  // Center snip: 75% bonus true damage + magic damage
+  {
+    id: 'gwen-q-center',
+    championId: 'Gwen',
+    nameEn: 'Snip Snip! (Q) Center Snips',
+    nameJa: 'チョキチョキ (Q) 中央ヒット数',
+    descriptionEn: 'Center snip: bonus true damage equal to 75% of Q damage.',
+    descriptionJa: '中央: Qダメージの75%を確定DMとして追加。',
+    inputType: 'stack',
+    min: 0,
+    max: 6,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        // Each snip: ~10 + 5% AP. Center bonus = 75% of that as true damage
+        return 0.75 * (10 + 0.05 * attacker.ap) * procCount;
+      },
+    },
+  },
+
+  // --- Rengar: Unseen Predator (P) ---
+  // Leap from bush: bonus damage at max ferocity
+  // (Already has trophy bonuses. This is leap on-hit.)
+
+  // --- Swain: Ravenous Flock (P) ---
+  // Soul Fragment collection heal + R drain (handled in skill overrides)
+
+  // --- Samira: Daredevil Impulse (P) ---
+  // Melee AA on immobilized targets: bonus 3.5-14% target maxHP magic
+  {
+    id: 'samira-passive',
+    championId: 'Samira',
+    nameEn: 'Daredevil Impulse (P) Procs',
+    nameJa: 'デアデビルインパルス (P) 発動回数',
+    descriptionEn: 'Melee AA on CC target: 3.5-14% target maxHP magic.',
+    descriptionJa: 'CC中の敵への近接AA: 3.5-14% 対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const hpPct = 0.035 + (0.105 / 17) * (level - 1);
+        return hpPct * target.maxHp * procCount;
+      },
+    },
+  },
+  // --- Jinx: Get Excited! (P) ---
+  // On takedown: +25% total AS, +175% MS decaying
+  {
+    id: 'jinx-passive',
+    championId: 'Jinx',
+    nameEn: 'Get Excited! (P)',
+    nameJa: 'ゲットエキサイテッド! (P)',
+    descriptionEn: 'On takedown: +25% total AS for 6s.',
+    descriptionJa: 'テイクダウン時: +25% 合計AS (6秒間)。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    statBonus: (enabled) => {
+      if (!enabled) return {};
+      return { attackSpeed: 0.25 };
+    },
+  },
+
+  // --- Jinx: Pow-Pow Stacks ---
+  // Minigun stacks: +15/27.5/40/52.5/65% AS at 3 stacks
+  {
+    id: 'jinx-q-stacks',
+    championId: 'Jinx',
+    nameEn: 'Pow-Pow (Q) AS Stacks',
+    nameJa: 'パウパウ (Q) ASスタック',
+    descriptionEn: 'Minigun stacks: +0-65% AS (0-3 stacks, scales with Q rank).',
+    descriptionJa: 'ミニガンスタック: +0-65% AS (0-3スタック、Qランクでスケール)。',
+    inputType: 'stack',
+    min: 0,
+    max: 3,
+    defaultValue: 0,
+    statBonus: (stacks, level) => {
+      if (stacks <= 0) return {};
+      const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const perStack = [0.05, 0.0917, 0.133, 0.175, 0.2167][qRank - 1];
+      return { attackSpeed: stacks * perStack };
+    },
+  },
+
+  // --- Jhin: Whisper (P) ---
+  // AD scaling: every 1% crit = +0.3% AD, every 1% AS = +0.25 AD
+  {
+    id: 'jhin-passive',
+    championId: 'Jhin',
+    nameEn: 'Whisper (P) 4th Shot',
+    nameJa: 'ウィスパー (P) 4撃目',
+    descriptionEn: '4th shot: 15/20/25% target missing HP bonus physical.',
+    descriptionJa: '4撃目: 15/20/25% 対象減少HP 物理DM追加。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const pct = level >= 11 ? 0.25 : level >= 6 ? 0.20 : 0.15;
+        const missingHp = target.maxHp * 0.5;
+        return pct * missingHp * procCount;
+      },
+    },
+  },
+
+  // --- Ashe: Frost Shot (P) ---
+  // Slowed targets: bonus 10% (+crit chance%) AD physical (replaces crit)
+  {
+    id: 'ashe-passive',
+    championId: 'Ashe',
+    nameEn: 'Frost Shot (P) Hits',
+    nameJa: 'フロストショット (P) ヒット数',
+    descriptionEn: 'Slowed target: +10% + (crit% × 0.75) AD physical per AA.',
+    descriptionJa: 'スロー対象: +10% + (クリ率% × 0.75) AD 物理DM/AA。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        // Ashe's slow bonus: (10% + critChance * 75%) AD
+        // We approximate crit chance from items, assume ~50% mid-game
+        return (0.10 + 0.50 * 0.75) * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Urgot: Echoing Flames (P) ---
+  // Shotgun knee: 40-100% AD + 2-6% target maxHP physical (per unique knee)
+  {
+    id: 'urgot-passive',
+    championId: 'Urgot',
+    nameEn: 'Echoing Flames (P) Knee Procs',
+    nameJa: 'エコーフレイム (P) 膝発動回数',
+    descriptionEn: 'Knee proc: 40-100% AD + 2-6% target maxHP physical.',
+    descriptionJa: '膝発動: 40-100%AD + 2-6% 対象最大HP 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 6,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const adRatio = 0.40 + (0.60 / 17) * (level - 1);
+        const hpPct = 0.02 + (0.04 / 17) * (level - 1);
+        return (adRatio * attacker.ad + hpPct * target.maxHp) * procCount;
+      },
+    },
+  },
+
+  // --- Zeri: Living Battery (P) ---
+  // Passive shield absorption → bonus MS. Not a damage passive.
+
+  // --- Leona: Sunlight (P) ---
+  // Abilities apply Sunlight. Allies detonate: 25-144 (level) magic.
+  {
+    id: 'leona-passive',
+    championId: 'Leona',
+    nameEn: 'Sunlight (P) Procs',
+    nameJa: 'サンライト (P) 発動回数',
+    descriptionEn: 'Ally detonates: 25-144 (level) magic per proc.',
+    descriptionJa: '味方が爆発: 25-144 (レベル) 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const base = 25 + (119 / 17) * (level - 1);
+        return base * procCount;
+      },
+    },
+  },
+
+  // --- Lulu: Pix, Faerie Companion (P) ---
+  // On-hit: 3 bolts of 5-39 (level) + 5% AP magic
+  {
+    id: 'lulu-passive',
+    championId: 'Lulu',
+    nameEn: 'Pix (P) On-Hit',
+    nameJa: 'ピックス (P) ヒット数',
+    descriptionEn: 'On-hit: 3 bolts × (5-39 + 5% AP) magic per AA.',
+    descriptionJa: 'オンヒット: 3弾 × (5-39 + 5%AP) 魔法DM/AA。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const perBolt = 5 + (34 / 17) * (level - 1) + 0.05 * attacker.ap;
+        return 3 * perBolt * procCount;
+      },
+    },
+  },
+
+  // --- Rammus: Spiked Shell (P) ---
+  // Basic attacks deal bonus magic = 10% armor
+  {
+    id: 'rammus-passive',
+    championId: 'Rammus',
+    nameEn: 'Spiked Shell (P) Hits',
+    nameJa: 'スパイクドシェル (P) ヒット数',
+    descriptionEn: 'AA bonus: 10% armor magic damage.',
+    descriptionJa: 'AA追加: 防御力の10% 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 20,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        return 0.10 * attacker.armor * procCount;
+      },
+    },
+  },
+
+  // --- Shyvana: Twin Bite (Q) ---
+  // Q: AA reset that deals 100% AD + 15-75% AD physical (2nd hit)
+  {
+    id: 'shyvana-q',
+    championId: 'Shyvana',
+    nameEn: 'Twin Bite (Q) Bonus Hit',
+    nameJa: 'ツインバイト (Q) 追加打撃数',
+    descriptionEn: 'Q 2nd hit: 15-75% AD physical. Set hits.',
+    descriptionJa: 'Q2撃目: 15-75%AD 物理DM。ヒット数。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const ratio = [0.15, 0.30, 0.45, 0.60, 0.75][qRank - 1];
+        return ratio * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Malphite: Thunderclap (W) ---
+  // W passive: AA splash = 10/20/30/40/50 + 15% AP + 10% armor magic
+  {
+    id: 'malphite-w',
+    championId: 'Malphite',
+    nameEn: 'Thunderclap (W) Hits',
+    nameJa: 'サンダークラップ (W) ヒット数',
+    descriptionEn: 'W passive: 10-50 + 15% AP + 10% armor magic on-hit.',
+    descriptionJa: 'Wパッシブ: 10-50 + 15%AP + 10%AR 魔法DM/AA。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 10 * wRank;
+        return (base + 0.15 * attacker.ap + 0.10 * attacker.armor) * procCount;
+      },
+    },
+  },
+
+  // --- Nunu: Consume (Q) ---
+  // Q: large true damage to monsters, magic damage to champions
+  {
+    id: 'nunu-q',
+    championId: 'Nunu',
+    nameEn: 'Consume (Q) Champion Hits',
+    nameJa: 'コンシューム (Q) チャンピオンヒット数',
+    descriptionEn: 'Q on champion: 60-180 + 50% AP + 5% bonus HP magic.',
+    descriptionJa: 'Qチャンピオン: 60-180 + 50%AP + 5%増加HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 3,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, attacker, _target, level) => {
+        if (procCount <= 0) return 0;
+        const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = 30 + 30 * qRank;
+        const bonusHp = attacker.maxHp - (570 + 90 * (level - 1));
+        return (base + 0.50 * attacker.ap + 0.05 * Math.max(0, bonusHp)) * procCount;
+      },
+    },
+  },
+
+  // --- Trundle: Chomp (Q) AD Steal ---
+  // Q steals 20% target AD for 4s
+  {
+    id: 'trundle-q-steal',
+    championId: 'Trundle',
+    nameEn: 'Chomp (Q) AD Steal',
+    nameJa: 'チョンプ (Q) AD奪取',
+    descriptionEn: 'Steals 20% target AD for 4s.',
+    descriptionJa: '対象ADの20%を4秒間奪取。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    statBonus: () => ({}), // Would need target AD; placeholder
+  },
+
+  // --- Blitzcrank: Mana Barrier (P) ---
+  // Shield when low HP. Not a damage passive.
+  // Power Fist (E) — next AA knockup + 200% AD
+  {
+    id: 'blitzcrank-e',
+    championId: 'Blitzcrank',
+    nameEn: 'Power Fist (E) Hits',
+    nameJa: 'パワーフィスト (E) ヒット数',
+    descriptionEn: 'E empowered AA: 200% AD physical + knockup.',
+    descriptionJa: 'E強化AA: 200% AD 物理DM + ノックアップ。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker) => {
+        if (procCount <= 0) return 0;
+        // Extra damage beyond normal AA = 100% AD
+        return 1.0 * attacker.ad * procCount;
+      },
+    },
+  },
+
+  // --- Skarner: Ixtal's Impact (P) ---
+  // Q stun proc on 3 stacks
+  {
+    id: 'skarner-passive',
+    championId: 'Skarner',
+    nameEn: "Ixtal's Impact (P) Procs",
+    nameJa: 'イクスタルの衝撃 (P) 発動回数',
+    descriptionEn: '3rd hit stun: 10% bonus HP + 6% target maxHP physical.',
+    descriptionJa: '3撃目スタン: 10%増加HP + 6%対象最大HP 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procCount, attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const bonusHp = attacker.maxHp - (610 + 104 * (level - 1));
+        return (0.10 * Math.max(0, bonusHp) + 0.06 * target.maxHp) * procCount;
+      },
+    },
+  },
+
+  // --- Sejuani: Permafrost (E) ---
+  // Frozen target: E deals 20-80 + 6% target maxHP magic
+  {
+    id: 'sejuani-e',
+    championId: 'Sejuani',
+    nameEn: 'Permafrost (E) Procs',
+    nameJa: 'パーマフロスト (E) 発動回数',
+    descriptionEn: 'Frozen target: 20-80 + 6% target maxHP magic.',
+    descriptionJa: '凍結対象: 20-80 + 6%対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procCount, _attacker, target, level) => {
+        if (procCount <= 0) return 0;
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = [20, 35, 50, 65, 80][eRank - 1];
+        return (base + 0.06 * target.maxHp) * procCount;
+      },
+    },
+  },
+
+  // --- Maokai: Sap Magic (P) ---
+  // Empowered AA heal: 4-13% maxHP. No damage bonus.
+
+  // --- Ezreal: Rising Spell Force (P) ---
+  // +10% AS per stack from hitting abilities, max 5 stacks
+  {
+    id: 'ezreal-passive',
+    championId: 'Ezreal',
+    nameEn: 'Rising Spell Force (P)',
+    nameJa: 'ライジングスペルフォース (P)',
+    descriptionEn: '+10% AS per stack (max 5, from hitting abilities).',
+    descriptionJa: 'スタック毎+10% AS (最大5、スキル命中で蓄積)。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    statBonus: (stacks) => {
+      if (stacks <= 0) return {};
+      return { attackSpeed: stacks * 0.10 };
+    },
+  },
+  // --- Garen: Judgment (E) Spin Count ---
+  // Controlled by E sub-cast selection. Passive bonus: E crits.
+  // Passive damage (P): per-hit regen bonus, no combat damage.
+
+  // --- Shen: Spirit Blade (Q) Enhanced AA count ---
+  {
+    id: 'shen-q-procs',
+    championId: 'Shen',
+    nameEn: 'Spirit Blade (Q) Enhanced AAs',
+    nameJa: 'スピリットブレード (Q) 強化AA回数',
+    descriptionEn: 'Number of Q-enhanced auto attacks (max 3).',
+    descriptionJa: 'Q強化オートアタック回数 (最大3回)。',
+    inputType: 'stack',
+    min: 0,
+    max: 3,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, attacker, target) => {
+        if (procs <= 0) return 0;
+        // Q-enhanced: base + %maxHP. Approximation using just %maxHP portion.
+        // Base is in skill-overrides. This adds nothing extra if using subCasts.
+        return 0;
+      },
+    },
+  },
+
+  // --- Azir: Soldier Count ---
+  // Number of soldiers for W damage (controlled by W sub-cast selection)
+
+  // --- Udyr: Wildfang (Q) On-hit ---
+  // After using Q, next 2 AAs deal 3-53 + 25% bonus AD physical on-hit
+  {
+    id: 'udyr-q-onhit',
+    championId: 'Udyr',
+    nameEn: 'Wildfang (Q) On-hit AAs',
+    nameJa: 'ワイルドファング (Q) AA追加ダメージ',
+    descriptionEn: 'Next 2 AAs after Q: 3-53 + 25% bonus AD physical on-hit.',
+    descriptionJa: 'Q後の2回AA: 3-53 + 25%増加AD 物理追加ダメージ。',
+    inputType: 'stack',
+    min: 0,
+    max: 2,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (hits, attacker, _target, level) => {
+        if (hits <= 0) return 0;
+        const base = 3 + ((53 - 3) / 17) * (level - 1);
+        const bonusAd = attacker.ad - attacker.baseAd;
+        return (base + bonusAd * 0.25) * hits;
+      },
+    },
+  },
+
+  // --- Corki: Hextech Munitions (P) ---
+  // AAs deal 80% AD as magic damage + 20% AD as physical damage
+  // (This is inherent, not toggleable. No combo entry needed.)
+
+  // --- Singed: Poison Trail tick count handled via subCasts ---
+
+  // --- Xayah: Clean Cuts (P) ---
+  // After using an ability, next 3 AAs hurl feathers. Each feather can be recalled by E.
+  {
+    id: 'xayah-feather-count',
+    championId: 'Xayah',
+    nameEn: 'Feather Count for E',
+    nameJa: 'E用フェザー数',
+    descriptionEn: 'Number of feathers on field for Bladecaller (E) recall.',
+    descriptionJa: 'ブレードコーラー (E) で回収するフェザー数。',
+    inputType: 'stack',
+    min: 0,
+    max: 8,
+    defaultValue: 3,
+    // Damage handled by E sub-casts; this is informational
+  },
+
+  // --- Smolder: Dragon Practice (P) stacks ---
+  {
+    id: 'smolder-stacks',
+    championId: 'Smolder',
+    nameEn: 'Dragon Practice (P) Stacks',
+    nameJa: 'ドラゴンの修練 (P) スタック',
+    descriptionEn: 'Q/W/R stacks. At 25: +true dmg. At 125: +explosion. At 225: +burn.',
+    descriptionJa: 'Q/W/Rスタック。25: 確定DM追加。125: 爆発追加。225: 炎上追加。',
+    inputType: 'stack',
+    min: 0,
+    max: 225,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'true',
+      perCombo: true,
+      calc: (stacks, attacker) => {
+        // At 25+ stacks: Q adds 15 + 8% AD true damage per Q cast
+        if (stacks < 25) return 0;
+        return 15 + attacker.ad * 0.08;
+      },
+    },
+  },
+
+  // --- Kayle: Exalted (P) Waves ---
+  // At level 6: ranged. At level 11: waves on-hit (15 + 10% AP magic per wave).
+  // At level 16: permanent ranged + waves.
+  {
+    id: 'kayle-waves',
+    championId: 'Kayle',
+    nameEn: 'Divine Ascent (P) Waves',
+    nameJa: '天啓 (P) ウェーブ',
+    descriptionEn: 'Lv11+: AAs fire waves dealing 20-47 + 10% bonus AD + 25% AP magic.',
+    descriptionJa: 'Lv11+: AA時ウェーブ: 20-47 + 10%増加AD + 25%AP 魔法DM。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      calc: (_toggle, attacker, _target, level) => {
+        const base = 20 + ((47 - 20) / 17) * (level - 1);
+        const bonusAd = attacker.ad - attacker.baseAd;
+        return base + bonusAd * 0.10 + attacker.ap * 0.25;
+      },
+    },
+  },
+
+  // --- Bard: Traveler's Call (P) Meep damage ---
+  // Base: 35 (+14 per 5 chimes beyond 5). +30% AP.
+  {
+    id: 'bard-meeps',
+    championId: 'Bard',
+    nameEn: "Traveler's Call (P) Chimes",
+    nameJa: '旅人の呼び声 (P) チャイム数',
+    descriptionEn: 'Chime count: meep on-hit = 35 (+10 per 5 chimes) + 40% AP magic.',
+    descriptionJa: 'チャイム数: ミープ追加 = 35 (+5個毎+10) + 40% AP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 100,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      calc: (chimes, attacker) => {
+        const bonusSets = Math.floor(chimes / 5);
+        return 35 + bonusSets * 10 + attacker.ap * 0.40;
+      },
+    },
+  },
+
+  // --- Cassiopeia: Twin Fang (E) Poisoned bonus ---
+  // E: 52-120 + 10% AP (not poisoned) → 10-90 + 60% AP (poisoned bonus ON TOP)
+  {
+    id: 'cassiopeia-poison',
+    championId: 'Cassiopeia',
+    nameEn: 'Twin Fang (E) Poison Bonus',
+    nameJa: 'ツインファング (E) 毒追加ダメージ',
+    descriptionEn: 'Toggle ON: target is poisoned. E deals bonus 10/40/70/100/130 + 35% AP magic.',
+    descriptionJa: 'ON: 毒状態の対象に追加 10/40/70/100/130 + 35% AP 魔法DM。',
+    inputType: 'toggle',
+    defaultValue: 1,
+    skillBonus: {
+      skillKey: 'E',
+      damageType: 'magic',
+      calc: (enabled, attacker, _target, level) => {
+        if (!enabled) return 0;
+        // Poison bonus by E rank (approximated from level)
+        const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const bases = [10, 40, 70, 100, 130];
+        return bases[eRank - 1] + attacker.ap * 0.35;
+      },
+    },
+  },
+
+  // --- Nilah: Jubilant Veil (W) ---
+  // Passive: gains XP bonus from nearby minion deaths. No combat passive.
+
+  // --- Nami: Surging Tides (P) ---
+  // Allies gain MS when hit by abilities. No damage passive.
+
+  // --- Ryze: Arcane Mastery (P) ---
+  // Bonus damage from E mark is in skill-overrides Q sub-casts.
+
+  // --- Lillia: Dream-Laden Bough (P) ---
+  // Abilities apply Dream Dust: 5% target maxHP + 1.25% per 100 AP magic over 3s
+  {
+    id: 'lillia-passive',
+    championId: 'Lillia',
+    nameEn: 'Dream-Laden Bough (P) Procs',
+    nameJa: 'ゆめみる蕾 (P) 発動回数',
+    descriptionEn: 'Ability hits apply: 5% target maxHP (+1.25% per 100 AP) magic over 3s.',
+    descriptionJa: 'スキル命中: 対象最大HP 5% (+100AP毎1.25%) 魔法DM (3秒間)。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, attacker, target) => {
+        if (procs <= 0) return 0;
+        const hpRatio = 0.05 + (attacker.ap / 100) * 0.0125;
+        return hpRatio * target.maxHp * procs;
+      },
+    },
+  },
+
+  // --- Garen: Judgment (E) Crit ---
+  // E can crit for 33% bonus damage (per spin). Controlled via sub-casts.
+
+  // --- Nocturne: Duskbringer (Q) Trail AD ---
+  // While on Q trail: +20/30/40/50/60 bonus AD
+  {
+    id: 'nocturne-q-trail',
+    championId: 'Nocturne',
+    nameEn: 'Duskbringer (Q) Trail AD',
+    nameJa: 'ダスクブリンガー (Q) 軌跡AD',
+    descriptionEn: 'While on Q trail: +15/25/35/45/55 bonus AD.',
+    descriptionJa: 'Qの軌跡上: +15/25/35/45/55 増加AD。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    statBonus: (enabled, level) => {
+      if (!enabled) return {};
+      const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      return { ad: 5 + 10 * qRank };
+    },
+  },
+
+  // --- Olaf: Berserker Rage (P) ---
+  // Up to 99% AS based on missing HP (1% AS per 1% missing HP)
+  {
+    id: 'olaf-passive',
+    championId: 'Olaf',
+    nameEn: 'Berserker Rage (P) Missing HP%',
+    nameJa: 'バーサーカーレイジ (P) 減少HP%',
+    descriptionEn: '+1% AS per 1% missing HP (max +99% AS).',
+    descriptionJa: '減少HP 1%毎に+1% AS (最大+99%)。',
+    inputType: 'stack',
+    min: 0,
+    max: 99,
+    defaultValue: 0,
+    statBonus: (missingHpPct) => {
+      if (missingHpPct <= 0) return {};
+      return { attackSpeed: missingHpPct / 100 };
+    },
+  },
+
+  // --- Shaco: Backstab (P) ---
+  // AAs from behind: bonus 20-35% AD physical (+ 15% AP)
+  {
+    id: 'shaco-backstab',
+    championId: 'Shaco',
+    nameEn: 'Backstab (P) Procs',
+    nameJa: 'バックスタブ (P) 発動回数',
+    descriptionEn: 'AAs from behind: +20-35% AD (by level) + 15% AP physical.',
+    descriptionJa: '背後からAA: +20-35% AD (レベル依存) + 15% AP 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procs, attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const ratio = 0.20 + ((0.35 - 0.20) / 17) * (level - 1);
+        return (ratio * attacker.ad + 0.15 * attacker.ap) * procs;
+      },
+    },
+  },
+
+  // --- Quinn: Harrier (P) ---
+  // Valor marks targets. AA on marked target: 10-95 (by level) + 16-50% AD bonus physical
+  {
+    id: 'quinn-harrier',
+    championId: 'Quinn',
+    nameEn: 'Harrier (P) Mark Procs',
+    nameJa: 'ハリアー (P) マーク発動回数',
+    descriptionEn: 'AA on Valor-marked target: 10-95 (by level) + 16-50% AD physical.',
+    descriptionJa: 'ヴァラーのマーク対象AA: 10-95 (レベル) + 16-50% AD 物理DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 6,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procs, attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const base = 10 + ((95 - 10) / 17) * (level - 1);
+        const adRatio = 0.16 + ((0.50 - 0.16) / 17) * (level - 1);
+        return (base + adRatio * attacker.ad) * procs;
+      },
+    },
+  },
+
+  // --- Lucian: Lightslinger (P) ---
+  // After using ability, next AA fires 2 shots. 2nd shot: 50-100% AD (by level) physical
+  {
+    id: 'lucian-passive',
+    championId: 'Lucian',
+    nameEn: 'Lightslinger (P) Double Shot Procs',
+    nameJa: 'ライトスリンガー (P) ダブルショット回数',
+    descriptionEn: 'After ability: 2nd shot deals 50-100% AD physical (scales with level).',
+    descriptionJa: 'スキル後: 2発目 50-100% AD 物理DM (レベル依存)。',
+    inputType: 'stack',
+    min: 0,
+    max: 8,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'physical',
+      perCombo: true,
+      calc: (procs, attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const ratio = 0.50 + ((1.0 - 0.50) / 17) * (level - 1);
+        return ratio * attacker.ad * procs;
+      },
+    },
+  },
+
+  // --- Jarvan IV: Martial Cadence (P) ---
+  // 1st AA on each target: 6% target current HP physical (min 20). 6s CD per target.
+  {
+    id: 'jarvaniv-passive',
+    championId: 'JarvanIV',
+    nameEn: 'Martial Cadence (P)',
+    nameJa: 'マーシャルケイデンス (P)',
+    descriptionEn: '1st AA per target: 6% target current HP physical (min 20, 6s CD).',
+    descriptionJa: '対象初回AA: 対象現在HP 6% 物理DM (最低20, 6秒CD)。',
+    inputType: 'toggle',
+    defaultValue: 1,
+    onHit: {
+      damageType: 'physical',
+      calc: (enabled, _attacker, target) => {
+        if (!enabled) return 0;
+        return Math.max(20, target.hp * 0.06);
+      },
+    },
+  },
+
+  // --- Singed: no combat passive for damage ---
+
+  // --- Corki: Hextech Munitions (P) ---
+  // Basic attacks deal 80% as magic damage + 20% as physical.
+  // This is handled by the damage system, not as a combo passive.
+
+  // --- Mordekaiser: Darkness Rise (P) ---
+  // After 3 hits/abilities: AoE magic per second: 2-8 + 1-3% maxHP + 30% AP
+  {
+    id: 'mordekaiser-passive',
+    championId: 'Mordekaiser',
+    nameEn: 'Darkness Rise (P) Ticks',
+    nameJa: 'ダークネスライズ (P) ティック数',
+    descriptionEn: 'AoE per second: 2-8 + 1-3% maxHP + 30% AP magic (after 3 hits).',
+    descriptionJa: 'AoE毎秒: 2-8 + 1-3%最大HP + 30%AP 魔法DM (3ヒット後)。',
+    inputType: 'stack',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (ticks, attacker, _target, level) => {
+        if (ticks <= 0) return 0;
+        const base = 2 + ((8 - 2) / 17) * (level - 1);
+        const hpRatio = (0.01 + ((0.03 - 0.01) / 17) * (level - 1)) * attacker.maxHp;
+        return (base + hpRatio + attacker.ap * 0.30) * ticks;
+      },
+    },
+  },
+
+  // --- Gnar: Hyper (W) ---
+  // Every 3rd hit: 0/10/20/30/40/50 + 100% AP + 6/8/10/12/14% target maxHP magic
+  {
+    id: 'gnar-hyper',
+    championId: 'Gnar',
+    nameEn: 'Hyper (W) 3-hit Procs',
+    nameJa: 'ハイパー (W) 3ヒット発動回数',
+    descriptionEn: 'Every 3rd hit: 0-50 + 100% AP + 6-14% target maxHP magic.',
+    descriptionJa: '3ヒット毎: 0-50 + 100%AP + 6-14%対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 5,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, attacker, target, level) => {
+        if (procs <= 0) return 0;
+        const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = (wRank - 1) * 10;
+        const hpRatio = 0.04 + 0.02 * wRank;
+        return (base + attacker.ap * 1.0 + hpRatio * target.maxHp) * procs;
+      },
+    },
+  },
+
+  // --- Braum: Concussive Blows (P) ---
+  // 4th stack stuns and deals 16-120 magic damage (by level)
+  {
+    id: 'braum-passive',
+    championId: 'Braum',
+    nameEn: 'Concussive Blows (P) Procs',
+    nameJa: 'コンカッシブブロー (P) 発動回数',
+    descriptionEn: '4th hit stuns + 16-120 magic (by level). 1s CD after stun.',
+    descriptionJa: '4ヒット目スタン + 16-120 魔法DM (レベル依存)。スタン後1秒CD。',
+    inputType: 'stack',
+    min: 0,
+    max: 4,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, _attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const dmg = 16 + ((120 - 16) / 17) * (level - 1);
+        return dmg * procs;
+      },
+    },
+  },
+
+  // --- Leona: Sunlight (P) ---
+  // Abilities mark enemies. Allied AAs on marked target: 25-144 magic (by level)
+  {
+    id: 'leona-passive',
+    championId: 'Leona',
+    nameEn: 'Sunlight (P) Procs',
+    nameJa: 'サンライト (P) 発動回数',
+    descriptionEn: 'Allied AA on marked target: 25-144 magic (by level).',
+    descriptionJa: 'マーク対象への味方AA: 25-144 魔法DM (レベル依存)。',
+    inputType: 'stack',
+    min: 0,
+    max: 6,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, _attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const dmg = 25 + ((144 - 25) / 17) * (level - 1);
+        return dmg * procs;
+      },
+    },
+  },
+
+  // --- Nautilus: Staggering Blow (P) ---
+  // 1st AA per target: root + 8-110 bonus physical (by level). ~6s CD per target.
+  {
+    id: 'nautilus-passive',
+    championId: 'Nautilus',
+    nameEn: 'Staggering Blow (P)',
+    nameJa: 'スタッガリングブロウ (P)',
+    descriptionEn: '1st AA per target: root + 8-110 physical (by level, 6s CD).',
+    descriptionJa: '対象初回AA: ルート + 8-110 物理DM (レベル依存, 6秒CD)。',
+    inputType: 'toggle',
+    defaultValue: 1,
+    onHit: {
+      damageType: 'physical',
+      calc: (enabled, _attacker, _target, level) => {
+        if (!enabled) return 0;
+        return 8 + ((110 - 8) / 17) * (level - 1);
+      },
+    },
+  },
+
+  // --- Lulu: Pix, Faerie Companion (P) ---
+  // Pix fires 3 bolts on allied AA: 5-39 + 5% AP per bolt (magic). Total: 15-117 + 15% AP.
+  {
+    id: 'lulu-pix',
+    championId: 'Lulu',
+    nameEn: 'Pix (P) On-hit Bolts',
+    nameJa: 'ピクス (P) 追撃',
+    descriptionEn: 'Pix fires 3 bolts on AA: total 15-117 + 15% AP magic.',
+    descriptionJa: 'AA時3発追撃: 合計 15-117 + 15% AP 魔法DM。',
+    inputType: 'toggle',
+    defaultValue: 1,
+    onHit: {
+      damageType: 'magic',
+      calc: (enabled, attacker, _target, level) => {
+        if (!enabled) return 0;
+        const perBolt = 5 + ((39 - 5) / 17) * (level - 1);
+        return perBolt * 3 + attacker.ap * 0.15;
+      },
+    },
+  },
+
+  // --- Sona: Power Chord (P) ---
+  // After 3 abilities: empowered AA deals 20-240 + 20% AP bonus magic
+  {
+    id: 'sona-passive',
+    championId: 'Sona',
+    nameEn: 'Power Chord (P)',
+    nameJa: 'パワーコード (P)',
+    descriptionEn: 'After 3 abilities: empowered AA deals 20-240 + 20% AP magic.',
+    descriptionJa: '3スキル後: 強化AA 20-240 + 20% AP 魔法DM。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      calc: (enabled, attacker, _target, level) => {
+        if (!enabled) return 0;
+        return 20 + ((240 - 20) / 17) * (level - 1) + attacker.ap * 0.20;
+      },
+    },
+  },
+
+  // --- Pyke: Gift of the Drowned Ones (P) ---
+  // Cannot gain bonus HP. Converts to bonus AD instead.
+  // Handled as champion bonus, not combo passive.
+
+  // --- Senna: Absolution (P) mist stacks ---
+  // Already in champion-bonuses
+
+  // --- Blitzcrank: Mana Barrier (P) ---
+  // Shield based on mana. Not a damage passive.
+
+  // --- Alistar: Trample (E) ---
+  // After 5 E hits on champion: empowered AA deals 35-290 magic (by level)
+  {
+    id: 'alistar-trample',
+    championId: 'Alistar',
+    nameEn: 'Trample (E) Empowered AA',
+    nameJa: 'トランプル (E) 強化AA',
+    descriptionEn: 'After 5 E stacks on champion: empowered AA = 35-290 magic.',
+    descriptionJa: '5スタック後: 強化AA = 35-290 魔法DM。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      calc: (enabled, _attacker, _target, level) => {
+        if (!enabled) return 0;
+        return 35 + ((290 - 35) / 17) * (level - 1);
+      },
+    },
+  },
 ];
 
 /** Get combo passives applicable to a specific champion */

@@ -237,7 +237,10 @@ export function applySkillOverrides(championId: string, skills: SkillData[]): Sk
   return skills.map((skill) => {
     const override = overrides.find((o) => o.skillKey === skill.key);
     if (!override) return skill;
-    return { ...skill, subCasts: override.subCasts };
+    const patched = { ...skill };
+    if (override.subCasts) patched.subCasts = override.subCasts;
+    if (override.evolution) patched.hasEvolution = true;
+    return patched;
   });
 }
 

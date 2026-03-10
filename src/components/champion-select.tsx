@@ -174,7 +174,9 @@ export function ChampionSelect({
                 title={getDisplayName(champion)}
               >
                 <Image
-                  src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image}`}
+                  src={champion.image.startsWith('_profileicon_')
+                    ? `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${champion.image.replace('_profileicon_', '')}.png`
+                    : `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image}`}
                   alt={getDisplayName(champion)}
                   width={52}
                   height={52}
