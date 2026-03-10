@@ -12,8 +12,18 @@ const SEGMENT_COLORS: Record<string, string> = {
   P: "#a855f7",
   SUM: "#f59e0b",
   ITEM: "#14b8a6",
+  // Keystone damage
   PtA: "#eab308",
   LT: "#f472b6",
+  ELEC: "#c084fc",    // Electrocute - purple
+  DH: "#7c3aed",      // Dark Harvest - deep purple
+  AERY: "#60a5fa",     // Summon Aery - light blue
+  COMET: "#818cf8",    // Arcane Comet - indigo
+  GRASP: "#4ade80",    // Grasp - green
+  AFTER: "#fbbf24",    // Aftershock - amber
+  FS: "#f97316",       // First Strike - orange
+  // Sub-rune damage
+  RUNE: "#d946ef",     // Generic sub-rune - fuchsia
 };
 
 interface HPBarProps {

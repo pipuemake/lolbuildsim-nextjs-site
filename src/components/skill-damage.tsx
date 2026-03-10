@@ -58,6 +58,9 @@ interface SkillDamageProps {
   locale?: string;
   targetHpPercent?: number;
   onTargetHpPercentChange?: (pct: number) => void;
+  championLevel?: number;
+  skillEvolutions?: Record<string, string>;
+  onSkillEvolutionChange?: (key: string, group: string) => void;
 }
 
 const SKILL_ACCENT: Record<
@@ -129,6 +132,9 @@ export function SkillDamagePanel({
   locale = "ja",
   targetHpPercent = 100,
   onTargetHpPercentChange,
+  championLevel,
+  skillEvolutions,
+  onSkillEvolutionChange,
 }: SkillDamageProps) {
   const isJa = locale === "ja";
   const [collapsed, setCollapsed] = useState(false);
@@ -143,6 +149,12 @@ export function SkillDamagePanel({
   );
 
   const displaySkills = skills.filter((s) => s.key !== "P");
+
+  // Total skill points used across all skills (for level cap)
+  const totalSkillPoints = displaySkills.reduce(
+    (sum, s) => sum + (skillRanks[s.key] || 1),
+    0,
+  );
 
   /** Get localized spell info from DDragon champion data */
   const getSpellInfo = (
@@ -256,21 +268,63 @@ export function SkillDamagePanel({
 
                   {/* Rank selector */}
                   <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
-                    {Array.from({ length: skill.maxRank }).map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => onSkillRankChange(skill.key, i + 1)}
-                        className={`w-6 h-6 text-[11px] font-bold rounded transition-all duration-100 ${
-                          rank === i + 1
-                            ? `${accent.bar} text-white shadow-sm`
-                            : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                    {Array.from({ length: skill.maxRank }).map((_, i) => {
+                      const newRank = i + 1;
+                      const pointDelta = newRank - rank;
+                      const wouldExceed =
+                        championLevel !== undefined &&
+                        pointDelta > 0 &&
+                        totalSkillPoints + pointDelta > championLevel;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => !wouldExceed && onSkillRankChange(skill.key, newRank)}
+                          disabled={wouldExceed}
+                          className={`w-6 h-6 text-[11px] font-bold rounded transition-all duration-100 ${
+                            rank === newRank
+                              ? `${accent.bar} text-white shadow-sm`
+                              : wouldExceed
+                                ? "bg-zinc-900 text-zinc-700 cursor-not-allowed"
+                                : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
+                          }`}
+                        >
+                          {newRank}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+
+                {/* Per-skill evolution toggle (below rank selector) */}
+                {(() => {
+                  const evoGroups = skill.subCasts
+                    ?.map(sc => sc.evolutionGroup)
+                    .filter((g): g is string => !!g)
+                    .filter((g, i, a) => a.indexOf(g) === i) ?? [];
+                  const hasEvoSubCasts = evoGroups.length >= 1;
+                  if (!hasEvoSubCasts && !skill.hasEvolution) return null;
+                  if (!onSkillEvolutionChange) return null;
+                  const hasNormal = evoGroups.includes('normal');
+                  const activeEvo = skillEvolutions?.[skill.key] ?? (hasNormal ? 'normal' : '');
+                  const isEvolved = activeEvo === 'evolved';
+                  return (
+                    <div className="px-2.5 pb-1.5">
+                      <button
+                        onClick={() => onSkillEvolutionChange(skill.key, isEvolved ? (hasNormal ? 'normal' : '') : 'evolved')}
+                        className={`w-full py-1.5 rounded text-xs font-bold transition-all ${
+                          isEvolved
+                            ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-sm shadow-amber-500/10'
+                            : 'bg-zinc-800/60 border border-zinc-700/40 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
+                        }`}
+                        title={isJa ? 'スキル進化切替' : 'Toggle skill evolution'}
+                      >
+                        {isEvolved
+                          ? (isJa ? `${skill.key} 進化済み` : `${skill.key} Evolved`)
+                          : (isJa ? `${skill.key} 進化` : `${skill.key} Evolution`)}
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* Sub-cast damage info */}
                 {hasSubCasts && subCastDamages.length > 0 && (

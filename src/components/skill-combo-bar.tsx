@@ -31,6 +31,7 @@ interface SkillComboBarProps {
   comboPassiveValues?: Record<string, number>;
   selectedFormGroup?: string;
   onFormGroupChange?: (formGroup: string) => void;
+  skillEvolutions?: Record<string, string>;
   sylasRChampionId?: string | null;
   onSylasRChange?: (championId: string | null) => void;
   isSylas?: boolean;
@@ -48,10 +49,26 @@ interface SkillComboBarProps {
   itemHealEffects?: ItemHealEffect[];
   itemHealCharges?: Record<string, number>;
   onItemHealToggle?: (itemId: string, charges: number) => void;
-  keystoneIcon?: string;
-  keystoneName?: string;
-  keystoneCharges?: number;
-  onKeystoneChargeChange?: (charges: number) => void;
+  runeComboEntries?: RuneComboEntry[];
+  runeCharges?: Record<string, number>;
+  onRuneChargeChange?: (id: string, charges: number) => void;
+  runeItemEntries?: RuneItemEntry[];
+  runeItemCharges?: Record<string, number>;
+  onRuneItemChargeChange?: (id: string, charges: number) => void;
+}
+
+export interface RuneComboEntry {
+  id: string;
+  icon: string;
+  name: string;
+}
+
+export interface RuneItemEntry {
+  id: string;
+  itemId: string; // DDragon item ID for icon
+  name: string;
+  desc: string;
+  maxCharges: number;
 }
 
 const SKILL_KEYS = ["P", "Q", "W", "E", "R"] as const;
@@ -103,6 +120,7 @@ export function SkillComboBar({
   comboPassiveValues,
   selectedFormGroup,
   onFormGroupChange,
+  skillEvolutions,
   sylasRChampionId,
   onSylasRChange,
   isSylas,
@@ -120,10 +138,12 @@ export function SkillComboBar({
   itemHealEffects,
   itemHealCharges,
   onItemHealToggle,
-  keystoneIcon,
-  keystoneName,
-  keystoneCharges,
-  onKeystoneChargeChange,
+  runeComboEntries,
+  runeCharges,
+  onRuneChargeChange,
+  runeItemEntries,
+  runeItemCharges,
+  onRuneItemChargeChange,
 }: SkillComboBarProps) {
   const isJa = locale === "ja";
   const [dropdownIndex, setDropdownIndex] = useState<0 | 1 | null>(null);
@@ -340,8 +360,8 @@ export function SkillComboBar({
         </span>
       </div>
 
-      <div className="overflow-x-auto pt-2 pb-2">
-       <div className="flex items-center gap-2 w-max">
+      <div className="overflow-x-auto pt-2 pb-2 pr-2">
+       <div className="flex items-center gap-2 w-max pr-1">
         {/* Skill icons */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {SKILL_KEYS.map((key) => {
@@ -349,11 +369,20 @@ export function SkillComboBar({
             const hasSubCasts = skill?.subCasts && skill.subCasts.length > 0;
 
             if (hasSubCasts && skill?.subCasts) {
-              // Filter sub-casts by formGroup if applicable
+              // Filter sub-casts by formGroup and evolutionGroup
               const visibleSubCasts = skill.subCasts.filter((sc) => {
-                if (!sc.formGroup) return true; // no formGroup = always visible
-                if (!hasFormGroups) return true; // no form selector = show all
-                return sc.formGroup === activeFormGroup;
+                // formGroup filter (global form switch)
+                if (sc.formGroup) {
+                  if (!hasFormGroups) return true;
+                  if (sc.formGroup !== activeFormGroup) return false;
+                }
+                // evolutionGroup filter (per-skill evolution)
+                if (sc.evolutionGroup) {
+                  const activeEvo = skillEvolutions?.[skill.key];
+                  if (!activeEvo) return sc.evolutionGroup === 'normal';
+                  return sc.evolutionGroup === activeEvo;
+                }
+                return true;
               });
               // Render sub-cast buttons (e.g. Q1, Q2, Q3)
               return visibleSubCasts.map((sc) => {
@@ -706,36 +735,82 @@ export function SkillComboBar({
           </>
         )}
 
-        {/* Keystone charges (Fleet Footwork) */}
-        {keystoneIcon && onKeystoneChargeChange && (
+        {/* Rune combo entries (keystones with proc charges) */}
+        {runeComboEntries && runeComboEntries.length > 0 && onRuneChargeChange && (
           <>
             <div className="w-px h-9 bg-zinc-700/60" />
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => onKeystoneChargeChange((keystoneCharges ?? 0) + 1)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  if ((keystoneCharges ?? 0) > 0) onKeystoneChargeChange((keystoneCharges ?? 0) - 1);
-                }}
-                className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
- ${(keystoneCharges ?? 0) > 0 ? "ring-2 ring-yellow-500 shadow-md" : "opacity-30 hover:opacity-60"}
+              {runeComboEntries.map((entry) => {
+                const charges = runeCharges?.[entry.id] ?? 0;
+                return (
+                  <button
+                    key={entry.id}
+                    onClick={() => onRuneChargeChange(entry.id, charges + 1)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (charges > 0) onRuneChargeChange(entry.id, charges - 1);
+                    }}
+                    className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${charges > 0 ? "ring-2 ring-yellow-500 shadow-md" : "opacity-30 hover:opacity-60"}
  `}
-                title={keystoneName ?? "Keystone"}
-              >
-                <Image
-                  src={keystoneIcon}
-                  alt={keystoneName ?? "Keystone"}
-                  width={36}
-                  height={36}
-                  className="rounded border border-black/50"
-                  unoptimized
-                />
-                {(keystoneCharges ?? 0) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-yellow-600 text-white rounded-full leading-none font-bold px-0.5">
-                    {keystoneCharges}
-                  </span>
-                )}
-              </button>
+                    title={entry.name}
+                  >
+                    <Image
+                      src={entry.icon}
+                      alt={entry.name}
+                      width={36}
+                      height={36}
+                      className="rounded border border-black/50"
+                      unoptimized
+                    />
+                    {charges > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-yellow-600 text-white rounded-full leading-none font-bold px-0.5">
+                        {charges}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Rune item toggles (Biscuit, Triple Tonic elixirs) */}
+        {runeItemEntries && runeItemEntries.length > 0 && onRuneItemChargeChange && (
+          <>
+            <div className="w-px h-9 bg-zinc-700/60" />
+            <div className="flex items-center gap-1.5">
+              {runeItemEntries.map((entry) => {
+                const charges = runeItemCharges?.[entry.id] ?? 0;
+                return (
+                  <button
+                    key={entry.id}
+                    onClick={() => onRuneItemChargeChange(entry.id, Math.min(charges + 1, entry.maxCharges))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (charges > 0) onRuneItemChargeChange(entry.id, charges - 1);
+                    }}
+                    className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${charges > 0 ? "ring-2 ring-amber-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                    title={`${entry.name}\n${entry.desc}`}
+                  >
+                    <Image
+                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${entry.itemId}.png`}
+                      alt={entry.name}
+                      width={36}
+                      height={36}
+                      className="rounded border border-black/50"
+                      unoptimized
+                    />
+                    {charges > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-amber-600 text-white rounded-full leading-none font-bold px-0.5">
+                        {charges}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}

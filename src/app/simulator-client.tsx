@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useCallback,
   useEffect,
+  useRef,
   Suspense,
 } from "react";
 import Image from "next/image";
@@ -42,15 +43,44 @@ import {
   calcComboPassiveSkillBonus,
   recalcMissingHpSkillDamage,
   calcAdaptiveDamage,
+  calcEffectiveMR,
+  calcMagicDamage,
 } from "@/lib/calc/damage";
 import {
   KEYSTONE_IDS,
+  SUBRUNE_IDS,
   isMelee as checkIsMelee,
+  hasSubRune,
   calcPtaDamage,
   PTA_AMP,
   LETHAL_TEMPO_MAX_STACKS,
   calcLethalTempoOnHit,
   calcFleetHeal,
+  calcElectrocuteDamage,
+  calcDarkHarvestDamage,
+  calcAeryDamage,
+  calcCometDamage,
+  calcGraspDamage,
+  calcGraspHeal,
+  calcAftershockDamage,
+  FIRST_STRIKE_AMP,
+  calcCheapShotDamage,
+  calcSuddenImpactDamage,
+  calcScorchDamage,
+  calcTasteOfBloodHeal,
+  COUP_DE_GRACE_AMP,
+  COUP_DE_GRACE_THRESHOLD,
+  CUT_DOWN_AMP,
+  CUT_DOWN_THRESHOLD,
+  calcLastStandAmp,
+  CHARGE_SUBRUNE_IDS,
+  countJackStacks,
+  calcJackBonus,
+  calcBonePlatingReduction,
+  BONE_PLATING_HITS,
+  calcSecondWindHeal,
+  BISCUIT_MAX_HP_PER_USE,
+  BISCUIT_MAX_COUNT,
 } from "@/lib/data/keystone-effects";
 import { calcDPS } from "@/lib/calc/dps";
 import { calcEffectiveHP } from "@/lib/calc/effective-hp";
@@ -124,7 +154,18 @@ const SPLASH_OVERRIDES: Record<string, string> = {
 
 function getSplashUrl(imageFileName: string, championId: string): string {
   if (SPLASH_OVERRIDES[championId]) return SPLASH_OVERRIDES[championId];
+  if (imageFileName.startsWith('_profileicon_')) {
+    return `https://ddragon.leagueoflegends.com/cdn/15.5.1/img/profileicon/${imageFileName.replace('_profileicon_', '')}.png`;
+  }
   return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${imageFileName.replace(".png", "")}_0.jpg`;
+}
+
+/** Resolve champion icon URL (handles profileicon for dummy). */
+function getChampionIconUrl(version: string, imageFileName: string): string {
+  if (imageFileName.startsWith('_profileicon_')) {
+    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${imageFileName.replace('_profileicon_', '')}.png`;
+  }
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${imageFileName}`;
 }
 
 function ThemeToggle() {
@@ -246,8 +287,7 @@ export function SimulatorClient() {
   );
 }
 
-// Guard for init-once pattern (prevents double-init in React Strict Mode)
-let didInit = false;
+// Guard for init-once pattern removed — now uses useRef inside component
 
 // Hoisted static JSX (rendering-hoist-jsx)
 const VS_BADGE = (
@@ -258,8 +298,32 @@ const VS_BADGE = (
   </div>
 );
 
+const DUMMY_CHAMPION: Champion = {
+  id: '_Dummy',
+  key: '0',
+  name: 'ダミー人形',
+  title: 'Training Dummy',
+  tags: [],
+  stats: {
+    hp: 1000, hpPerLevel: 0, mp: 0, mpPerLevel: 0,
+    moveSpeed: 0, armor: 0, armorPerLevel: 0,
+    magicResist: 0, magicResistPerLevel: 0,
+    attackRange: 0, hpRegen: 0, hpRegenPerLevel: 0,
+    mpRegen: 0, mpRegenPerLevel: 0,
+    attackDamage: 0, attackDamagePerLevel: 0,
+    attackSpeed: 0, attackSpeedPerLevel: 0,
+    crit: 0, critPerLevel: 0,
+  },
+  spells: [],
+  passive: { name: '', description: '', image: '' },
+  image: '_profileicon_29',
+  splash: '',
+};
+
 function SimulatorInner() {
-  const { version, champions, items, runePaths, enRunePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
+  const didInitRef = useRef(false);
+  const { version, champions: rawChampions, items, runePaths, enRunePaths, enChampionNames, enItemData, loading: dragonLoading, error } = useDragonData();
+  const champions = useMemo(() => [...rawChampions, DUMMY_CHAMPION], [rawChampions]);
   const { locale, setLocale, t } = useLocale();
 
   /** Get display name for a champion respecting locale */
@@ -330,12 +394,15 @@ function SimulatorInner() {
     Record<string, number>
   >({});
   const [allyFormGroup, setAllyFormGroup] = useState<string>('');
+  const [allySkillEvolutions, setAllySkillEvolutions] = useState<Record<string, string>>({});
   const [allySylasRChampId, setAllySylasRChampId] = useState<string | null>(null);
   const [allySylasRSkill, setAllySylasRSkill] = useState<SkillData | null>(null);
 
-  // Fleet Footwork charges (number of procs in combo)
-  const [allyFleetCharges, setAllyFleetCharges] = useState(0);
-  const [enemyFleetCharges, setEnemyFleetCharges] = useState(0);
+  // Rune combo charges (number of procs in combo, keyed by rune ID string)
+  const [allyRuneCharges, setAllyRuneCharges] = useState<Record<string, number>>({});
+  const [enemyRuneCharges, setEnemyRuneCharges] = useState<Record<string, number>>({});
+  const [allyRuneItemCharges, setAllyRuneItemCharges] = useState<Record<string, number>>({});
+  const [enemyRuneItemCharges, setEnemyRuneItemCharges] = useState<Record<string, number>>({});
 
   // Target HP % for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
   const [allyTargetHpPercent, setAllyTargetHpPercent] = useState(100);
@@ -399,6 +466,7 @@ function SimulatorInner() {
     Record<string, number>
   >({});
   const [enemyFormGroup, setEnemyFormGroup] = useState<string>('');
+  const [enemySkillEvolutions, setEnemySkillEvolutions] = useState<Record<string, string>>({});
   const [enemySylasRChampId, setEnemySylasRChampId] = useState<string | null>(null);
   const [enemySylasRSkill, setEnemySylasRSkill] = useState<SkillData | null>(null);
 
@@ -409,8 +477,8 @@ function SimulatorInner() {
 
   // Restore state: URL params > load-build instruction > localStorage
   useEffect(() => {
-    if (didInit) return;
-    didInit = true;
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     const params = new URLSearchParams(window.location.search);
     const allyParam = params.get("ally");
     const enemyParam = params.get("enemy");
@@ -532,6 +600,29 @@ function SimulatorInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-sync Aftershock AR/MR toggle with charges
+  useEffect(() => {
+    const charges = allyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+    if (allyRunes.keystone === KEYSTONE_IDS.AFTERSHOCK) {
+      setAllyBonusValues((prev) => {
+        const cur = prev["aftershock-resist"] ?? 0;
+        const next = charges > 0 ? 1 : 0;
+        return cur === next ? prev : { ...prev, "aftershock-resist": next };
+      });
+    }
+  }, [allyRuneCharges, allyRunes.keystone]);
+
+  useEffect(() => {
+    const charges = enemyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+    if (enemyRunes.keystone === KEYSTONE_IDS.AFTERSHOCK) {
+      setEnemyBonusValues((prev) => {
+        const cur = prev["aftershock-resist"] ?? 0;
+        const next = charges > 0 ? 1 : 0;
+        return cur === next ? prev : { ...prev, "aftershock-resist": next };
+      });
+    }
+  }, [enemyRuneCharges, enemyRunes.keystone]);
+
   // Persist state to localStorage on change
   useEffect(() => {
     const state: SimulatorPersistedState = {
@@ -595,9 +686,11 @@ function SimulatorInner() {
     setAllyComboPassiveValues({});
     setAllyDistanceMultipliers({});
     setAllyFormGroup('');
+    setAllySkillEvolutions({});
     setAllySylasRChampId(null);
     setAllySylasRSkill(null);
-    setAllyFleetCharges(0);
+    setAllyRuneCharges({});
+    setAllyRuneItemCharges({});
   }, [runePaths]);
 
   // Reset enemy side
@@ -631,9 +724,11 @@ function SimulatorInner() {
     setEnemyComboPassiveValues({});
     setEnemyDistanceMultipliers({});
     setEnemyFormGroup('');
+    setEnemySkillEvolutions({});
     setEnemySylasRChampId(null);
     setEnemySylasRSkill(null);
-    setEnemyFleetCharges(0);
+    setEnemyRuneCharges({});
+    setEnemyRuneItemCharges({});
   }, [runePaths]);
 
   // Reset all state
@@ -666,10 +761,12 @@ function SimulatorInner() {
     const tmpComboPassiveValues = allyComboPassiveValues;
     const tmpDistanceMultipliers = allyDistanceMultipliers;
     const tmpFormGroup = allyFormGroup;
+    const tmpSkillEvolutions = allySkillEvolutions;
     const tmpSylasRChampId = allySylasRChampId;
     const tmpSylasRSkill = allySylasRSkill;
     const tmpTargetHpPercent = allyTargetHpPercent;
-    const tmpFleetCharges = allyFleetCharges;
+    const tmpRuneCharges = allyRuneCharges;
+    const tmpRuneItemCharges = allyRuneItemCharges;
 
     setAllyChampion(enemyChampion);
     setAllyLevel(enemyLevel);
@@ -691,10 +788,12 @@ function SimulatorInner() {
     setAllyComboPassiveValues(enemyComboPassiveValues);
     setAllyDistanceMultipliers(enemyDistanceMultipliers);
     setAllyFormGroup(enemyFormGroup);
+    setAllySkillEvolutions(enemySkillEvolutions);
     setAllySylasRChampId(enemySylasRChampId);
     setAllySylasRSkill(enemySylasRSkill);
     setAllyTargetHpPercent(enemyTargetHpPercent);
-    setAllyFleetCharges(enemyFleetCharges);
+    setAllyRuneCharges(enemyRuneCharges);
+    setAllyRuneItemCharges(enemyRuneItemCharges);
 
     setEnemyChampion(tmpChamp);
     setEnemyLevel(tmpLevel);
@@ -716,21 +815,23 @@ function SimulatorInner() {
     setEnemyComboPassiveValues(tmpComboPassiveValues);
     setEnemyDistanceMultipliers(tmpDistanceMultipliers);
     setEnemyFormGroup(tmpFormGroup);
+    setEnemySkillEvolutions(tmpSkillEvolutions);
     setEnemySylasRChampId(tmpSylasRChampId);
     setEnemySylasRSkill(tmpSylasRSkill);
     setEnemyTargetHpPercent(tmpTargetHpPercent);
-    setEnemyFleetCharges(tmpFleetCharges);
+    setEnemyRuneCharges(tmpRuneCharges);
+    setEnemyRuneItemCharges(tmpRuneItemCharges);
   }, [
     allyChampion, allyLevel, allyItems, allyRunes, allySkillRanks, allySkills,
     allyBonusValues, allyGenericBonuses, allyComboCounts, allyAACounts, allyCritCount,
     allySummoners, allySummonerActive, allyItemActiveToggles, allyOnHitToggles,
     allyItemStacks, allyHealCharges, allyComboPassiveValues, allyDistanceMultipliers,
-    allyFormGroup, allySylasRChampId, allySylasRSkill, allyTargetHpPercent, allyFleetCharges,
+    allyFormGroup, allySylasRChampId, allySylasRSkill, allyTargetHpPercent, allyRuneCharges,
     enemyChampion, enemyLevel, enemyItems, enemyRunes, enemySkillRanks, enemySkills,
     enemyBonusValues, enemyGenericBonuses, enemyComboCounts, enemyAACounts, enemyCritCount,
     enemySummoners, enemySummonerActive, enemyItemActiveToggles, enemyOnHitToggles,
     enemyItemStacks, enemyHealCharges, enemyComboPassiveValues, enemyDistanceMultipliers,
-    enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyTargetHpPercent, enemyFleetCharges,
+    enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyTargetHpPercent, enemyRuneCharges,
   ]);
 
   // Fetch Meraki skill data when champion changes, then apply overrides
@@ -815,6 +916,7 @@ function SimulatorInner() {
     setAllyGenericBonuses(DEFAULT_GENERIC_BONUSES);
     setAllyComboPassiveValues({});
     setAllyFormGroup('');
+    setAllySkillEvolutions({});
     setAllySylasRChampId(null);
     setAllySylasRSkill(null);
   }, [allyChampion?.id]);
@@ -824,6 +926,7 @@ function SimulatorInner() {
     setEnemyGenericBonuses(DEFAULT_GENERIC_BONUSES);
     setEnemyComboPassiveValues({});
     setEnemyFormGroup('');
+    setEnemySkillEvolutions({});
     setEnemySylasRChampId(null);
     setEnemySylasRSkill(null);
   }, [enemyChampion?.id]);
@@ -1133,6 +1236,32 @@ function SimulatorInner() {
         (base as Record<string, number>)[k] =
           ((base as Record<string, number>)[k] ?? 0) + (v as number);
     }
+    // Rune item bonuses (Biscuit: +30 HP per charge, Triple Tonic Force: +15AD or +25AP)
+    {
+      const biscuitCount = allyRuneItemCharges['biscuit'] ?? 0;
+      if (biscuitCount > 0) {
+        base.hp = (base.hp ?? 0) + biscuitCount * BISCUIT_MAX_HP_PER_USE;
+      }
+      const forceActive = allyRuneItemCharges['tonic-force'] ?? 0;
+      if (forceActive > 0) {
+        if ((base.ad ?? 0) >= (base.ap ?? 0)) {
+          base.ad = (base.ad ?? 0) + 15;
+        } else {
+          base.ap = (base.ap ?? 0) + 25;
+        }
+      }
+    }
+    // Jack of All Trades: auto-count unique item stats
+    if (hasSubRune(allyRunes, SUBRUNE_IDS.JACK_OF_ALL_TRADES)) {
+      const stacks = countJackStacks(resolveItems(allyItems));
+      if (stacks > 0) {
+        const isAD = (base.ad ?? 0) >= (base.ap ?? 0);
+        const bonus = calcJackBonus(stacks, isAD);
+        base.abilityHaste = (base.abilityHaste ?? 0) + bonus.abilityHaste;
+        if (bonus.ad > 0) base.ad = (base.ad ?? 0) + bonus.ad;
+        if (bonus.ap > 0) base.ap = (base.ap ?? 0) + bonus.ap;
+      }
+    }
     return base;
   }, [
     allyChampionBonuses,
@@ -1143,6 +1272,10 @@ function SimulatorInner() {
     allyLevel,
     allyComboPassiveStatBonus,
     allyItemStackStatBonus,
+    allyRuneItemCharges,
+    allyRunes,
+    allyItems,
+    resolveItems,
   ]);
 
   const enemyMergedBonusStats = useMemo<BonusStats>(() => {
@@ -1163,6 +1296,32 @@ function SimulatorInner() {
         (base as Record<string, number>)[k] =
           ((base as Record<string, number>)[k] ?? 0) + (v as number);
     }
+    // Rune item bonuses
+    {
+      const biscuitCount = enemyRuneItemCharges['biscuit'] ?? 0;
+      if (biscuitCount > 0) {
+        base.hp = (base.hp ?? 0) + biscuitCount * BISCUIT_MAX_HP_PER_USE;
+      }
+      const forceActive = enemyRuneItemCharges['tonic-force'] ?? 0;
+      if (forceActive > 0) {
+        if ((base.ad ?? 0) >= (base.ap ?? 0)) {
+          base.ad = (base.ad ?? 0) + 15;
+        } else {
+          base.ap = (base.ap ?? 0) + 25;
+        }
+      }
+    }
+    // Jack of All Trades: auto-count unique item stats
+    if (hasSubRune(enemyRunes, SUBRUNE_IDS.JACK_OF_ALL_TRADES)) {
+      const stacks = countJackStacks(resolveItems(enemyItems));
+      if (stacks > 0) {
+        const isAD = (base.ad ?? 0) >= (base.ap ?? 0);
+        const bonus = calcJackBonus(stacks, isAD);
+        base.abilityHaste = (base.abilityHaste ?? 0) + bonus.abilityHaste;
+        if (bonus.ad > 0) base.ad = (base.ad ?? 0) + bonus.ad;
+        if (bonus.ap > 0) base.ap = (base.ap ?? 0) + bonus.ap;
+      }
+    }
     return base;
   }, [
     enemyChampionBonuses,
@@ -1173,6 +1332,10 @@ function SimulatorInner() {
     enemyLevel,
     enemyComboPassiveStatBonus,
     enemyItemStackStatBonus,
+    enemyRuneItemCharges,
+    enemyRunes,
+    enemyItems,
+    resolveItems,
   ]);
 
   // Compute stats
@@ -1347,12 +1510,25 @@ function SimulatorInner() {
       if (skill.key === "P") continue;
       const rank = allySkillRanks[skill.key] ?? 1;
       if (skill.subCasts && skill.subCasts.length > 0) {
-        // Filter by formGroup
+        // Filter by formGroup and evolutionGroup
         const visibleSubCasts = skill.subCasts.filter((sc) => {
-          if (!sc.formGroup) return true;
-          const hasFormGroups = skill.subCasts!.some(s => s.formGroup);
-          if (!hasFormGroups) return true;
-          return sc.formGroup === (allyFormGroup || skill.subCasts!.find(s => s.formGroup)?.formGroup);
+          // formGroup filter (global)
+          if (sc.formGroup) {
+            const hasFormGroups = skill.subCasts!.some(s => s.formGroup);
+            if (hasFormGroups) {
+              if (sc.formGroup !== (allyFormGroup || skill.subCasts!.find(s => s.formGroup)?.formGroup)) return false;
+            }
+          }
+          // evolutionGroup filter (per-skill)
+          if (sc.evolutionGroup) {
+            const activeEvo = allySkillEvolutions[skill.key];
+            if (!activeEvo) {
+              // Default: show 'normal' group, hide 'evolved' unless explicitly toggled
+              return sc.evolutionGroup === 'normal';
+            }
+            return sc.evolutionGroup === activeEvo;
+          }
+          return true;
         });
         for (const sc of visibleSubCasts) {
           let distMult: number | undefined;
@@ -1399,6 +1575,7 @@ function SimulatorInner() {
     allyLevel,
     allyDistanceMultipliers,
     allyFormGroup,
+    allySkillEvolutions,
     allyTargetHpPercent,
     getSpellNameJa,
   ]);
@@ -1416,10 +1593,18 @@ function SimulatorInner() {
       const rank = enemySkillRanks[skill.key] ?? 1;
       if (skill.subCasts && skill.subCasts.length > 0) {
         const visibleSubCasts = skill.subCasts.filter((sc) => {
-          if (!sc.formGroup) return true;
-          const hasFormGroups = skill.subCasts!.some(s => s.formGroup);
-          if (!hasFormGroups) return true;
-          return sc.formGroup === (enemyFormGroup || skill.subCasts!.find(s => s.formGroup)?.formGroup);
+          if (sc.formGroup) {
+            const hasFormGroups = skill.subCasts!.some(s => s.formGroup);
+            if (hasFormGroups) {
+              if (sc.formGroup !== (enemyFormGroup || skill.subCasts!.find(s => s.formGroup)?.formGroup)) return false;
+            }
+          }
+          if (sc.evolutionGroup) {
+            const activeEvo = enemySkillEvolutions[skill.key];
+            if (!activeEvo) return sc.evolutionGroup === 'normal';
+            return sc.evolutionGroup === activeEvo;
+          }
+          return true;
         });
         for (const sc of visibleSubCasts) {
           let distMult: number | undefined;
@@ -1466,6 +1651,7 @@ function SimulatorInner() {
     enemyLevel,
     enemyDistanceMultipliers,
     enemyFormGroup,
+    enemySkillEvolutions,
     enemyTargetHpPercent,
   ]);
 
@@ -1581,13 +1767,36 @@ function SimulatorInner() {
       total += charges * effect.healPerCharge;
     }
     // Fleet Footwork heal
-    if (allyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && allyFleetCharges > 0 && allyChampion) {
+    const allyFleetProcs = allyRuneCharges[String(KEYSTONE_IDS.FLEET_FOOTWORK)] ?? 0;
+    if (allyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && allyFleetProcs > 0 && allyChampion) {
       const melee = checkIsMelee(allyStats.attackRange);
       const bonusAD = allyStats.ad - allyStats.baseAd;
-      total += allyFleetCharges * calcFleetHeal(allyLevel, melee, bonusAD, allyStats.ap);
+      total += allyFleetProcs * calcFleetHeal(allyLevel, melee, bonusAD, allyStats.ap);
+    }
+    // Grasp of the Undying heal
+    const allyGraspProcs = allyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+    if (allyRunes.keystone === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && allyGraspProcs > 0 && allyChampion) {
+      const melee = checkIsMelee(allyStats.attackRange);
+      total += allyGraspProcs * calcGraspHeal(allyStats.maxHp, melee);
+    }
+    // Taste of Blood heal (charge-based)
+    {
+      const tobProcs = allyRuneCharges[String(SUBRUNE_IDS.TASTE_OF_BLOOD)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.TASTE_OF_BLOOD) && tobProcs > 0 && allyChampion) {
+        const bonusAD = allyStats.ad - allyStats.baseAd;
+        total += tobProcs * calcTasteOfBloodHeal(allyLevel, bonusAD, allyStats.ap);
+      }
+    }
+    // Second Wind heal (charge-based, defender heals after taking damage)
+    {
+      const swProcs = allyRuneCharges[String(SUBRUNE_IDS.SECOND_WIND)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SECOND_WIND) && swProcs > 0 && allyChampion) {
+        // Estimate missing HP as 50% of max HP for a reasonable default
+        total += swProcs * calcSecondWindHeal(allyStats.maxHp, allyStats.maxHp * 0.5);
+      }
     }
     return total;
-  }, [allyHealEffects, allyHealCharges, allyRunes.keystone, allyFleetCharges, allyChampion, allyStats, allyLevel]);
+  }, [allyHealEffects, allyHealCharges, allyRunes, allyRuneCharges, allyChampion, allyStats, allyLevel]);
 
   const enemyHealTotal = useMemo(() => {
     let total = 0;
@@ -1596,13 +1805,35 @@ function SimulatorInner() {
       total += charges * effect.healPerCharge;
     }
     // Fleet Footwork heal
-    if (enemyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && enemyFleetCharges > 0 && enemyChampion) {
+    const enemyFleetProcs = enemyRuneCharges[String(KEYSTONE_IDS.FLEET_FOOTWORK)] ?? 0;
+    if (enemyRunes.keystone === KEYSTONE_IDS.FLEET_FOOTWORK && enemyFleetProcs > 0 && enemyChampion) {
       const melee = checkIsMelee(enemyStats.attackRange);
       const bonusAD = enemyStats.ad - enemyStats.baseAd;
-      total += enemyFleetCharges * calcFleetHeal(enemyLevel, melee, bonusAD, enemyStats.ap);
+      total += enemyFleetProcs * calcFleetHeal(enemyLevel, melee, bonusAD, enemyStats.ap);
+    }
+    // Grasp of the Undying heal
+    const enemyGraspProcs = enemyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+    if (enemyRunes.keystone === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && enemyGraspProcs > 0 && enemyChampion) {
+      const melee = checkIsMelee(enemyStats.attackRange);
+      total += enemyGraspProcs * calcGraspHeal(enemyStats.maxHp, melee);
+    }
+    // Taste of Blood heal (charge-based)
+    {
+      const tobProcs = enemyRuneCharges[String(SUBRUNE_IDS.TASTE_OF_BLOOD)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.TASTE_OF_BLOOD) && tobProcs > 0 && enemyChampion) {
+        const bonusAD = enemyStats.ad - enemyStats.baseAd;
+        total += tobProcs * calcTasteOfBloodHeal(enemyLevel, bonusAD, enemyStats.ap);
+      }
+    }
+    // Second Wind heal (charge-based, defender heals after taking damage)
+    {
+      const swProcs = enemyRuneCharges[String(SUBRUNE_IDS.SECOND_WIND)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SECOND_WIND) && swProcs > 0 && enemyChampion) {
+        total += swProcs * calcSecondWindHeal(enemyStats.maxHp, enemyStats.maxHp * 0.5);
+      }
     }
     return total;
-  }, [enemyHealEffects, enemyHealCharges, enemyRunes.keystone, enemyFleetCharges, enemyChampion, enemyStats, enemyLevel]);
+  }, [enemyHealEffects, enemyHealCharges, enemyRunes, enemyRuneCharges, enemyChampion, enemyStats, enemyLevel]);
 
   // Spellblade damage per proc (computed once for combo calculations)
   const allySpellbladeProc = useMemo(() => {
@@ -1823,13 +2054,131 @@ function SimulatorInner() {
     // Keystone: Lethal Tempo (on-hit after 6 stacks)
     if (allyKeystoneId === KEYSTONE_IDS.LETHAL_TEMPO && allyAACounts > LETHAL_TEMPO_MAX_STACKS) {
       const melee = checkIsMelee(allyStats.attackRange);
-      // Bonus AS% approximation: (attackSpeed / baseAS - 1) * 100
-      // We don't have baseAS separately, so use a simplified approach
       const bonusASPercent = Math.max(0, (allyStats.attackSpeed - 0.625) / 0.625 * 100);
       const ltOnHitRaw = calcLethalTempoOnHit(allyLevel, melee, bonusASPercent);
       const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, allyStats, enemyStats, allyLevel);
       const ltHits = allyAACounts - LETHAL_TEMPO_MAX_STACKS;
       total += ltOnHitDmg * ltHits;
+    }
+
+    // Keystone: Electrocute (charge-based)
+    {
+      const elecProcs = allyRuneCharges[String(KEYSTONE_IDS.ELECTROCUTE)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.ELECTROCUTE && elecProcs > 0) {
+        const bonusAD = allyStats.ad - allyStats.baseAd;
+        const raw = calcElectrocuteDamage(allyLevel, bonusAD, allyStats.ap);
+        total += calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * elecProcs;
+      }
+    }
+
+    // Keystone: Dark Harvest (1 proc, target below 50% HP assumed)
+    if (allyKeystoneId === KEYSTONE_IDS.DARK_HARVEST) {
+      const dhStacks = allyBonusValues['dark-harvest'] ?? 0;
+      const bonusAD = allyStats.ad - allyStats.baseAd;
+      const raw = calcDarkHarvestDamage(dhStacks, bonusAD, allyStats.ap);
+      total += calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel);
+    }
+
+    // Keystone: Summon Aery (charge-based)
+    {
+      const aeryProcs = allyRuneCharges[String(KEYSTONE_IDS.SUMMON_AERY)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.SUMMON_AERY && aeryProcs > 0) {
+        const bonusAD = allyStats.ad - allyStats.baseAd;
+        const raw = calcAeryDamage(allyLevel, bonusAD, allyStats.ap);
+        total += calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * aeryProcs;
+      }
+    }
+
+    // Keystone: Arcane Comet (charge-based)
+    {
+      const cometProcs = allyRuneCharges[String(KEYSTONE_IDS.ARCANE_COMET)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.ARCANE_COMET && cometProcs > 0) {
+        const bonusAD = allyStats.ad - allyStats.baseAd;
+        const raw = calcCometDamage(allyLevel, bonusAD, allyStats.ap);
+        total += calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * cometProcs;
+      }
+    }
+
+    // Keystone: Grasp of the Undying (charge-based)
+    {
+      const graspProcs = allyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && graspProcs > 0) {
+        const melee = checkIsMelee(allyStats.attackRange);
+        const raw = calcGraspDamage(allyStats.maxHp, melee);
+        const effectiveMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * graspProcs;
+      }
+    }
+
+    // Keystone: Aftershock (charge-based)
+    {
+      const afterProcs = allyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.AFTERSHOCK && afterProcs > 0) {
+        const bonusHp = allyStats.maxHp - allyStats.baseHp;
+        const raw = calcAftershockDamage(allyLevel, bonusHp);
+        const effectiveMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * afterProcs;
+      }
+    }
+
+    // Sub-rune: Cheap Shot (charge-based true damage)
+    {
+      const csProcs = allyRuneCharges[String(SUBRUNE_IDS.CHEAP_SHOT)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.CHEAP_SHOT) && csProcs > 0) {
+        total += calcCheapShotDamage(allyLevel) * csProcs;
+      }
+    }
+
+    // Sub-rune: Sudden Impact (charge-based true damage)
+    {
+      const siProcs = allyRuneCharges[String(SUBRUNE_IDS.SUDDEN_IMPACT)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SUDDEN_IMPACT) && siProcs > 0) {
+        total += calcSuddenImpactDamage(allyLevel) * siProcs;
+      }
+    }
+
+    // Sub-rune: Scorch (charge-based magic damage)
+    {
+      const scProcs = allyRuneCharges[String(SUBRUNE_IDS.SCORCH)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SCORCH) && scProcs > 0) {
+        const raw = calcScorchDamage(allyLevel);
+        const effectiveMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * scProcs;
+      }
+    }
+
+    // Precision slot 3: Coup de Grace / Cut Down / Last Stand (damage amplification)
+    {
+      let ampPercent = 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.COUP_DE_GRACE)) {
+        // 8% bonus damage to targets below 40% max HP
+        // In a combo context, we apply it as a flat multiplier (simplified)
+        const targetHpAfterDmg = Math.max(0, enemyStats.hp - total);
+        if (targetHpAfterDmg / enemyStats.maxHp < COUP_DE_GRACE_THRESHOLD) {
+          ampPercent = COUP_DE_GRACE_AMP;
+        }
+      } else if (hasSubRune(allyRunes, SUBRUNE_IDS.CUT_DOWN)) {
+        // 8% bonus damage to targets above 60% max HP
+        if (enemyStats.hp / enemyStats.maxHp >= CUT_DOWN_THRESHOLD) {
+          ampPercent = CUT_DOWN_AMP;
+        }
+      } else if (hasSubRune(allyRunes, SUBRUNE_IDS.LAST_STAND)) {
+        // 5-11% bonus damage based on own missing HP (uses target HP % slider concept)
+        // Default: assume attacker is at full HP (no bonus), user can set via bonus
+        const ownHpPercent = allyStats.hp / allyStats.maxHp;
+        ampPercent = calcLastStandAmp(ownHpPercent);
+      }
+      if (ampPercent > 0) {
+        total *= (1 + ampPercent);
+      }
+    }
+
+    // Keystone: First Strike (charge-based, 7% bonus true damage)
+    {
+      const fsProcs = allyRuneCharges[String(KEYSTONE_IDS.FIRST_STRIKE)] ?? 0;
+      if (allyKeystoneId === KEYSTONE_IDS.FIRST_STRIKE && fsProcs > 0) {
+        total *= (1 + FIRST_STRIKE_AMP);
+      }
     }
 
     // Phase 2: missing-HP skills (calculated with prior damage reducing target HP)
@@ -1842,6 +2191,16 @@ function SimulatorInner() {
       }
       total += skillDmg * count;
     }
+
+    // Defender's Bone Plating: enemy has Bone Plating → reduce incoming damage
+    {
+      const bpProcs = enemyRuneCharges[String(SUBRUNE_IDS.BONE_PLATING)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.BONE_PLATING) && bpProcs > 0) {
+        const reductionPerHit = calcBonePlatingReduction(enemyLevel);
+        total = Math.max(0, total - reductionPerHit * Math.min(bpProcs, BONE_PLATING_HITS));
+      }
+    }
+
     return total;
   }, [
     allyAADamage,
@@ -1858,7 +2217,12 @@ function SimulatorInner() {
     allyStats,
     enemyStats,
     allyLevel,
-    allyRunes.keystone,
+    enemyLevel,
+    allyRunes,
+    enemyRunes,
+    allyRuneCharges,
+    enemyRuneCharges,
+    allyBonusValues,
   ]);
 
   const enemyComboDamage = useMemo(() => {
@@ -1913,6 +2277,121 @@ function SimulatorInner() {
       total += ltOnHitDmg * ltHits;
     }
 
+    // Keystone: Electrocute (charge-based)
+    {
+      const elecProcs = enemyRuneCharges[String(KEYSTONE_IDS.ELECTROCUTE)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.ELECTROCUTE && elecProcs > 0) {
+        const bonusAD = enemyStats.ad - enemyStats.baseAd;
+        const raw = calcElectrocuteDamage(enemyLevel, bonusAD, enemyStats.ap);
+        total += calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * elecProcs;
+      }
+    }
+
+    // Keystone: Dark Harvest (1 proc)
+    if (enemyKeystoneId === KEYSTONE_IDS.DARK_HARVEST) {
+      const dhStacks = enemyBonusValues['dark-harvest'] ?? 0;
+      const bonusAD = enemyStats.ad - enemyStats.baseAd;
+      const raw = calcDarkHarvestDamage(dhStacks, bonusAD, enemyStats.ap);
+      total += calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel);
+    }
+
+    // Keystone: Summon Aery (charge-based)
+    {
+      const aeryProcs = enemyRuneCharges[String(KEYSTONE_IDS.SUMMON_AERY)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.SUMMON_AERY && aeryProcs > 0) {
+        const bonusAD = enemyStats.ad - enemyStats.baseAd;
+        const raw = calcAeryDamage(enemyLevel, bonusAD, enemyStats.ap);
+        total += calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * aeryProcs;
+      }
+    }
+
+    // Keystone: Arcane Comet (charge-based)
+    {
+      const cometProcs = enemyRuneCharges[String(KEYSTONE_IDS.ARCANE_COMET)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.ARCANE_COMET && cometProcs > 0) {
+        const bonusAD = enemyStats.ad - enemyStats.baseAd;
+        const raw = calcCometDamage(enemyLevel, bonusAD, enemyStats.ap);
+        total += calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * cometProcs;
+      }
+    }
+
+    // Keystone: Grasp of the Undying (charge-based)
+    {
+      const graspProcs = enemyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && graspProcs > 0) {
+        const melee = checkIsMelee(enemyStats.attackRange);
+        const raw = calcGraspDamage(enemyStats.maxHp, melee);
+        const effectiveMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * graspProcs;
+      }
+    }
+
+    // Keystone: Aftershock (charge-based)
+    {
+      const afterProcs = enemyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.AFTERSHOCK && afterProcs > 0) {
+        const bonusHp = enemyStats.maxHp - enemyStats.baseHp;
+        const raw = calcAftershockDamage(enemyLevel, bonusHp);
+        const effectiveMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * afterProcs;
+      }
+    }
+
+    // Sub-rune: Cheap Shot (charge-based true damage)
+    {
+      const csProcs = enemyRuneCharges[String(SUBRUNE_IDS.CHEAP_SHOT)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.CHEAP_SHOT) && csProcs > 0) {
+        total += calcCheapShotDamage(enemyLevel) * csProcs;
+      }
+    }
+
+    // Sub-rune: Sudden Impact (charge-based true damage)
+    {
+      const siProcs = enemyRuneCharges[String(SUBRUNE_IDS.SUDDEN_IMPACT)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SUDDEN_IMPACT) && siProcs > 0) {
+        total += calcSuddenImpactDamage(enemyLevel) * siProcs;
+      }
+    }
+
+    // Sub-rune: Scorch (charge-based magic damage)
+    {
+      const scProcs = enemyRuneCharges[String(SUBRUNE_IDS.SCORCH)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SCORCH) && scProcs > 0) {
+        const raw = calcScorchDamage(enemyLevel);
+        const effectiveMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        total += calcMagicDamage(raw, effectiveMR) * scProcs;
+      }
+    }
+
+    // Precision slot 3: Coup de Grace / Cut Down / Last Stand (damage amplification)
+    {
+      let ampPercent = 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.COUP_DE_GRACE)) {
+        const targetHpAfterDmg = Math.max(0, allyStats.hp - total);
+        if (targetHpAfterDmg / allyStats.maxHp < COUP_DE_GRACE_THRESHOLD) {
+          ampPercent = COUP_DE_GRACE_AMP;
+        }
+      } else if (hasSubRune(enemyRunes, SUBRUNE_IDS.CUT_DOWN)) {
+        if (allyStats.hp / allyStats.maxHp >= CUT_DOWN_THRESHOLD) {
+          ampPercent = CUT_DOWN_AMP;
+        }
+      } else if (hasSubRune(enemyRunes, SUBRUNE_IDS.LAST_STAND)) {
+        const ownHpPercent = enemyStats.hp / enemyStats.maxHp;
+        ampPercent = calcLastStandAmp(ownHpPercent);
+      }
+      if (ampPercent > 0) {
+        total *= (1 + ampPercent);
+      }
+    }
+
+    // Keystone: First Strike (charge-based, 7% bonus true damage)
+    {
+      const fsProcs = enemyRuneCharges[String(KEYSTONE_IDS.FIRST_STRIKE)] ?? 0;
+      if (enemyKeystoneId === KEYSTONE_IDS.FIRST_STRIKE && fsProcs > 0) {
+        total *= (1 + FIRST_STRIKE_AMP);
+      }
+    }
+
     for (const { sd, count } of missingHpSkills) {
       let skillDmg = recalcMissingHpSkillDamage(
         sd, total, allyStats.maxHp, allyStats.hp, enemyStats, allyStats, enemyLevel,
@@ -1922,6 +2401,16 @@ function SimulatorInner() {
       }
       total += skillDmg * count;
     }
+
+    // Defender's Bone Plating: ally has Bone Plating → reduce incoming damage
+    {
+      const bpProcs = allyRuneCharges[String(SUBRUNE_IDS.BONE_PLATING)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.BONE_PLATING) && bpProcs > 0) {
+        const reductionPerHit = calcBonePlatingReduction(allyLevel);
+        total = Math.max(0, total - reductionPerHit * Math.min(bpProcs, BONE_PLATING_HITS));
+      }
+    }
+
     return total;
   }, [
     enemyAADamage,
@@ -1938,7 +2427,12 @@ function SimulatorInner() {
     enemyStats,
     allyStats,
     enemyLevel,
-    enemyRunes.keystone,
+    allyLevel,
+    enemyRunes,
+    allyRunes,
+    enemyRuneCharges,
+    allyRuneCharges,
+    enemyBonusValues,
   ]);
 
   // HP bar damage segments (combo-count-based)
@@ -1982,8 +2476,15 @@ function SimulatorInner() {
     if (allyItemActiveDamage > 0) {
       segs.push({ source: "ITEM", amount: allyItemActiveDamage, color: "" });
     }
-    // Keystone damage segments
+    // Keystone & sub-rune damage segments
     const allyKs = allyRunes.keystone;
+    let skillUses = 0;
+    for (const sd of allySkillDamages) {
+      const comboKey = sd.subCastId ?? sd.skillKey;
+      skillUses += allyComboCounts[comboKey] ?? 0;
+    }
+    const allyBonusAD = allyStats.ad - allyStats.baseAd;
+
     if (allyKs === KEYSTONE_IDS.PRESS_THE_ATTACK && allyAACounts >= 3) {
       const ptaRaw = calcPtaDamage(allyLevel);
       const ptaDmg = calcAdaptiveDamage(ptaRaw, allyStats, enemyStats, allyLevel);
@@ -1996,6 +2497,102 @@ function SimulatorInner() {
       const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, allyStats, enemyStats, allyLevel);
       const ltHits = allyAACounts - LETHAL_TEMPO_MAX_STACKS;
       segs.push({ source: "LT", amount: ltOnHitDmg * ltHits, color: "" });
+    }
+    {
+      const elecProcs = allyRuneCharges[String(KEYSTONE_IDS.ELECTROCUTE)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.ELECTROCUTE && elecProcs > 0) {
+        const raw = calcElectrocuteDamage(allyLevel, allyBonusAD, allyStats.ap);
+        segs.push({ source: "ELEC", amount: calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * elecProcs, color: "" });
+      }
+    }
+    if (allyKs === KEYSTONE_IDS.DARK_HARVEST) {
+      const dhStacks = allyBonusValues['dark-harvest'] ?? 0;
+      const raw = calcDarkHarvestDamage(dhStacks, allyBonusAD, allyStats.ap);
+      segs.push({ source: "DH", amount: calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel), color: "" });
+    }
+    {
+      const aeryProcs = allyRuneCharges[String(KEYSTONE_IDS.SUMMON_AERY)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.SUMMON_AERY && aeryProcs > 0) {
+        const raw = calcAeryDamage(allyLevel, allyBonusAD, allyStats.ap);
+        segs.push({ source: "AERY", amount: calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * aeryProcs, color: "" });
+      }
+    }
+    {
+      const cometProcs = allyRuneCharges[String(KEYSTONE_IDS.ARCANE_COMET)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.ARCANE_COMET && cometProcs > 0) {
+        const raw = calcCometDamage(allyLevel, allyBonusAD, allyStats.ap);
+        segs.push({ source: "COMET", amount: calcAdaptiveDamage(raw, allyStats, enemyStats, allyLevel) * cometProcs, color: "" });
+      }
+    }
+    {
+      const graspProcs = allyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && graspProcs > 0) {
+        const melee = checkIsMelee(allyStats.attackRange);
+        const raw = calcGraspDamage(allyStats.maxHp, melee);
+        const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        segs.push({ source: "GRASP", amount: calcMagicDamage(raw, effMR) * graspProcs, color: "" });
+      }
+    }
+    {
+      const afterProcs = allyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.AFTERSHOCK && afterProcs > 0) {
+        const bonusHp = allyStats.maxHp - allyStats.baseHp;
+        const raw = calcAftershockDamage(allyLevel, bonusHp);
+        const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        segs.push({ source: "AFTER", amount: calcMagicDamage(raw, effMR) * afterProcs, color: "" });
+      }
+    }
+    // Sub-rune damage segments (combined as "RUNE", charge-based)
+    {
+      let runeDmg = 0;
+      const csProcs = allyRuneCharges[String(SUBRUNE_IDS.CHEAP_SHOT)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.CHEAP_SHOT) && csProcs > 0) {
+        runeDmg += calcCheapShotDamage(allyLevel) * csProcs;
+      }
+      const siProcs = allyRuneCharges[String(SUBRUNE_IDS.SUDDEN_IMPACT)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SUDDEN_IMPACT) && siProcs > 0) {
+        runeDmg += calcSuddenImpactDamage(allyLevel) * siProcs;
+      }
+      const scProcs = allyRuneCharges[String(SUBRUNE_IDS.SCORCH)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SCORCH) && scProcs > 0) {
+        const raw = calcScorchDamage(allyLevel);
+        const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        runeDmg += calcMagicDamage(raw, effMR) * scProcs;
+      }
+      if (runeDmg > 0) {
+        segs.push({ source: "RUNE", amount: runeDmg, color: "" });
+      }
+    }
+    // Precision slot 3 amplification applied to all segments
+    {
+      let ampPercent = 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.COUP_DE_GRACE)) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        const targetHpAfterDmg = Math.max(0, enemyStats.hp - preTotal);
+        if (targetHpAfterDmg / enemyStats.maxHp < COUP_DE_GRACE_THRESHOLD) {
+          ampPercent = COUP_DE_GRACE_AMP;
+        }
+      } else if (hasSubRune(allyRunes, SUBRUNE_IDS.CUT_DOWN)) {
+        if (enemyStats.hp / enemyStats.maxHp >= CUT_DOWN_THRESHOLD) {
+          ampPercent = CUT_DOWN_AMP;
+        }
+      } else if (hasSubRune(allyRunes, SUBRUNE_IDS.LAST_STAND)) {
+        const ownHpPercent = allyStats.hp / allyStats.maxHp;
+        ampPercent = calcLastStandAmp(ownHpPercent);
+      }
+      if (ampPercent > 0) {
+        for (const seg of segs) {
+          seg.amount *= (1 + ampPercent);
+        }
+      }
+    }
+    // First Strike amplification shown as separate segment
+    {
+      const fsProcs = allyRuneCharges[String(KEYSTONE_IDS.FIRST_STRIKE)] ?? 0;
+      if (allyKs === KEYSTONE_IDS.FIRST_STRIKE && fsProcs > 0) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "FS", amount: preTotal * FIRST_STRIKE_AMP, color: "" });
+      }
     }
     return segs;
   }, [
@@ -2010,7 +2607,9 @@ function SimulatorInner() {
     allyComboPassiveOnHitPerAA,
     allyComboPassiveOnHitPerCombo,
     allyComboPassiveSkillBonuses,
-    allyRunes.keystone,
+    allyRunes,
+    allyRuneCharges,
+    allyBonusValues,
     allyStats,
     enemyStats,
     allyLevel,
@@ -2056,8 +2655,15 @@ function SimulatorInner() {
     if (enemyItemActiveDamage > 0) {
       segs.push({ source: "ITEM", amount: enemyItemActiveDamage, color: "" });
     }
-    // Keystone damage segments
+    // Keystone & sub-rune damage segments
     const enemyKs = enemyRunes.keystone;
+    let skillUses = 0;
+    for (const sd of enemySkillDamages) {
+      const comboKey = sd.subCastId ?? sd.skillKey;
+      skillUses += enemyComboCounts[comboKey] ?? 0;
+    }
+    const enemyBonusAD = enemyStats.ad - enemyStats.baseAd;
+
     if (enemyKs === KEYSTONE_IDS.PRESS_THE_ATTACK && enemyAACounts >= 3) {
       const ptaRaw = calcPtaDamage(enemyLevel);
       const ptaDmg = calcAdaptiveDamage(ptaRaw, enemyStats, allyStats, enemyLevel);
@@ -2070,6 +2676,102 @@ function SimulatorInner() {
       const ltOnHitDmg = calcAdaptiveDamage(ltOnHitRaw, enemyStats, allyStats, enemyLevel);
       const ltHits = enemyAACounts - LETHAL_TEMPO_MAX_STACKS;
       segs.push({ source: "LT", amount: ltOnHitDmg * ltHits, color: "" });
+    }
+    {
+      const elecProcs = enemyRuneCharges[String(KEYSTONE_IDS.ELECTROCUTE)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.ELECTROCUTE && elecProcs > 0) {
+        const raw = calcElectrocuteDamage(enemyLevel, enemyBonusAD, enemyStats.ap);
+        segs.push({ source: "ELEC", amount: calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * elecProcs, color: "" });
+      }
+    }
+    if (enemyKs === KEYSTONE_IDS.DARK_HARVEST) {
+      const dhStacks = enemyBonusValues['dark-harvest'] ?? 0;
+      const raw = calcDarkHarvestDamage(dhStacks, enemyBonusAD, enemyStats.ap);
+      segs.push({ source: "DH", amount: calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel), color: "" });
+    }
+    {
+      const aeryProcs = enemyRuneCharges[String(KEYSTONE_IDS.SUMMON_AERY)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.SUMMON_AERY && aeryProcs > 0) {
+        const raw = calcAeryDamage(enemyLevel, enemyBonusAD, enemyStats.ap);
+        segs.push({ source: "AERY", amount: calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * aeryProcs, color: "" });
+      }
+    }
+    {
+      const cometProcs = enemyRuneCharges[String(KEYSTONE_IDS.ARCANE_COMET)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.ARCANE_COMET && cometProcs > 0) {
+        const raw = calcCometDamage(enemyLevel, enemyBonusAD, enemyStats.ap);
+        segs.push({ source: "COMET", amount: calcAdaptiveDamage(raw, enemyStats, allyStats, enemyLevel) * cometProcs, color: "" });
+      }
+    }
+    {
+      const graspProcs = enemyRuneCharges[String(KEYSTONE_IDS.GRASP_OF_THE_UNDYING)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.GRASP_OF_THE_UNDYING && graspProcs > 0) {
+        const melee = checkIsMelee(enemyStats.attackRange);
+        const raw = calcGraspDamage(enemyStats.maxHp, melee);
+        const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        segs.push({ source: "GRASP", amount: calcMagicDamage(raw, effMR) * graspProcs, color: "" });
+      }
+    }
+    {
+      const afterProcs = enemyRuneCharges[String(KEYSTONE_IDS.AFTERSHOCK)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.AFTERSHOCK && afterProcs > 0) {
+        const bonusHp = enemyStats.maxHp - enemyStats.baseHp;
+        const raw = calcAftershockDamage(enemyLevel, bonusHp);
+        const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        segs.push({ source: "AFTER", amount: calcMagicDamage(raw, effMR) * afterProcs, color: "" });
+      }
+    }
+    // Sub-rune damage segments (combined as "RUNE", charge-based)
+    {
+      let runeDmg = 0;
+      const csProcs = enemyRuneCharges[String(SUBRUNE_IDS.CHEAP_SHOT)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.CHEAP_SHOT) && csProcs > 0) {
+        runeDmg += calcCheapShotDamage(enemyLevel) * csProcs;
+      }
+      const siProcs = enemyRuneCharges[String(SUBRUNE_IDS.SUDDEN_IMPACT)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SUDDEN_IMPACT) && siProcs > 0) {
+        runeDmg += calcSuddenImpactDamage(enemyLevel) * siProcs;
+      }
+      const scProcs = enemyRuneCharges[String(SUBRUNE_IDS.SCORCH)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SCORCH) && scProcs > 0) {
+        const raw = calcScorchDamage(enemyLevel);
+        const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        runeDmg += calcMagicDamage(raw, effMR) * scProcs;
+      }
+      if (runeDmg > 0) {
+        segs.push({ source: "RUNE", amount: runeDmg, color: "" });
+      }
+    }
+    // Precision slot 3 amplification applied to all segments
+    {
+      let ampPercent = 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.COUP_DE_GRACE)) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        const targetHpAfterDmg = Math.max(0, allyStats.hp - preTotal);
+        if (targetHpAfterDmg / allyStats.maxHp < COUP_DE_GRACE_THRESHOLD) {
+          ampPercent = COUP_DE_GRACE_AMP;
+        }
+      } else if (hasSubRune(enemyRunes, SUBRUNE_IDS.CUT_DOWN)) {
+        if (allyStats.hp / allyStats.maxHp >= CUT_DOWN_THRESHOLD) {
+          ampPercent = CUT_DOWN_AMP;
+        }
+      } else if (hasSubRune(enemyRunes, SUBRUNE_IDS.LAST_STAND)) {
+        const ownHpPercent = enemyStats.hp / enemyStats.maxHp;
+        ampPercent = calcLastStandAmp(ownHpPercent);
+      }
+      if (ampPercent > 0) {
+        for (const seg of segs) {
+          seg.amount *= (1 + ampPercent);
+        }
+      }
+    }
+    // First Strike amplification shown as separate segment
+    {
+      const fsProcs = enemyRuneCharges[String(KEYSTONE_IDS.FIRST_STRIKE)] ?? 0;
+      if (enemyKs === KEYSTONE_IDS.FIRST_STRIKE && fsProcs > 0) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "FS", amount: preTotal * FIRST_STRIKE_AMP, color: "" });
+      }
     }
     return segs;
   }, [
@@ -2084,7 +2786,9 @@ function SimulatorInner() {
     enemyComboPassiveOnHitPerAA,
     enemyComboPassiveOnHitPerCombo,
     enemyComboPassiveSkillBonuses,
-    enemyRunes.keystone,
+    enemyRunes,
+    enemyRuneCharges,
+    enemyBonusValues,
     enemyStats,
     allyStats,
     enemyLevel,
@@ -2129,34 +2833,136 @@ function SimulatorInner() {
     return { stats, damageToYou: shots };
   }, [allyStats, gameMinute]);
 
-  // Fleet Footwork rune icon/name for combo bar
-  const allyFleetInfo = useMemo(() => {
-    if (allyRunes.keystone !== KEYSTONE_IDS.FLEET_FOOTWORK) return null;
-    for (const path of runePaths) {
-      for (const slot of path.slots) {
-        for (const rune of slot.runes) {
-          if (rune.id === KEYSTONE_IDS.FLEET_FOOTWORK) {
-            return { icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name };
-          }
-        }
-      }
-    }
-    return null;
-  }, [allyRunes.keystone, runePaths]);
+  // Rune combo entries for combo bar (keystones with charge-based procs)
+  const CHARGE_KEYSTONES: number[] = [
+    KEYSTONE_IDS.FLEET_FOOTWORK,
+    KEYSTONE_IDS.ELECTROCUTE,
+    KEYSTONE_IDS.SUMMON_AERY,
+    KEYSTONE_IDS.ARCANE_COMET,
+    KEYSTONE_IDS.GRASP_OF_THE_UNDYING,
+    KEYSTONE_IDS.FIRST_STRIKE,
+    KEYSTONE_IDS.AFTERSHOCK,
+  ];
 
-  const enemyFleetInfo = useMemo(() => {
-    if (enemyRunes.keystone !== KEYSTONE_IDS.FLEET_FOOTWORK) return null;
+  const allyRuneComboEntries = useMemo(() => {
+    const entries: { id: string; icon: string; name: string }[] = [];
+    // Collect all selected rune IDs that are charge-managed
+    const selectedIds: number[] = [];
+    if (CHARGE_KEYSTONES.includes(allyRunes.keystone)) selectedIds.push(allyRunes.keystone);
+    for (const subId of CHARGE_SUBRUNE_IDS) {
+      if (hasSubRune(allyRunes, subId)) selectedIds.push(subId);
+    }
+    if (selectedIds.length === 0) return [];
     for (const path of runePaths) {
       for (const slot of path.slots) {
         for (const rune of slot.runes) {
-          if (rune.id === KEYSTONE_IDS.FLEET_FOOTWORK) {
-            return { icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name };
+          if (selectedIds.includes(rune.id)) {
+            entries.push({ id: String(rune.id), icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name });
           }
         }
       }
     }
-    return null;
-  }, [enemyRunes.keystone, runePaths]);
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allyRunes.keystone, allyRunes.primarySlot1, allyRunes.primarySlot2, allyRunes.primarySlot3, allyRunes.secondarySlot1, allyRunes.secondarySlot2, runePaths]);
+
+  const enemyRuneComboEntries = useMemo(() => {
+    const entries: { id: string; icon: string; name: string }[] = [];
+    const selectedIds: number[] = [];
+    if (CHARGE_KEYSTONES.includes(enemyRunes.keystone)) selectedIds.push(enemyRunes.keystone);
+    for (const subId of CHARGE_SUBRUNE_IDS) {
+      if (hasSubRune(enemyRunes, subId)) selectedIds.push(subId);
+    }
+    if (selectedIds.length === 0) return [];
+    for (const path of runePaths) {
+      for (const slot of path.slots) {
+        for (const rune of slot.runes) {
+          if (selectedIds.includes(rune.id)) {
+            entries.push({ id: String(rune.id), icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name });
+          }
+        }
+      }
+    }
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enemyRunes.keystone, enemyRunes.primarySlot1, enemyRunes.primarySlot2, enemyRunes.primarySlot3, enemyRunes.secondarySlot1, enemyRunes.secondarySlot2, runePaths]);
+
+  // Rune item entries (Biscuit Delivery, Triple Tonic elixirs)
+  const allyRuneItemEntries = useMemo(() => {
+    const entries: { id: string; itemId: string; name: string; desc: string; maxCharges: number }[] = [];
+    if (hasSubRune(allyRunes, SUBRUNE_IDS.BISCUIT_DELIVERY)) {
+      entries.push({
+        id: 'biscuit',
+        itemId: '2010',
+        name: locale === 'ja' ? '英気満点ビスケット' : 'Total Biscuit',
+        desc: locale === 'ja' ? '+30 最大HP (最大3個)' : '+30 Max HP (max 3)',
+        maxCharges: BISCUIT_MAX_COUNT,
+      });
+    }
+    if (hasSubRune(allyRunes, SUBRUNE_IDS.TRIPLE_TONIC)) {
+      entries.push({
+        id: 'tonic-avarice',
+        itemId: '2151',
+        name: locale === 'ja' ? '強欲のエリクサー' : 'Elixir of Avarice',
+        desc: locale === 'ja' ? '60G (Lv3)' : '60G (Lv3)',
+        maxCharges: 1,
+      });
+      entries.push({
+        id: 'tonic-force',
+        itemId: '2152',
+        name: locale === 'ja' ? '力のエリクサー' : 'Elixir of Force',
+        desc: locale === 'ja' ? '15AD / 25AP (Lv6)' : '15AD / 25AP (Lv6)',
+        maxCharges: 1,
+      });
+      entries.push({
+        id: 'tonic-skill',
+        itemId: '2150',
+        name: locale === 'ja' ? 'スキル エリクサー' : 'Elixir of Skill',
+        desc: locale === 'ja' ? '+1 スキルポイント (Lv9)' : '+1 Skill Point (Lv9)',
+        maxCharges: 1,
+      });
+    }
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allyRunes.primarySlot1, allyRunes.primarySlot2, allyRunes.primarySlot3, allyRunes.secondarySlot1, allyRunes.secondarySlot2, locale]);
+
+  const enemyRuneItemEntries = useMemo(() => {
+    const entries: { id: string; itemId: string; name: string; desc: string; maxCharges: number }[] = [];
+    if (hasSubRune(enemyRunes, SUBRUNE_IDS.BISCUIT_DELIVERY)) {
+      entries.push({
+        id: 'biscuit',
+        itemId: '2010',
+        name: locale === 'ja' ? '英気満点ビスケット' : 'Total Biscuit',
+        desc: locale === 'ja' ? '+30 最大HP (最大3個)' : '+30 Max HP (max 3)',
+        maxCharges: BISCUIT_MAX_COUNT,
+      });
+    }
+    if (hasSubRune(enemyRunes, SUBRUNE_IDS.TRIPLE_TONIC)) {
+      entries.push({
+        id: 'tonic-avarice',
+        itemId: '2151',
+        name: locale === 'ja' ? '強欲のエリクサー' : 'Elixir of Avarice',
+        desc: locale === 'ja' ? '60G (Lv3)' : '60G (Lv3)',
+        maxCharges: 1,
+      });
+      entries.push({
+        id: 'tonic-force',
+        itemId: '2152',
+        name: locale === 'ja' ? '力のエリクサー' : 'Elixir of Force',
+        desc: locale === 'ja' ? '15AD / 25AP (Lv6)' : '15AD / 25AP (Lv6)',
+        maxCharges: 1,
+      });
+      entries.push({
+        id: 'tonic-skill',
+        itemId: '2150',
+        name: locale === 'ja' ? 'スキル エリクサー' : 'Elixir of Skill',
+        desc: locale === 'ja' ? '+1 スキルポイント (Lv9)' : '+1 Skill Point (Lv9)',
+        maxCharges: 1,
+      });
+    }
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enemyRunes.primarySlot1, enemyRunes.primarySlot2, enemyRunes.primarySlot3, enemyRunes.secondarySlot1, enemyRunes.secondarySlot2, locale]);
 
   if (dragonLoading) {
     return (
@@ -2312,16 +3118,22 @@ function SimulatorInner() {
             >
               {allyChampion ? (
                 <>
-                  <img
-                    src={getSplashUrl(allyChampion.image, allyChampion.id)}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ objectPosition: getSplashPosition(allyChampion.id) }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                  {allyChampion.id === '_Dummy' ? (
+                    <div className="absolute inset-0 bg-zinc-700" />
+                  ) : (
+                    <>
+                      <img
+                        src={getSplashUrl(allyChampion.image, allyChampion.id)}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ objectPosition: getSplashPosition(allyChampion.id) }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                    </>
+                  )}
                   <div className="relative h-full flex items-center gap-3 px-3 z-10">
                     <Image
-                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${allyChampion.image}`}
+                      src={getChampionIconUrl(version, allyChampion.image)}
                       alt={getChampionDisplayName(allyChampion)}
                       width={40}
                       height={40}
@@ -2381,6 +3193,7 @@ function SimulatorInner() {
                 comboPassiveValues={allyComboPassiveValues}
                 selectedFormGroup={allyFormGroup}
                 onFormGroupChange={setAllyFormGroup}
+                skillEvolutions={allySkillEvolutions}
                 isSylas={allyChampion.id === 'Sylas'}
                 sylasRChampionId={allySylasRChampId}
                 onSylasRChange={setAllySylasRChampId}
@@ -2398,10 +3211,12 @@ function SimulatorInner() {
                 itemHealEffects={allyHealEffects}
                 itemHealCharges={allyHealCharges}
                 onItemHealToggle={(itemId, charges) => setAllyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
-                keystoneIcon={allyFleetInfo?.icon}
-                keystoneName={allyFleetInfo?.name}
-                keystoneCharges={allyFleetCharges}
-                onKeystoneChargeChange={allyFleetInfo ? setAllyFleetCharges : undefined}
+                runeComboEntries={allyRuneComboEntries}
+                runeCharges={allyRuneCharges}
+                onRuneChargeChange={(id, charges) => setAllyRuneCharges(prev => ({ ...prev, [id]: charges }))}
+                runeItemEntries={allyRuneItemEntries}
+                runeItemCharges={allyRuneItemCharges}
+                onRuneItemChargeChange={(id, charges) => setAllyRuneItemCharges(prev => ({ ...prev, [id]: charges }))}
               />
             )}
             <ItemShop
@@ -2462,6 +3277,9 @@ function SimulatorInner() {
                   locale={locale}
                   targetHpPercent={allyTargetHpPercent}
                   onTargetHpPercentChange={setAllyTargetHpPercent}
+                  championLevel={allyLevel}
+                  skillEvolutions={allySkillEvolutions}
+                  onSkillEvolutionChange={(key, group) => setAllySkillEvolutions(prev => ({ ...prev, [key]: group }))}
                 />
               </CollapsibleSection>
             )}
@@ -2598,16 +3416,22 @@ function SimulatorInner() {
             >
               {enemyChampion ? (
                 <>
-                  <img
-                    src={getSplashUrl(enemyChampion.image, enemyChampion.id)}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ objectPosition: getSplashPosition(enemyChampion.id) }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                  {enemyChampion.id === '_Dummy' ? (
+                    <div className="absolute inset-0 bg-zinc-700" />
+                  ) : (
+                    <>
+                      <img
+                        src={getSplashUrl(enemyChampion.image, enemyChampion.id)}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ objectPosition: getSplashPosition(enemyChampion.id) }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10" />
+                    </>
+                  )}
                   <div className="relative h-full flex items-center gap-3 px-3 z-10">
                     <Image
-                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${enemyChampion.image}`}
+                      src={getChampionIconUrl(version, enemyChampion.image)}
                       alt={getChampionDisplayName(enemyChampion)}
                       width={40}
                       height={40}
@@ -2667,6 +3491,7 @@ function SimulatorInner() {
                 comboPassiveValues={enemyComboPassiveValues}
                 selectedFormGroup={enemyFormGroup}
                 onFormGroupChange={setEnemyFormGroup}
+                skillEvolutions={enemySkillEvolutions}
                 isSylas={enemyChampion.id === 'Sylas'}
                 sylasRChampionId={enemySylasRChampId}
                 onSylasRChange={setEnemySylasRChampId}
@@ -2684,10 +3509,12 @@ function SimulatorInner() {
                 itemHealEffects={enemyHealEffects}
                 itemHealCharges={enemyHealCharges}
                 onItemHealToggle={(itemId, charges) => setEnemyHealCharges(prev => ({ ...prev, [itemId]: charges }))}
-                keystoneIcon={enemyFleetInfo?.icon}
-                keystoneName={enemyFleetInfo?.name}
-                keystoneCharges={enemyFleetCharges}
-                onKeystoneChargeChange={enemyFleetInfo ? setEnemyFleetCharges : undefined}
+                runeComboEntries={enemyRuneComboEntries}
+                runeCharges={enemyRuneCharges}
+                onRuneChargeChange={(id, charges) => setEnemyRuneCharges(prev => ({ ...prev, [id]: charges }))}
+                runeItemEntries={enemyRuneItemEntries}
+                runeItemCharges={enemyRuneItemCharges}
+                onRuneItemChargeChange={(id, charges) => setEnemyRuneItemCharges(prev => ({ ...prev, [id]: charges }))}
               />
             )}
             <ItemShop
@@ -2748,6 +3575,9 @@ function SimulatorInner() {
                   locale={locale}
                   targetHpPercent={enemyTargetHpPercent}
                   onTargetHpPercentChange={setEnemyTargetHpPercent}
+                  championLevel={enemyLevel}
+                  skillEvolutions={enemySkillEvolutions}
+                  onSkillEvolutionChange={(key, group) => setEnemySkillEvolutions(prev => ({ ...prev, [key]: group }))}
                 />
               </CollapsibleSection>
             )}

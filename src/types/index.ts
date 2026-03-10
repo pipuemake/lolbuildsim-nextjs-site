@@ -94,6 +94,8 @@ export interface SkillSubCast {
   comboLabel?: string;
   /** Form group for form-switching champions (e.g. 'base', 'shadow', 'rhaast'). Only shown when the matching form is selected. */
   formGroup?: string;
+  /** Evolution group for per-skill evolution toggles (e.g. Kai'Sa Q/W/E, Viktor Q/W/E). Each skill toggles independently. */
+  evolutionGroup?: string;
 }
 
 export interface SkillData {
@@ -107,6 +109,7 @@ export interface SkillData {
   cost: number[]; // per rank
   costType: string;
   subCasts?: SkillSubCast[];  // multi-hit skill sub-casts
+  hasEvolution?: boolean;     // true if this skill has an evolution toggle (even without damage changes)
 }
 
 // ===== Items =====
@@ -467,7 +470,7 @@ export interface ChampionComboPassive {
 
 // ===== HP Bar visualization =====
 export interface DamageSegment {
-  source: 'Q' | 'W' | 'E' | 'R' | 'AA' | 'P' | 'SUM' | 'ITEM' | 'PtA' | 'LT';
+  source: string;
   amount: number;
   color: string;
 }
