@@ -16,7 +16,7 @@ function SupportContent() {
       </p>
       <div className="flex justify-center">
         <a
-          href="https://buymeacoffee.com/placeholder"
+          href="https://buymeacoffee.com/Pipu74"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#FFDD00] text-black font-bold text-sm hover:bg-[#FFDD00]/90 transition-colors shadow-md"
