@@ -4,53 +4,66 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom";
 import Image from "next/image";
 
-/** Hook: tap = onTap, long press (500ms) = onLongPress. Scroll cancels. */
+/**
+ * Long-press hook with repeat support.
+ * - Tap (< 400ms) → onTap
+ * - Long press (≥ 400ms) → onLongPress fires, then repeats every `repeatInterval` ms
+ * - Tracks touch state to block synthesized mouse events after touch
+ */
 function useLongPress(
   onTap: () => void,
   onLongPress: () => void,
-  { delay = 500 }: { delay?: number } = {},
+  { delay = 400, repeatInterval = 150 }: { delay?: number; repeatInterval?: number } = {},
 ) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedRef = useRef(false);
   const touchMovedRef = useRef(false);
+  // Block synthesized mouse events for 500ms after touch
+  const touchEndTimeRef = useRef(0);
 
-  const clear = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+  const clearAll = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+  }, []);
+
+  const isTouchRecent = useCallback(() => {
+    return Date.now() - touchEndTimeRef.current < 500;
   }, []);
 
   const handlers = useMemo(
     () => ({
-      onTouchStart: (e: React.TouchEvent) => {
+      onTouchStart: () => {
         firedRef.current = false;
         touchMovedRef.current = false;
         timerRef.current = setTimeout(() => {
           firedRef.current = true;
           onLongPress();
+          // Start repeating
+          intervalRef.current = setInterval(() => {
+            onLongPress();
+          }, repeatInterval);
         }, delay);
       },
       onTouchMove: () => {
         touchMovedRef.current = true;
-        clear();
+        clearAll();
       },
       onTouchEnd: (e: React.TouchEvent) => {
-        clear();
-        // Always prevent synthesized click/mousedown from touch
+        clearAll();
+        touchEndTimeRef.current = Date.now();
         e.preventDefault();
         if (!firedRef.current && !touchMovedRef.current) {
           onTap();
         }
       },
     }),
-    [onTap, onLongPress, delay, clear],
+    [onTap, onLongPress, delay, repeatInterval, clearAll],
   );
 
-  // Cleanup on unmount
-  useEffect(() => clear, [clear]);
+  useEffect(() => clearAll, [clearAll]);
 
-  return handlers;
+  return { handlers, isTouchRecent };
 }
 
 /** Style to suppress native long-press menus (iOS "Save Image", Android context menu) */
@@ -77,14 +90,14 @@ function SummonerButton({
   className?: string;
   title?: string;
 }) {
-  const lp = useLongPress(onTap, onLongPress);
+  const { handlers: lp, isTouchRecent } = useLongPress(onTap, onLongPress);
   return (
     <button
       ref={btnRef}
-      onClick={onTap}
+      onClick={(e) => { if (!isTouchRecent()) onTap(); }}
       onContextMenu={(e) => {
         e.preventDefault();
-        onLongPress();
+        if (!isTouchRecent()) onLongPress();
       }}
       {...lp}
       className={`touch-btn ${className ?? ""}`}
@@ -96,7 +109,7 @@ function SummonerButton({
   );
 }
 
-/** Button with long-press support: tap = onTap, long press = onLongPress */
+/** Button with long-press support: tap = onTap, long press = onLongPress (with repeat) */
 function LongPressButton({
   onTap,
   onLongPress,
@@ -116,10 +129,11 @@ function LongPressButton({
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }) {
-  const lp = useLongPress(onTap, onLongPress);
+  const { handlers: lp, isTouchRecent } = useLongPress(onTap, onLongPress);
   return (
     <button
       onMouseDown={(e) => {
+        if (isTouchRecent()) return;
         e.preventDefault();
         if (e.button === 0) onTap();
         else if (e.button === 2) onLongPress();
