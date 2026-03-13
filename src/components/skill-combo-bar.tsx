@@ -37,9 +37,9 @@ function useLongPress(
       },
       onTouchEnd: (e: React.TouchEvent) => {
         clear();
+        // Always prevent synthesized click/mousedown from touch
+        e.preventDefault();
         if (!firedRef.current && !touchMovedRef.current) {
-          // Prevent the subsequent click/mousedown from also firing
-          e.preventDefault();
           onTap();
         }
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +9,94 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Item } from "@/types";
+
+/** Hook: tap = onTap, long press (500ms) = onLongPress. Scroll cancels. */
+function useLongPress(
+  onTap: () => void,
+  onLongPress: () => void,
+  { delay = 500 }: { delay?: number } = {},
+) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedRef = useRef(false);
+  const touchMovedRef = useRef(false);
+
+  const clear = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const handlers = useMemo(
+    () => ({
+      onTouchStart: () => {
+        firedRef.current = false;
+        touchMovedRef.current = false;
+        timerRef.current = setTimeout(() => {
+          firedRef.current = true;
+          onLongPress();
+        }, delay);
+      },
+      onTouchMove: () => {
+        touchMovedRef.current = true;
+        clear();
+      },
+      onTouchEnd: (e: React.TouchEvent) => {
+        clear();
+        e.preventDefault();
+        if (!firedRef.current && !touchMovedRef.current) {
+          onTap();
+        }
+      },
+    }),
+    [onTap, onLongPress, delay, clear],
+  );
+
+  useEffect(() => clear, [clear]);
+  return handlers;
+}
+
+const TOUCH_SUPPRESS_STYLE: React.CSSProperties = {
+  WebkitTouchCallout: "none",
+  WebkitUserSelect: "none",
+  userSelect: "none",
+  touchAction: "manipulation",
+};
+
+/** Item slot button with long-press = remove item */
+function ItemSlotButton({
+  onTap,
+  onLongPress,
+  children,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onTap: () => void;
+  onLongPress: () => void;
+  children: React.ReactNode;
+  className?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  const lp = useLongPress(onTap, onLongPress);
+  return (
+    <button
+      onClick={onTap}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onLongPress();
+      }}
+      {...lp}
+      className={`touch-btn ${className ?? ""}`}
+      style={TOUCH_SUPPRESS_STYLE}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </button>
+  );
+}
 
 /** Convert katakana to hiragana for search matching */
 function katakanaToHiragana(str: string): string {
@@ -284,8 +372,8 @@ export function ItemShop({
           return (
             <Tooltip key={i} delayDuration={300}>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
+                <ItemSlotButton
+                  onTap={() => {
                     if (isActive) {
                       setActiveSlot(null);
                     } else {
@@ -293,6 +381,11 @@ export function ItemShop({
                       setSearch("");
                       setCategory("all");
                       setHoveredItem(null);
+                    }
+                  }}
+                  onLongPress={() => {
+                    if (selectedItems[i]) {
+                      onItemChange(i, null);
                     }
                   }}
                   onMouseEnter={() => {
@@ -303,12 +396,6 @@ export function ItemShop({
                   onMouseLeave={() => {
                     if (shopOpen) {
                       setHoveredItem(null);
-                    }
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (selectedItems[i]) {
-                      onItemChange(i, null);
                     }
                   }}
                   className={`w-11 h-11 rounded relative overflow-hidden transition-all duration-150 group ${
@@ -336,7 +423,7 @@ export function ItemShop({
                       +
                     </span>
                   )}
-                </button>
+                </ItemSlotButton>
               </TooltipTrigger>
               {item && !isActive && (
                 <TooltipContent
