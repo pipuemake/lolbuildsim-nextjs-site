@@ -335,6 +335,12 @@
   & .bg-violet-950\/40 { background-color: rgba(139,92,246,0.08); }
 }
 
+/* Prevent native long-press menu on touch button images */
+.touch-btn img {
+  pointer-events: none;
+  -webkit-touch-callout: none;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 4px;
