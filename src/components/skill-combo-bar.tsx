@@ -3,6 +3,130 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+
+/** Hook: tap = onTap, long press (500ms) = onLongPress. Scroll cancels. */
+function useLongPress(
+  onTap: () => void,
+  onLongPress: () => void,
+  { delay = 500 }: { delay?: number } = {},
+) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedRef = useRef(false);
+  const touchMovedRef = useRef(false);
+
+  const clear = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const handlers = useMemo(
+    () => ({
+      onTouchStart: (e: React.TouchEvent) => {
+        firedRef.current = false;
+        touchMovedRef.current = false;
+        timerRef.current = setTimeout(() => {
+          firedRef.current = true;
+          onLongPress();
+        }, delay);
+      },
+      onTouchMove: () => {
+        touchMovedRef.current = true;
+        clear();
+      },
+      onTouchEnd: (e: React.TouchEvent) => {
+        clear();
+        if (!firedRef.current && !touchMovedRef.current) {
+          // Prevent the subsequent click/mousedown from also firing
+          e.preventDefault();
+          onTap();
+        }
+      },
+    }),
+    [onTap, onLongPress, delay, clear],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => clear, [clear]);
+
+  return handlers;
+}
+
+/** Summoner button with long-press support + ref forwarding */
+function SummonerButton({
+  onTap,
+  onLongPress,
+  btnRef,
+  children,
+  className,
+  title,
+}: {
+  onTap: () => void;
+  onLongPress: () => void;
+  btnRef: (el: HTMLButtonElement | null) => void;
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+}) {
+  const lp = useLongPress(onTap, onLongPress);
+  return (
+    <button
+      ref={btnRef}
+      onClick={onTap}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onLongPress();
+      }}
+      {...lp}
+      className={className}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Button with long-press support: tap = onTap, long press = onLongPress */
+function LongPressButton({
+  onTap,
+  onLongPress,
+  children,
+  className,
+  title,
+  disabled,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onTap: () => void;
+  onLongPress: () => void;
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+  disabled?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  const lp = useLongPress(onTap, onLongPress);
+  return (
+    <button
+      onMouseDown={(e) => {
+        e.preventDefault();
+        if (e.button === 0) onTap();
+        else if (e.button === 2) onLongPress();
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+      {...lp}
+      className={className}
+      title={title}
+      disabled={disabled}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </button>
+  );
+}
 import type {
   Champion,
   SkillData,
@@ -223,31 +347,9 @@ export function SkillComboBar({
     return null;
   };
 
-  const handleMouseDown = (e: React.MouseEvent, key: string) => {
-    e.preventDefault();
-    if (e.button === 0) {
-      onComboChange({ ...comboCounts, [key]: (comboCounts[key] ?? 0) + 1 });
-    } else if (e.button === 2) {
-      const current = comboCounts[key] ?? 0;
-      if (current > 0) {
-        onComboChange({ ...comboCounts, [key]: current - 1 });
-      }
-    }
-  };
-
   const handleSummonerClick = (index: 0 | 1) => {
     if (summonerSpells[index]) {
       onSummonerActiveChange(index, !summonerActive[index]);
-    } else {
-      setDropdownIndex(index);
-    }
-  };
-
-  const handleSummonerContextMenu = (e: React.MouseEvent, index: 0 | 1) => {
-    e.preventDefault();
-    if (summonerSpells[index]) {
-      onSummonerChange(index, null);
-      onSummonerActiveChange(index, false);
     } else {
       setDropdownIndex(index);
     }
@@ -356,7 +458,7 @@ export function SkillComboBar({
       <div className="text-xs text-zinc-500 mb-1.5 font-medium">
         {isJa ? "コンボ設定" : "Combo Setup"}
         <span className="ml-1.5 text-zinc-500">
-          {isJa ? "(左クリック+1 / 右クリック-1)" : "(L-click +1 / R-click -1)"}
+          {isJa ? "(クリック+1 / 右クリック or 長押し-1)" : "(Click +1 / R-click or long-press -1)"}
         </span>
       </div>
 
@@ -392,10 +494,13 @@ export function SkillComboBar({
                 const subLabel = sc.comboLabel ?? sc.id.replace(key, ""); // e.g. 'Q1' -> '1', or '往'/'復'
 
                 return (
-                  <button
+                  <LongPressButton
                     key={sc.id}
-                    onMouseDown={(e) => handleMouseDown(e, sc.id)}
-                    onContextMenu={(e) => e.preventDefault()}
+                    onTap={() => onComboChange({ ...comboCounts, [sc.id]: (comboCounts[sc.id] ?? 0) + 1 })}
+                    onLongPress={() => {
+                      const c = comboCounts[sc.id] ?? 0;
+                      if (c > 0) onComboChange({ ...comboCounts, [sc.id]: c - 1 });
+                    }}
                     onMouseEnter={() => setHoveredSkill(key)}
                     onMouseLeave={() => setHoveredSkill(null)}
                     className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
@@ -430,7 +535,7 @@ export function SkillComboBar({
                         {count}
                       </span>
                     )}
-                  </button>
+                  </LongPressButton>
                 );
               });
             }
@@ -443,10 +548,13 @@ export function SkillComboBar({
               key === "P" || skills.some((s) => s.key === key);
 
             return (
-              <button
+              <LongPressButton
                 key={key}
-                onMouseDown={(e) => handleMouseDown(e, key)}
-                onContextMenu={(e) => e.preventDefault()}
+                onTap={() => onComboChange({ ...comboCounts, [key]: (comboCounts[key] ?? 0) + 1 })}
+                onLongPress={() => {
+                  const c = comboCounts[key] ?? 0;
+                  if (c > 0) onComboChange({ ...comboCounts, [key]: c - 1 });
+                }}
                 onMouseEnter={() => setHoveredSkill(key)}
                 onMouseLeave={() => setHoveredSkill(null)}
                 disabled={!hasSkillData}
@@ -477,7 +585,7 @@ export function SkillComboBar({
                     {count}
                   </span>
                 )}
-              </button>
+              </LongPressButton>
             );
           })}
         </div>
@@ -512,13 +620,18 @@ export function SkillComboBar({
             const active = summonerActive[idx];
 
             return (
-              <button
+              <SummonerButton
                 key={idx}
-                ref={(el) => {
-                  summonerBtnRefs.current[idx] = el;
+                btnRef={(el) => { summonerBtnRefs.current[idx] = el; }}
+                onTap={() => handleSummonerClick(idx)}
+                onLongPress={() => {
+                  if (summonerSpells[idx]) {
+                    onSummonerChange(idx, null);
+                    onSummonerActiveChange(idx, false);
+                  } else {
+                    setDropdownIndex(idx);
+                  }
                 }}
-                onClick={() => handleSummonerClick(idx)}
-                onContextMenu={(e) => handleSummonerContextMenu(e, idx)}
                 className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
  ${spell && active ? "ring-2 ring-amber-500 shadow-md" : spell ? "opacity-40 hover:opacity-70" : "opacity-30 hover:opacity-60"}
  `}
@@ -551,7 +664,7 @@ export function SkillComboBar({
                     !
                   </span>
                 )}
-              </button>
+              </SummonerButton>
             );
           })}
 
@@ -623,11 +736,10 @@ export function SkillComboBar({
                 {itemActiveEffects.map((effect) => {
                   const count = itemActiveToggles?.[effect.itemId] ?? 0;
                   return (
-                    <button
+                    <LongPressButton
                       key={effect.itemId}
-                      onClick={() => onItemActiveToggle(effect.itemId, count + 1)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
+                      onTap={() => onItemActiveToggle(effect.itemId, count + 1)}
+                      onLongPress={() => {
                         if (count > 0) onItemActiveToggle(effect.itemId, count - 1);
                       }}
                       className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
@@ -648,7 +760,7 @@ export function SkillComboBar({
                           {count}
                         </span>
                       )}
-                    </button>
+                    </LongPressButton>
                   );
                 })}
               </div>
@@ -663,13 +775,10 @@ export function SkillComboBar({
               {onHitEffects.map((effect) => {
                 const active = onHitToggles?.[effect.itemId] ?? false;
                 return (
-                  <button
+                  <LongPressButton
                     key={`oh-${effect.itemId}`}
-                    onClick={() => onOnHitToggle(effect.itemId, !active)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      onOnHitToggle(effect.itemId, !active);
-                    }}
+                    onTap={() => onOnHitToggle(effect.itemId, !active)}
+                    onLongPress={() => onOnHitToggle(effect.itemId, !active)}
                     className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
  ${active ? "ring-2 ring-cyan-500 shadow-md" : "opacity-30 hover:opacity-60"}
  `}
@@ -688,7 +797,7 @@ export function SkillComboBar({
                         {effect.trigger === "spellblade" ? "S" : "!"}
                       </span>
                     )}
-                  </button>
+                  </LongPressButton>
                 );
               })}
             </div>
@@ -703,11 +812,10 @@ export function SkillComboBar({
               {itemHealEffects.map((effect) => {
                 const charges = itemHealCharges?.[effect.itemId] ?? 0;
                 return (
-                  <button
+                  <LongPressButton
                     key={`heal-${effect.itemId}`}
-                    onClick={() => onItemHealToggle(effect.itemId, Math.min(charges + 1, effect.maxCharges))}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
+                    onTap={() => onItemHealToggle(effect.itemId, Math.min(charges + 1, effect.maxCharges))}
+                    onLongPress={() => {
                       if (charges > 0) onItemHealToggle(effect.itemId, charges - 1);
                     }}
                     className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
@@ -728,7 +836,7 @@ export function SkillComboBar({
                         {charges}
                       </span>
                     )}
-                  </button>
+                  </LongPressButton>
                 );
               })}
             </div>
@@ -743,11 +851,10 @@ export function SkillComboBar({
               {runeComboEntries.map((entry) => {
                 const charges = runeCharges?.[entry.id] ?? 0;
                 return (
-                  <button
+                  <LongPressButton
                     key={entry.id}
-                    onClick={() => onRuneChargeChange(entry.id, charges + 1)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
+                    onTap={() => onRuneChargeChange(entry.id, charges + 1)}
+                    onLongPress={() => {
                       if (charges > 0) onRuneChargeChange(entry.id, charges - 1);
                     }}
                     className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
@@ -768,7 +875,7 @@ export function SkillComboBar({
                         {charges}
                       </span>
                     )}
-                  </button>
+                  </LongPressButton>
                 );
               })}
             </div>
@@ -783,11 +890,10 @@ export function SkillComboBar({
               {runeItemEntries.map((entry) => {
                 const charges = runeItemCharges?.[entry.id] ?? 0;
                 return (
-                  <button
+                  <LongPressButton
                     key={entry.id}
-                    onClick={() => onRuneItemChargeChange(entry.id, Math.min(charges + 1, entry.maxCharges))}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
+                    onTap={() => onRuneItemChargeChange(entry.id, Math.min(charges + 1, entry.maxCharges))}
+                    onLongPress={() => {
                       if (charges > 0) onRuneItemChargeChange(entry.id, charges - 1);
                     }}
                     className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
@@ -808,7 +914,7 @@ export function SkillComboBar({
                         {charges}
                       </span>
                     )}
-                  </button>
+                  </LongPressButton>
                 );
               })}
             </div>
