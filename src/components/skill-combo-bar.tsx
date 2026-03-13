@@ -53,6 +53,14 @@ function useLongPress(
   return handlers;
 }
 
+/** Style to suppress native long-press menus (iOS "Save Image", Android context menu) */
+const TOUCH_SUPPRESS_STYLE: React.CSSProperties = {
+  WebkitTouchCallout: "none",
+  WebkitUserSelect: "none",
+  userSelect: "none",
+  touchAction: "manipulation",
+};
+
 /** Summoner button with long-press support + ref forwarding */
 function SummonerButton({
   onTap,
@@ -79,8 +87,9 @@ function SummonerButton({
         onLongPress();
       }}
       {...lp}
-      className={className}
+      className={`touch-btn ${className ?? ""}`}
       title={title}
+      style={TOUCH_SUPPRESS_STYLE}
     >
       {children}
     </button>
@@ -117,11 +126,12 @@ function LongPressButton({
       }}
       onContextMenu={(e) => e.preventDefault()}
       {...lp}
-      className={className}
+      className={`touch-btn ${className ?? ""}`}
       title={title}
       disabled={disabled}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      style={TOUCH_SUPPRESS_STYLE}
     >
       {children}
     </button>
