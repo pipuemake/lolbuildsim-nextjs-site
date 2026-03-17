@@ -492,7 +492,7 @@ export function SkillComboBar({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {SKILL_KEYS.map((key) => {
             const skill = skills.find((s) => s.key === key);
-            const hasSubCasts = skill?.subCasts && skill.subCasts.length > 0;
+            const hasSubCasts = key !== "P" && skill?.subCasts && skill.subCasts.length > 0;
 
             if (hasSubCasts && skill?.subCasts) {
               // Filter sub-casts by formGroup and evolutionGroup
@@ -570,6 +570,36 @@ export function SkillComboBar({
             const isActive = count > 0;
             const hasSkillData =
               key === "P" || skills.some((s) => s.key === key);
+
+            // P is display-only (not clickable) — managed via passive section below
+            if (key === "P") {
+              return (
+                <div
+                  key={key}
+                  className="relative flex-shrink-0 rounded opacity-60 select-none"
+                  onMouseEnter={() => setHoveredSkill(key)}
+                  onMouseLeave={() => setHoveredSkill(null)}
+                  title={isJa ? "パッシブ (下で管理)" : "Passive (managed below)"}
+                >
+                  {imgSrc ? (
+                    <Image
+                      src={imgSrc}
+                      alt={key}
+                      width={36}
+                      height={36}
+                      className="rounded border border-black/50"
+                      unoptimized
+                    />
+                  ) : (
+                    <div
+                      className={`w-9 h-9 rounded border border-zinc-700 bg-zinc-800 flex items-center justify-center text-xs font-bold ${SKILL_ACCENT[key]?.text || "text-zinc-400"}`}
+                    >
+                      {key}
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
             return (
               <LongPressButton
@@ -1034,8 +1064,14 @@ export function SkillComboBar({
             {isJa ? "パッシブ" : "Passive"}
           </span>
           {comboPassives.map((passive) => {
+            // formGroup filter: only show passives matching the active form group
+            if (passive.formGroup && hasFormGroups && passive.formGroup !== activeFormGroup) {
+              return null;
+            }
             const val =
               comboPassiveValues?.[passive.id] ?? passive.defaultValue;
+            // aaLinked: cap max at current AA count
+            const effectiveMax = passive.aaLinked ? Math.min(passive.max ?? 99, aaCounts) : (passive.max ?? 9999);
             if (passive.inputType === "toggle") {
               return (
                 <button
@@ -1084,15 +1120,15 @@ export function SkillComboBar({
                   <input
                     type="number"
                     min={passive.min ?? 0}
-                    max={passive.max ?? 9999}
-                    value={val}
+                    max={effectiveMax}
+                    value={Math.min(val, effectiveMax)}
                     onChange={(e) => {
                       const n = parseInt(e.target.value) || 0;
                       onComboPassiveChange(
                         passive.id,
                         Math.max(
                           passive.min ?? 0,
-                          Math.min(passive.max ?? 9999, n),
+                          Math.min(effectiveMax, n),
                         ),
                       );
                     }}
@@ -1102,7 +1138,7 @@ export function SkillComboBar({
                     onClick={() =>
                       onComboPassiveChange(
                         passive.id,
-                        Math.min(passive.max ?? 9999, val + 1),
+                        Math.min(effectiveMax, val + 1),
                       )
                     }
                     className="w-5 h-5 flex items-center justify-center rounded bg-zinc-700/60 text-zinc-400 hover:text-zinc-200 text-xs font-bold"
@@ -1110,6 +1146,18 @@ export function SkillComboBar({
                     +
                   </button>
                 </div>
+                {/* Show seconds for time-based passives (e.g. Renekton R ticks) */}
+                {passive.secondsPerUnit && val > 0 && (
+                  <span className="text-[10px] text-zinc-500 ml-0.5">
+                    ({(val * passive.secondsPerUnit).toFixed(1)}s)
+                  </span>
+                )}
+                {/* Show AA cap hint for aaLinked */}
+                {passive.aaLinked && (
+                  <span className="text-[10px] text-zinc-600 ml-0.5">
+                    /AA{aaCounts}
+                  </span>
+                )}
               </div>
             );
           })}

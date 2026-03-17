@@ -37,7 +37,7 @@ const CHAMPION_LANES: Record<string, Lane[]> = {
   Camille: ['TOP'],
   Cassiopeia: ['TOP', 'MID'],
   Chogath: ['TOP'],
-  Corki: ['MID'],
+  Corki: ['MID', 'BOT'],
 
   // D
   Darius: ['TOP'],

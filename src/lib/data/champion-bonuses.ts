@@ -179,61 +179,27 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
     calc: (hp) => ({ hp }),
   },
 
-  {
-    id: 'smolder-passive',
-    championId: 'Smolder',
-    type: 'stack',
-    nameEn: 'Dragon Practice (P)',
-    nameJa: 'ドラゴンの修行 (P)',
-    descriptionEn: 'Stacks from hitting champions with abilities. 25: Q burn, 125: Q explodes, 225: extra explosion',
-    descriptionJa: 'スキル命中でスタック蓄積。25: Q炎上, 125: Q爆発, 225: 追加爆発',
-    inputType: 'number',
-    min: 0,
-    max: 999,
-    defaultValue: 0,
-    calc: () => ({}), // Damage effects handled separately
-  },
-  {
-    id: 'aurelionsol-stardust',
-    championId: 'AurelionSol',
-    type: 'stack',
-    nameEn: 'Stardust (P)',
-    nameJa: 'スターダスト (P)',
-    descriptionEn: 'Stardust permanently increases ability damage and effects',
-    descriptionJa: 'スターダストがスキルの効果を恒久的に強化',
-    inputType: 'number',
-    min: 0,
-    max: 9999,
-    defaultValue: 0,
-    calc: () => ({}), // Damage scaling handled per-skill
-  },
-  {
-    id: 'bard-chimes',
-    championId: 'Bard',
-    type: 'stack',
-    nameEn: 'Traveler\'s Call (P) Chimes',
-    nameJa: '旅人の呼び声 (P) チャイム数',
-    descriptionEn: 'Chimes enhance meep damage (+12 per 5 chimes after 5)',
-    descriptionJa: 'チャイム収集でミープダメージ強化 (+12/5チャイム)',
-    inputType: 'number',
-    min: 0,
-    max: 200,
-    defaultValue: 0,
-    calc: () => ({}),
-  },
+  // Smolder: Dragon Practice (P) — damage handled in champion-combo-effects.ts
+  // Bard: Traveler's Call (P) — damage handled in champion-combo-effects.ts
   // --- Vladimir: Crimson Pact (P) ---
   // Every 30 bonus HP → +1 AP, every 1 AP → +1.4 bonus HP (non-recursive)
+  // Input = bonus HP from items (user enters manually). Calculates AP bonus.
   {
     id: 'vladimir-passive',
     championId: 'Vladimir',
-    type: 'passive',
-    nameEn: 'Crimson Pact (P)',
-    nameJa: '真紅の盟約 (P)',
-    descriptionEn: 'Toggle: 30 bonus HP = +1 AP, 1 AP = +1.4 HP (auto-calc from items)',
-    descriptionJa: 'トグル: 増加HP30毎に+1AP, AP1毎に+1.4HP (アイテムから自動計算)',
-    inputType: 'toggle',
-    defaultValue: 1,
-    calc: () => ({}), // Handled in stat merge logic as it needs item stats
+    type: 'stack',
+    nameEn: 'Crimson Pact (P) Bonus HP',
+    nameJa: '真紅の盟約 (P) 増加HP',
+    descriptionEn: 'Enter bonus HP from items. +1 AP per 30 bonus HP.',
+    descriptionJa: 'アイテムの増加HPを入力。増加HP30毎に+1AP。',
+    inputType: 'number',
+    min: 0,
+    max: 5000,
+    defaultValue: 0,
+    calc: (bonusHp) => {
+      if (bonusHp <= 0) return {};
+      return { ap: Math.floor(bonusHp / 30) };
+    },
   },
   // --- Ryze: Arcane Mastery (P) ---
   // Bonus mana → bonus AP (scaling by level)
@@ -383,32 +349,71 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
   },
   // --- Ornn: Living Forge (P) ---
   // Can upgrade items (Masterwork items). Grants +10% bonus AR/MR/HP
+  // --- Ornn: Living Forge (P) ---
+  // Input = total bonus AR+MR+HP from items. Grants +10% of each.
+  // Since calc only receives a single value + level, user enters total bonus AR.
+  // Split into 3 separate entries for AR, MR, HP.
   {
-    id: 'ornn-passive',
+    id: 'ornn-passive-ar',
     championId: 'Ornn',
-    type: 'passive',
-    nameEn: 'Living Forge (P)',
-    nameJa: 'リビングフォージ (P)',
-    descriptionEn: '+10% bonus armor, MR, HP from all items (passive)',
-    descriptionJa: 'アイテムから+10% 増加防御力/MR/HP',
-    inputType: 'toggle',
-    defaultValue: 1,
-    calc: () => ({}), // Would need item stats to calculate; placeholder
+    type: 'stack',
+    nameEn: 'Living Forge (P) Bonus AR',
+    nameJa: 'リビングフォージ (P) 増加AR',
+    descriptionEn: 'Enter bonus armor from items. Grants +10%.',
+    descriptionJa: 'アイテムの増加ARを入力。+10%付与。',
+    inputType: 'number',
+    min: 0,
+    max: 500,
+    defaultValue: 0,
+    calc: (bonusAr) => (bonusAr > 0 ? { armor: Math.floor(bonusAr * 0.10) } : {}),
+  },
+  {
+    id: 'ornn-passive-mr',
+    championId: 'Ornn',
+    type: 'stack',
+    nameEn: 'Living Forge (P) Bonus MR',
+    nameJa: 'リビングフォージ (P) 増加MR',
+    descriptionEn: 'Enter bonus MR from items. Grants +10%.',
+    descriptionJa: 'アイテムの増加MRを入力。+10%付与。',
+    inputType: 'number',
+    min: 0,
+    max: 500,
+    defaultValue: 0,
+    calc: (bonusMr) => (bonusMr > 0 ? { mr: Math.floor(bonusMr * 0.10) } : {}),
+  },
+  {
+    id: 'ornn-passive-hp',
+    championId: 'Ornn',
+    type: 'stack',
+    nameEn: 'Living Forge (P) Bonus HP',
+    nameJa: 'リビングフォージ (P) 増加HP',
+    descriptionEn: 'Enter bonus HP from items. Grants +10%.',
+    descriptionJa: 'アイテムの増加HPを入力。+10%付与。',
+    inputType: 'number',
+    min: 0,
+    max: 5000,
+    defaultValue: 0,
+    calc: (bonusHp) => (bonusHp > 0 ? { hp: Math.floor(bonusHp * 0.10) } : {}),
   },
   // --- Cho'Gath R already exists above ---
   // --- Jhin: Whisper (P) ---
   // Every 1% crit = +0.3% AD, every 1% bonus AS = +0.25 AD
+  // --- Jhin: Whisper (P) AD Conversion ---
+  // Every 1% crit chance → +0.3% AD, every 1% bonus AS → +0.25 AD
+  // Input = bonus AS% from items/runes (e.g. 40 for 40% bonus AS)
   {
     id: 'jhin-passive-bonus',
     championId: 'Jhin',
-    type: 'passive',
-    nameEn: 'Whisper (P) AD Conversion',
-    nameJa: 'ウィスパー (P) AD変換',
-    descriptionEn: 'Cannot gain AS normally. Crit/AS → bonus AD (passive always on)',
-    descriptionJa: 'AS増加不可。クリ率/ASがADに変換 (常時有効)',
-    inputType: 'toggle',
-    defaultValue: 1,
-    calc: () => ({}), // Complex conversion, needs item stats; placeholder
+    type: 'stack',
+    nameEn: 'Whisper (P) Bonus AS%',
+    nameJa: 'ウィスパー (P) 増加AS%',
+    descriptionEn: 'Enter bonus AS% from items/runes. Each 1% → +0.25 AD.',
+    descriptionJa: 'アイテム/ルーンの増加AS%を入力。1%毎に+0.25AD。',
+    inputType: 'number',
+    min: 0,
+    max: 300,
+    defaultValue: 0,
+    calc: (bonusAsPct) => (bonusAsPct > 0 ? { ad: bonusAsPct * 0.25 } : {}),
   },
   // --- Dr. Mundo: Goes Where He Pleases (P) ---
   // Bonus HP regen scaling. Not stat-modifying in a simple way.

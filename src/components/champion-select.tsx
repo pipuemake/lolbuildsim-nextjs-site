@@ -87,6 +87,7 @@ export function ChampionSelect({
 
   /** Get display name for a champion respecting locale */
   const getDisplayName = (c: Champion): string => {
+    if (c.id === '_Dummy') return locale === "en" ? "Training Dummy" : "ダミー人形";
     if (locale === "en" && enChampionNames?.[c.id]) return enChampionNames[c.id];
     return c.name;
   };

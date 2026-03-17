@@ -548,7 +548,7 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
           nameJa: 'ディスチャージ (強化AA)',
           baseDamage: [20, 45, 70, 95, 120],
           damageType: 'magic',
-          scalings: [{ stat: 'ap', ratio: 0.6 }],
+          scalings: [{ stat: 'ad', ratio: 1.0 }, { stat: 'ap', ratio: 0.5 }],
         },
       ],
     },
@@ -574,7 +574,7 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
           nameJa: 'デスレイ 余震 (進化)',
           baseDamage: [20, 50, 80, 110, 140],
           damageType: 'magic',
-          scalings: [{ stat: 'ap', ratio: 0.6 }],
+          scalings: [{ stat: 'ap', ratio: 0.8 }],
           evolutionGroup: 'evolved',
         },
       ],
@@ -1209,17 +1209,17 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     {
       skillKey: 'Q',
       subCasts: [
-        { id: 'Q1', nameEn: 'Reaping Slash (Base)', nameJa: 'リーピングスラッシュ (通常)', baseDamage: [75, 95, 115, 135, 155], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.65 }], formGroup: 'base' },
-        { id: 'Q2', nameEn: 'Reaping Slash (Shadow)', nameJa: 'リーピングスラッシュ (影)', baseDamage: [75, 95, 115, 135, 155], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.65 }], formGroup: 'shadow' },
-        { id: 'Q3', nameEn: 'Reaping Slash (Rhaast)', nameJa: 'リーピングスラッシュ (ラースト)', baseDamage: [75, 95, 115, 135, 155], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.65 }, { stat: 'targetMaxHp', ratio: 0.05 }], formGroup: 'rhaast' },
+        { id: 'Q1', nameEn: 'Reaping Slash (Base)', nameJa: 'リーピングスラッシュ (通常)', baseDamage: [75, 105, 135, 165, 195], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.85 }], formGroup: 'base' },
+        { id: 'Q2', nameEn: 'Reaping Slash (Shadow)', nameJa: 'リーピングスラッシュ (影)', baseDamage: [75, 105, 135, 165, 195], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.85 }], formGroup: 'shadow', image: 'https://raw.communitydragon.org/latest/game/assets/characters/kayn/hud/icons2d/kayn_q_ass.png' },
+        { id: 'Q3', nameEn: 'Reaping Slash (Rhaast)', nameJa: 'リーピングスラッシュ (ラースト)', baseDamage: [0, 0, 0, 0, 0], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.65 }, { stat: 'targetMaxHp', ratio: 0.06 }], formGroup: 'rhaast', image: 'https://raw.communitydragon.org/latest/game/assets/characters/kayn/hud/icons2d/kayn_q_slay.png' },
       ],
     },
     {
       skillKey: 'W',
       subCasts: [
-        { id: 'W1', nameEn: 'Blade\'s Reach (Base)', nameJa: 'ブレードリーチ (通常)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'base' },
-        { id: 'W2', nameEn: 'Blade\'s Reach (Shadow)', nameJa: 'ブレードリーチ (影)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'shadow' },
-        { id: 'W3', nameEn: 'Blade\'s Reach (Rhaast)', nameJa: 'ブレードリーチ (ラースト)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.6 }], formGroup: 'rhaast' },
+        { id: 'W1', nameEn: 'Blade\'s Reach (Base)', nameJa: 'ブレードリーチ (通常)', baseDamage: [85, 130, 175, 220, 265], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.1 }], formGroup: 'base' },
+        { id: 'W2', nameEn: 'Blade\'s Reach (Shadow)', nameJa: 'ブレードリーチ (影)', baseDamage: [85, 130, 175, 220, 265], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.1 }], formGroup: 'shadow', image: 'https://raw.communitydragon.org/latest/game/assets/characters/kayn/hud/icons2d/kayn_w_ass.png' },
+        { id: 'W3', nameEn: 'Blade\'s Reach (Rhaast)', nameJa: 'ブレードリーチ (ラースト)', baseDamage: [85, 130, 175, 220, 265], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.1 }], formGroup: 'rhaast', image: 'https://raw.communitydragon.org/latest/game/assets/characters/kayn/hud/icons2d/kayn_w_slay.png' },
       ],
     },
   ],
@@ -1320,9 +1320,9 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     },
   ],
 
-  // ── Wukong ──
+  // ── Wukong (DDragon ID: MonkeyKing) ──
   // R: Cyclone — can cast twice, each spin deals damage over 2s
-  Wukong: [
+  MonkeyKing: [
     {
       skillKey: 'R',
       subCasts: [
@@ -1517,15 +1517,15 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     {
       skillKey: 'Q',
       subCasts: [
-        { id: 'Q1', nameEn: 'Cull the Meek', nameJa: '断罪の鎌', baseDamage: [65, 100, 135, 170, 205], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 0.8 }] },
-        { id: 'Q2', nameEn: 'Cull the Meek (Fury)', nameJa: '断罪の鎌 (フューリー)', baseDamage: [100, 150, 200, 250, 300], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.2 }], comboLabel: 'F' },
+        { id: 'Q1', nameEn: 'Cull the Meek', nameJa: '断罪の鎌', baseDamage: [60, 90, 120, 150, 180], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.0 }] },
+        { id: 'Q2', nameEn: 'Cull the Meek (Fury)', nameJa: '断罪の鎌 (フューリー)', baseDamage: [90, 135, 180, 225, 270], damageType: 'physical', scalings: [{ stat: 'bonusAd', ratio: 1.4 }], comboLabel: 'F' },
       ],
     },
     {
       skillKey: 'W',
       subCasts: [
-        { id: 'W1', nameEn: 'Ruthless Predator (2 hits)', nameJa: '冷酷な追撃者 (2回)', baseDamage: [20, 60, 100, 140, 180], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.5 }] },
-        { id: 'W2', nameEn: 'Ruthless Predator (Fury, 3 hits)', nameJa: '冷酷な追撃者 (フューリー, 3回)', baseDamage: [30, 90, 150, 210, 270], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 2.25 }], comboLabel: 'F' },
+        { id: 'W1', nameEn: 'Ruthless Predator (2 hits)', nameJa: '冷酷な追撃者 (2回)', baseDamage: [10, 40, 70, 100, 130], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.5 }] },
+        { id: 'W2', nameEn: 'Ruthless Predator (Fury, 3 hits)', nameJa: '冷酷な追撃者 (フューリー, 3回)', baseDamage: [15, 60, 105, 150, 195], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 2.25 }], comboLabel: 'F' },
       ],
     },
     {
@@ -2206,16 +2206,7 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     },
   ],
 
-  // ── Jhin ──
-  // 4th shot: guaranteed crit + 15/20/25% target missing HP physical
-  Jhin: [
-    {
-      skillKey: 'P',
-      subCasts: [
-        { id: 'P-4th', nameEn: '4th Shot (Whisper)', nameJa: '4撃目 (ウィスパー)', baseDamage: [0, 0, 0, 0, 0], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.75 }], comboLabel: '4th Shot' },
-      ],
-    },
-  ],
+  // ── Jhin ──  (P moved to champion-combo-effects.ts)
 
   // ── Draven ──
   // R: Whirling Death (out + return)
@@ -2305,18 +2296,12 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
   // ── Kayn ──  (already exists above)
 
   // ── Urgot ──
-  // W: Purge — rapid fire AAs at reduced damage. Passive: shotgun knees
+  // W: Purge — rapid fire AAs at reduced damage. P moved to champion-combo-effects.ts
   Urgot: [
     {
       skillKey: 'W',
       subCasts: [
         { id: 'W1', nameEn: 'Purge (Per Shot)', nameJa: 'パージ (1発)', baseDamage: [12, 20, 28, 36, 44], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.20 }] },
-      ],
-    },
-    {
-      skillKey: 'P',
-      subCasts: [
-        { id: 'P1', nameEn: 'Echoing Flames (Knee)', nameJa: 'エコーフレイム (膝)', baseDamage: [0, 0, 0, 0, 0], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.04 }] },
       ],
     },
   ],
@@ -2360,27 +2345,9 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
   // ── Nautilus ──
   // Standard Meraki handles well. Key: high base damages + CC.
 
-  // ── Sona ──
-  // Passive: Power Chord — every 3rd ability empowers next AA
-  Sona: [
-    {
-      skillKey: 'P',
-      subCasts: [
-        { id: 'P-staccato', nameEn: 'Staccato (Q Power Chord)', nameJa: 'スタッカート (Qパワーコード)', baseDamage: [20, 35, 50, 65, 80], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.4 }] },
-      ],
-    },
-  ],
+  // ── Sona ──  (P moved to champion-combo-effects.ts)
 
-  // ── Zyra ──
-  // Plants deal damage: 20-100 + 18% AP magic per hit
-  Zyra: [
-    {
-      skillKey: 'P',
-      subCasts: [
-        { id: 'P-plant', nameEn: 'Plant Attack (Per Hit)', nameJa: 'プラント攻撃 (1ヒット)', baseDamage: [20, 28, 36, 44, 52], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.18 }] },
-      ],
-    },
-  ],
+  // ── Zyra ──  (P moved to champion-combo-effects.ts)
 
   // ── Xerath ──
   // Q: Arcanopulse — charge for range. R: Rite of the Arcane — 3-5 shots
@@ -2925,6 +2892,25 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     },
   ],
 
+  // ── Mel ──
+  // Q: Luminous Barrage — fires 6-10 bolts (by rank), each 13/16/19/22/25 + 8.5% AP magic
+  Mel: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        {
+          id: 'Q1',
+          nameEn: 'Luminous Barrage (per bolt)',
+          nameJa: '輝きの連撃 (1発)',
+          baseDamage: [13, 16, 19, 22, 25],
+          damageType: 'magic',
+          scalings: [{ stat: 'ap', ratio: 0.085 }],
+          distanceMultiplier: { min: 6, max: 10, defaultPct: 60, labelEn: 'Bolts Hit', labelJa: '命中弾数' },
+        },
+      ],
+    },
+  ],
+
   // ── Renata Glasc ──
   // Q: Handshake — 80/125/170/215/260 + 80% AP (magic)
   // E: Loyalty Program — 65/95/125/155/185 + 55% AP per wave (magic)
@@ -3213,6 +3199,78 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
   // ── Volibear ──  (already has Q/W/E above)
 
   // ── Renekton ──  (already has Q/W/E above)
+
+  // ── Seraphine ──
+  // Q: High Note — 55/70/85/100/115 + 45% AP magic (max 150% at low HP targets)
+  // E: Beat Drop — 60/80/100/120/140 + 35% AP magic (roots if already slowed)
+  Seraphine: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        { id: 'Q1', nameEn: 'High Note (standard)', nameJa: 'ハイノート (通常)', baseDamage: [55, 70, 85, 100, 115], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.45 }] },
+        { id: 'Q2', nameEn: 'High Note (max, low HP)', nameJa: 'ハイノート (最大、低HP)', baseDamage: [82, 105, 127, 150, 172], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.675 }], comboLabel: '最大' },
+      ],
+    },
+  ],
+
+  // ── Vex ──
+  // Q: Mistral Bolt — initial 60/105/150/195/240 + 60% AP, decelerated 30/52.5/75/97.5/120 + 30% AP
+  Vex: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        { id: 'Q1', nameEn: 'Mistral Bolt (initial)', nameJa: '無気力ショット (初速)', baseDamage: [60, 105, 150, 195, 240], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.60 }] },
+        { id: 'Q2', nameEn: 'Mistral Bolt (decelerated)', nameJa: '無気力ショット (減速)', baseDamage: [30, 52, 75, 97, 120], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.30 }], comboLabel: '減' },
+      ],
+    },
+  ],
+
+  // ── Yorick ──
+  // Q: Last Rites — enhanced AA: 30/55/80/105/130 + 40% AD physical
+  // E: Mourning Mist — 70/105/140/175/210 + 70% AP magic (marks target)
+  Yorick: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        { id: 'Q1', nameEn: 'Last Rites (bonus)', nameJa: '葬送 (追加)', baseDamage: [30, 55, 80, 105, 130], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.40 }] },
+      ],
+    },
+  ],
+
+  // ── Rakan ──
+  // Q: Gleaming Quill — 70/115/160/205/250 + 70% AP magic
+  // W: Grand Entrance — 70/120/170/220/270 + 70% AP magic
+  Rakan: [
+    {
+      skillKey: 'W',
+      subCasts: [
+        { id: 'W1', nameEn: 'Grand Entrance', nameJa: '華麗なる登場', baseDamage: [70, 120, 170, 220, 270], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.70 }] },
+      ],
+    },
+  ],
+
+  // ── Zilean ──
+  // Q: Time Bomb — 75/115/165/230/300 + 90% AP magic (double bomb stun = 2x)
+  Zilean: [
+    {
+      skillKey: 'Q',
+      subCasts: [
+        { id: 'Q1', nameEn: 'Time Bomb (single)', nameJa: 'タイムボム (単発)', baseDamage: [75, 115, 165, 230, 300], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.90 }] },
+        { id: 'Q2', nameEn: 'Time Bomb (double, stun)', nameJa: 'タイムボム (二重、スタン)', baseDamage: [75, 115, 165, 230, 300], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.90 }], comboLabel: '2重' },
+      ],
+    },
+  ],
+
+  // ── Zyra ──
+  // E: Grasping Roots — 60/95/130/165/200 + 60% AP magic
+  Zyra: [
+    {
+      skillKey: 'E',
+      subCasts: [
+        { id: 'E1', nameEn: 'Grasping Roots', nameJa: '捕縛の根', baseDamage: [60, 95, 130, 165, 200], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.60 }] },
+      ],
+    },
+  ],
 };
 
 /**

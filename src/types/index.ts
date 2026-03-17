@@ -441,6 +441,8 @@ export interface ComboPassiveOnHit {
   calc: (value: number, attacker: ComputedStats, target: ComputedStats, level: number) => number;
   /** If true, calc already returns total combo damage (value × per-proc); don't multiply by AA count */
   perCombo?: boolean;
+  /** If true, this passive scales with target missing HP and should be calculated last (after all other damage reduces target HP) */
+  missingHpScaling?: boolean;
 }
 
 export interface ComboPassiveSkillBonus {
@@ -466,6 +468,12 @@ export interface ChampionComboPassive {
   onHit?: ComboPassiveOnHit;
   /** Flat damage bonus added to a specific skill */
   skillBonus?: ComboPassiveSkillBonus;
+  /** If true, max is capped at current AA count */
+  aaLinked?: boolean;
+  /** Display time per unit (e.g. 0.5 for Renekton R ticks → seconds) */
+  secondsPerUnit?: number;
+  /** Form group for conditional display (e.g. 'shadow', 'rhaast') */
+  formGroup?: string;
 }
 
 // ===== HP Bar visualization =====

@@ -56,8 +56,6 @@ interface SkillDamageProps {
   onDistanceMultiplierChange?: (subCastId: string, pct: number) => void;
   version: string;
   locale?: string;
-  targetHpPercent?: number;
-  onTargetHpPercentChange?: (pct: number) => void;
   championLevel?: number;
   skillEvolutions?: Record<string, string>;
   onSkillEvolutionChange?: (key: string, group: string) => void;
@@ -130,8 +128,6 @@ export function SkillDamagePanel({
   onDistanceMultiplierChange,
   version,
   locale = "ja",
-  targetHpPercent = 100,
-  onTargetHpPercentChange,
   championLevel,
   skillEvolutions,
   onSkillEvolutionChange,
@@ -139,14 +135,6 @@ export function SkillDamagePanel({
   const isJa = locale === "ja";
   const [collapsed, setCollapsed] = useState(false);
 
-  // Check if any skill has targetMissingHp or targetCurrentHp scaling
-  const hasHpScaling = skills.some(
-    (s) =>
-      s.scalings.some((sc) => sc.stat === "targetMissingHp" || sc.stat === "targetCurrentHp") ||
-      s.subCasts?.some((sub) =>
-        sub.scalings.some((sc) => sc.stat === "targetMissingHp" || sc.stat === "targetCurrentHp"),
-      ),
-  );
 
   const displaySkills = skills.filter((s) => s.key !== "P");
 
@@ -191,25 +179,6 @@ export function SkillDamagePanel({
 
       {!collapsed && (
         <div className="px-4 pb-4 space-y-2">
-          {/* Target HP % slider - shown when any skill has HP-based scaling */}
-          {hasHpScaling && onTargetHpPercentChange && (
-            <div className="flex items-center gap-2 px-1 py-1.5 rounded bg-zinc-800/40 border border-zinc-700/30">
-              <span className="text-[10px] text-zinc-500 whitespace-nowrap font-medium">
-                {isJa ? "対象HP%" : "Target HP%"}
-              </span>
-              <input
-                type="range"
-                min={1}
-                max={100}
-                value={targetHpPercent}
-                onChange={(e) => onTargetHpPercentChange(parseInt(e.target.value))}
-                className="flex-1 h-1.5 accent-emerald-500 cursor-pointer"
-              />
-              <span className="text-[11px] text-emerald-400 font-bold tabular-nums min-w-[2.5rem] text-right">
-                {targetHpPercent}%
-              </span>
-            </div>
-          )}
           {displaySkills.map((skill) => {
             const rank = skillRanks[skill.key] || 1;
             const spellInfo = getSpellInfo(skill.key);

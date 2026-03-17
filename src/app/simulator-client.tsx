@@ -329,6 +329,7 @@ function SimulatorInner() {
   /** Get display name for a champion respecting locale */
   const getChampionDisplayName = useCallback((champ: Champion | null): string => {
     if (!champ) return "";
+    if (champ.id === '_Dummy') return locale === "en" ? "Training Dummy" : "ダミー人形";
     if (locale === "en" && enChampionNames[champ.id]) return enChampionNames[champ.id];
     return champ.name;
   }, [locale, enChampionNames]);
@@ -403,10 +404,6 @@ function SimulatorInner() {
   const [enemyRuneCharges, setEnemyRuneCharges] = useState<Record<string, number>>({});
   const [allyRuneItemCharges, setAllyRuneItemCharges] = useState<Record<string, number>>({});
   const [enemyRuneItemCharges, setEnemyRuneItemCharges] = useState<Record<string, number>>({});
-
-  // Target HP % for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
-  const [allyTargetHpPercent, setAllyTargetHpPercent] = useState(100);
-  const [enemyTargetHpPercent, setEnemyTargetHpPercent] = useState(100);
 
   // Enemy state
   const [enemyChampion, setEnemyChampion] = useState<Champion | null>(null);
@@ -764,7 +761,6 @@ function SimulatorInner() {
     const tmpSkillEvolutions = allySkillEvolutions;
     const tmpSylasRChampId = allySylasRChampId;
     const tmpSylasRSkill = allySylasRSkill;
-    const tmpTargetHpPercent = allyTargetHpPercent;
     const tmpRuneCharges = allyRuneCharges;
     const tmpRuneItemCharges = allyRuneItemCharges;
 
@@ -791,7 +787,6 @@ function SimulatorInner() {
     setAllySkillEvolutions(enemySkillEvolutions);
     setAllySylasRChampId(enemySylasRChampId);
     setAllySylasRSkill(enemySylasRSkill);
-    setAllyTargetHpPercent(enemyTargetHpPercent);
     setAllyRuneCharges(enemyRuneCharges);
     setAllyRuneItemCharges(enemyRuneItemCharges);
 
@@ -818,7 +813,6 @@ function SimulatorInner() {
     setEnemySkillEvolutions(tmpSkillEvolutions);
     setEnemySylasRChampId(tmpSylasRChampId);
     setEnemySylasRSkill(tmpSylasRSkill);
-    setEnemyTargetHpPercent(tmpTargetHpPercent);
     setEnemyRuneCharges(tmpRuneCharges);
     setEnemyRuneItemCharges(tmpRuneItemCharges);
   }, [
@@ -826,12 +820,12 @@ function SimulatorInner() {
     allyBonusValues, allyGenericBonuses, allyComboCounts, allyAACounts, allyCritCount,
     allySummoners, allySummonerActive, allyItemActiveToggles, allyOnHitToggles,
     allyItemStacks, allyHealCharges, allyComboPassiveValues, allyDistanceMultipliers,
-    allyFormGroup, allySylasRChampId, allySylasRSkill, allyTargetHpPercent, allyRuneCharges,
+    allyFormGroup, allySylasRChampId, allySylasRSkill, allyRuneCharges,
     enemyChampion, enemyLevel, enemyItems, enemyRunes, enemySkillRanks, enemySkills,
     enemyBonusValues, enemyGenericBonuses, enemyComboCounts, enemyAACounts, enemyCritCount,
     enemySummoners, enemySummonerActive, enemyItemActiveToggles, enemyOnHitToggles,
     enemyItemStacks, enemyHealCharges, enemyComboPassiveValues, enemyDistanceMultipliers,
-    enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyTargetHpPercent, enemyRuneCharges,
+    enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyRuneCharges,
   ]);
 
   // Fetch Meraki skill data when champion changes, then apply overrides
@@ -1501,10 +1495,6 @@ function SimulatorInner() {
   // Skill damages: ally -> enemy (including sub-casts, filtered by formGroup)
   const allySkillDamages = useMemo<SkillDamageResult[]>(() => {
     if (!allyChampion || !enemyChampion || allyEffectiveSkills.length === 0) return [];
-    // Adjust target HP for skill damage display (affects targetCurrentHp / targetMissingHp scaling)
-    const adjustedEnemyStats = allyTargetHpPercent < 100
-      ? { ...enemyStats, hp: enemyStats.maxHp * (allyTargetHpPercent / 100) }
-      : enemyStats;
     const results: SkillDamageResult[] = [];
     for (const skill of allyEffectiveSkills) {
       if (skill.key === "P") continue;
@@ -1546,7 +1536,7 @@ function SimulatorInner() {
               rank,
               skill.maxRank,
               allyStats,
-              adjustedEnemyStats,
+              enemyStats,
               allyLevel,
               distMult,
             ),
@@ -1557,7 +1547,7 @@ function SimulatorInner() {
           skill,
           rank,
           allyStats,
-          adjustedEnemyStats,
+          enemyStats,
           allyLevel,
         );
         result.skillNameJa = getSpellNameJa(allyChampion, skill.key);
@@ -1576,17 +1566,12 @@ function SimulatorInner() {
     allyDistanceMultipliers,
     allyFormGroup,
     allySkillEvolutions,
-    allyTargetHpPercent,
     getSpellNameJa,
   ]);
 
   // Skill damages: enemy -> ally (including sub-casts)
   const enemySkillDamages = useMemo<SkillDamageResult[]>(() => {
     if (!allyChampion || !enemyChampion || enemyEffectiveSkills.length === 0) return [];
-    // Adjust target HP for skill damage display
-    const adjustedAllyStats = enemyTargetHpPercent < 100
-      ? { ...allyStats, hp: allyStats.maxHp * (enemyTargetHpPercent / 100) }
-      : allyStats;
     const results: SkillDamageResult[] = [];
     for (const skill of enemyEffectiveSkills) {
       if (skill.key === "P") continue;
@@ -1622,7 +1607,7 @@ function SimulatorInner() {
               rank,
               skill.maxRank,
               enemyStats,
-              adjustedAllyStats,
+              allyStats,
               enemyLevel,
               distMult,
             ),
@@ -1633,7 +1618,7 @@ function SimulatorInner() {
           skill,
           rank,
           enemyStats,
-          adjustedAllyStats,
+          allyStats,
           enemyLevel,
         );
         result.skillNameJa = getSpellNameJa(enemyChampion, skill.key);
@@ -1652,7 +1637,6 @@ function SimulatorInner() {
     enemyDistanceMultipliers,
     enemyFormGroup,
     enemySkillEvolutions,
-    enemyTargetHpPercent,
   ]);
 
   // Passive damage: ally -> enemy
@@ -1865,6 +1849,7 @@ function SimulatorInner() {
   ]);
 
   // Combo passive on-hit damage per AA (e.g. Irelia P) and per-combo flat (e.g. Jax R passive)
+  // NOTE: missingHpScaling passives are excluded here — they are calculated last in combo damage
   const { allyComboPassiveOnHitPerAA, allyComboPassiveOnHitPerCombo } =
     useMemo(() => {
       if (!allyChampion || !enemyChampion)
@@ -1875,7 +1860,7 @@ function SimulatorInner() {
       let perAA = 0;
       let perCombo = 0;
       for (const p of allyComboPassives) {
-        if (!p.onHit) continue;
+        if (!p.onHit || p.onHit.missingHpScaling) continue;
         const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
         const dmg = calcComboPassiveOnHitDamage(
           p,
@@ -1904,6 +1889,7 @@ function SimulatorInner() {
       allyLevel,
     ]);
 
+  // NOTE: missingHpScaling passives are excluded here — they are calculated last in combo damage
   const { enemyComboPassiveOnHitPerAA, enemyComboPassiveOnHitPerCombo } =
     useMemo(() => {
       if (!allyChampion || !enemyChampion)
@@ -1914,7 +1900,7 @@ function SimulatorInner() {
       let perAA = 0;
       let perCombo = 0;
       for (const p of enemyComboPassives) {
-        if (!p.onHit) continue;
+        if (!p.onHit || p.onHit.missingHpScaling) continue;
         const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
         const dmg = calcComboPassiveOnHitDamage(
           p,
@@ -2201,6 +2187,45 @@ function SimulatorInner() {
       }
     }
 
+    // Kayn Shadow Assassin passive: bonus magic damage = 20-42.35% of post-mitigation damage
+    {
+      const shadowVal = allyComboPassiveValues['kayn-shadow-assassin'] ?? 0;
+      if (shadowVal > 0) {
+        const pct = 0.20 + (0.2235 / 17) * (allyLevel - 1); // 20% → 42.35%
+        const bonusRaw = total * pct;
+        const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        total += calcMagicDamage(bonusRaw, effMR);
+      }
+    }
+
+    // Yone E: Soul Unbound — repeats 25-35% of all damage dealt as true damage
+    {
+      const yoneEVal = allyComboPassiveValues['yone-e-amplify'] ?? 0;
+      if (yoneEVal > 0) {
+        const pct = 0.25 + (0.10 / 17) * (allyLevel - 1); // 25% → 35%
+        total += total * pct;
+      }
+    }
+
+    // Syndra P: Transcendent — +15% total damage at 120 splinters
+    {
+      const syndraVal = allyComboPassiveValues['syndra-passive'] ?? 0;
+      if (syndraVal > 0) {
+        total += total * 0.15;
+      }
+    }
+
+    // Phase 3: missing-HP combo passives (e.g. Jhin 4th Shot) — calculated last with accumulated damage
+    for (const p of allyComboPassives) {
+      if (!p.onHit?.missingHpScaling) continue;
+      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      if (val <= 0) continue;
+      // Target HP reduced by all prior damage
+      const adjustedTarget = { ...enemyStats, hp: Math.max(0, enemyStats.hp - total) };
+      const dmg = calcComboPassiveOnHitDamage(p, val, allyStats, adjustedTarget, allyLevel);
+      total += dmg;
+    }
+
     return total;
   }, [
     allyAADamage,
@@ -2214,6 +2239,8 @@ function SimulatorInner() {
     allyComboPassiveOnHitPerAA,
     allyComboPassiveOnHitPerCombo,
     allyComboPassiveSkillBonuses,
+    allyComboPassives,
+    allyComboPassiveValues,
     allyStats,
     enemyStats,
     allyLevel,
@@ -2411,6 +2438,44 @@ function SimulatorInner() {
       }
     }
 
+    // Kayn Shadow Assassin passive: bonus magic damage = 20-42.35% of post-mitigation damage
+    {
+      const shadowVal = enemyComboPassiveValues['kayn-shadow-assassin'] ?? 0;
+      if (shadowVal > 0) {
+        const pct = 0.20 + (0.2235 / 17) * (enemyLevel - 1); // 20% → 42.35%
+        const bonusRaw = total * pct;
+        const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        total += calcMagicDamage(bonusRaw, effMR);
+      }
+    }
+
+    // Yone E: Soul Unbound — repeats 25-35% of all damage dealt as true damage
+    {
+      const yoneEVal = enemyComboPassiveValues['yone-e-amplify'] ?? 0;
+      if (yoneEVal > 0) {
+        const pct = 0.25 + (0.10 / 17) * (enemyLevel - 1); // 25% → 35%
+        total += total * pct;
+      }
+    }
+
+    // Syndra P: Transcendent — +15% total damage at 120 splinters
+    {
+      const syndraVal = enemyComboPassiveValues['syndra-passive'] ?? 0;
+      if (syndraVal > 0) {
+        total += total * 0.15;
+      }
+    }
+
+    // Phase 3: missing-HP combo passives — calculated last with accumulated damage
+    for (const p of enemyComboPassives) {
+      if (!p.onHit?.missingHpScaling) continue;
+      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      if (val <= 0) continue;
+      const adjustedTarget = { ...allyStats, hp: Math.max(0, allyStats.hp - total) };
+      const dmg = calcComboPassiveOnHitDamage(p, val, enemyStats, adjustedTarget, enemyLevel);
+      total += dmg;
+    }
+
     return total;
   }, [
     enemyAADamage,
@@ -2424,6 +2489,8 @@ function SimulatorInner() {
     enemyComboPassiveOnHitPerAA,
     enemyComboPassiveOnHitPerCombo,
     enemyComboPassiveSkillBonuses,
+    enemyComboPassives,
+    enemyComboPassiveValues,
     enemyStats,
     allyStats,
     enemyLevel,
@@ -2594,6 +2661,46 @@ function SimulatorInner() {
         segs.push({ source: "FS", amount: preTotal * FIRST_STRIKE_AMP, color: "" });
       }
     }
+    // Kayn Shadow Assassin passive: bonus magic damage segment
+    {
+      const shadowVal = allyComboPassiveValues['kayn-shadow-assassin'] ?? 0;
+      if (shadowVal > 0) {
+        const pct = 0.20 + (0.2235 / 17) * (allyLevel - 1);
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        const bonusRaw = preTotal * pct;
+        const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+        segs.push({ source: "影P", amount: calcMagicDamage(bonusRaw, effMR), color: "#a855f7" });
+      }
+    }
+    // Yone E: Soul Unbound amplification segment
+    {
+      const yoneEVal = allyComboPassiveValues['yone-e-amplify'] ?? 0;
+      if (yoneEVal > 0) {
+        const pct = 0.25 + (0.10 / 17) * (allyLevel - 1);
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "E増", amount: preTotal * pct, color: "#60a5fa" });
+      }
+    }
+    // Syndra P: Transcendent amplification segment
+    {
+      const syndraVal = allyComboPassiveValues['syndra-passive'] ?? 0;
+      if (syndraVal > 0) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "P増", amount: preTotal * 0.15, color: "#c084fc" });
+      }
+    }
+    // Phase 3: missing-HP combo passive segments (e.g. Jhin 4th Shot)
+    for (const p of allyComboPassives) {
+      if (!p.onHit?.missingHpScaling) continue;
+      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      if (val <= 0) continue;
+      const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+      const adjustedTarget = { ...enemyStats, hp: Math.max(0, enemyStats.hp - preTotal) };
+      const dmg = calcComboPassiveOnHitDamage(p, val, allyStats, adjustedTarget, allyLevel);
+      if (dmg > 0) {
+        segs.push({ source: "P", amount: dmg, color: "#f59e0b" });
+      }
+    }
     return segs;
   }, [
     allyAADamage,
@@ -2607,6 +2714,8 @@ function SimulatorInner() {
     allyComboPassiveOnHitPerAA,
     allyComboPassiveOnHitPerCombo,
     allyComboPassiveSkillBonuses,
+    allyComboPassives,
+    allyComboPassiveValues,
     allyRunes,
     allyRuneCharges,
     allyBonusValues,
@@ -2773,6 +2882,46 @@ function SimulatorInner() {
         segs.push({ source: "FS", amount: preTotal * FIRST_STRIKE_AMP, color: "" });
       }
     }
+    // Kayn Shadow Assassin passive: bonus magic damage segment
+    {
+      const shadowVal = enemyComboPassiveValues['kayn-shadow-assassin'] ?? 0;
+      if (shadowVal > 0) {
+        const pct = 0.20 + (0.2235 / 17) * (enemyLevel - 1);
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        const bonusRaw = preTotal * pct;
+        const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+        segs.push({ source: "影P", amount: calcMagicDamage(bonusRaw, effMR), color: "#a855f7" });
+      }
+    }
+    // Yone E: Soul Unbound amplification segment
+    {
+      const yoneEVal = enemyComboPassiveValues['yone-e-amplify'] ?? 0;
+      if (yoneEVal > 0) {
+        const pct = 0.25 + (0.10 / 17) * (enemyLevel - 1);
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "E増", amount: preTotal * pct, color: "#60a5fa" });
+      }
+    }
+    // Syndra P: Transcendent amplification segment
+    {
+      const syndraVal = enemyComboPassiveValues['syndra-passive'] ?? 0;
+      if (syndraVal > 0) {
+        const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+        segs.push({ source: "P増", amount: preTotal * 0.15, color: "#c084fc" });
+      }
+    }
+    // Phase 3: missing-HP combo passive segments
+    for (const p of enemyComboPassives) {
+      if (!p.onHit?.missingHpScaling) continue;
+      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      if (val <= 0) continue;
+      const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
+      const adjustedTarget = { ...allyStats, hp: Math.max(0, allyStats.hp - preTotal) };
+      const dmg = calcComboPassiveOnHitDamage(p, val, enemyStats, adjustedTarget, enemyLevel);
+      if (dmg > 0) {
+        segs.push({ source: "P", amount: dmg, color: "#f59e0b" });
+      }
+    }
     return segs;
   }, [
     enemyAADamage,
@@ -2786,6 +2935,8 @@ function SimulatorInner() {
     enemyComboPassiveOnHitPerAA,
     enemyComboPassiveOnHitPerCombo,
     enemyComboPassiveSkillBonuses,
+    enemyComboPassives,
+    enemyComboPassiveValues,
     enemyRunes,
     enemyRuneCharges,
     enemyBonusValues,
@@ -3275,8 +3426,6 @@ function SimulatorInner() {
                   }
                   version={version}
                   locale={locale}
-                  targetHpPercent={allyTargetHpPercent}
-                  onTargetHpPercentChange={setAllyTargetHpPercent}
                   championLevel={allyLevel}
                   skillEvolutions={allySkillEvolutions}
                   onSkillEvolutionChange={(key, group) => setAllySkillEvolutions(prev => ({ ...prev, [key]: group }))}
@@ -3573,8 +3722,6 @@ function SimulatorInner() {
                   }
                   version={version}
                   locale={locale}
-                  targetHpPercent={enemyTargetHpPercent}
-                  onTargetHpPercentChange={setEnemyTargetHpPercent}
                   championLevel={enemyLevel}
                   skillEvolutions={enemySkillEvolutions}
                   onSkillEvolutionChange={(key, group) => setEnemySkillEvolutions(prev => ({ ...prev, [key]: group }))}
