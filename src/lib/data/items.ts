@@ -132,17 +132,16 @@ const WHITELISTED_ITEM_IDS = new Set([
   '3146',   // ヘクステック ガンブレード (Hextech Gunblade)
 ]);
 
-// Items to exclude by ID (support quest variants, Arena 22xxxx duplicates)
+// Items to exclude by ID (support quest variants, Arena 22xxxx duplicates, 66xxxx duplicates)
 const BLACKLISTED_ITEM_IDS = new Set([
   '323034', // コレクター (Collector) — support quest variant, duplicates 3034
   '667666', // コレクター (Collector) — duplicate of 6676
 ]);
 
-/** Exclude 22xxxx Arena/mode duplicates that mirror base item IDs */
-function isArenaDuplicate(id: string): boolean {
-  if (id.length === 6 && id.startsWith('22')) {
-    const baseId = id.substring(2);
-    return baseId.length === 4;
+/** Exclude 22xxxx Arena and 66xxxx mode duplicates that mirror base item IDs */
+function isModeDuplicate(id: string): boolean {
+  if (id.length === 6 && (id.startsWith('22') || id.startsWith('66'))) {
+    return true;
   }
   return false;
 }
@@ -173,7 +172,7 @@ export function parseItems(data: DDragonItemData): Item[] {
     if (BLACKLISTED_ITEM_IDS.has(id)) continue;
 
     // Exclude 22xxxx Arena/mode duplicate items
-    if (isArenaDuplicate(id)) continue;
+    if (isModeDuplicate(id)) continue;
 
     const isWhitelisted = WHITELISTED_ITEM_IDS.has(id);
 
