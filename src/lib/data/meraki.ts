@@ -123,8 +123,9 @@ function findPrimaryDamageLeveling(ability: MerakiAbility): {
       const attr = (lvl.attribute ?? '').toLowerCase();
       // Must contain a damage-related keyword
       if (!attr.includes('damage') && !attr.includes('physical') && !attr.includes('magic')) continue;
-      // Skip target-specific variants (minion/monster damage)
+      // Skip target-specific variants (minion/monster damage) and non-damage attributes
       if (attr.includes('minion') || attr.includes('monster')) continue;
+      if (attr.includes('reduction') || attr.includes('heal') || attr.includes('shield') || attr.includes('cooldown')) continue;
       // Real damage has a flat base component: first modifier units are empty strings.
       // Stat buffs like "Bonus Attack Damage" only have "% AD" units → no flat base.
       const firstMod = lvl.modifiers?.[0];

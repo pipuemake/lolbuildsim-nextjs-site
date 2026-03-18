@@ -276,8 +276,8 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     championId: 'Nocturne',
     nameEn: 'Umbra Blades (P) Procs',
     nameJa: 'アンブラブレード (P) 発動回数',
-    descriptionEn: 'Periodic enhanced AA: 120% AD physical (cleave). Set procs in combo.',
-    descriptionJa: '定期的な強化AA: 120% AD 物理DM (範囲)。コンボ内の発動回数。',
+    descriptionEn: 'Periodic enhanced AA: +20% bonus AD physical (cleave). Set procs in combo.',
+    descriptionJa: '定期的な強化AA: +20% 増加AD 物理DM (範囲)。コンボ内の発動回数。',
     inputType: 'stack',
     min: 0,
     max: 10,
@@ -1345,7 +1345,8 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
       perCombo: true,
       calc: (procCount, attacker, target, level) => {
         if (procCount <= 0) return 0;
-        const pct = 0.03 + (0.04 / 17) * (level - 1) + 0.045 * (attacker.ad / 100);
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const pct = 0.03 + (0.04 / 17) * (level - 1) + 0.045 * (bonusAd / 100);
         return pct * target.maxHp * procCount;
       },
     },
@@ -2195,14 +2196,14 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
   },
 
   // --- Gnar: Hyper (W) ---
-  // Every 3rd hit: 0/10/20/30/40/50 + 100% AP + 6/8/10/12/14% target maxHP magic
+  // Every 3rd hit: 10/20/30/40/50 + 100% AP + 6/8/10/12/14% target maxHP magic
   {
     id: 'gnar-hyper',
     championId: 'Gnar',
     nameEn: 'Hyper (W) 3-hit Procs',
     nameJa: 'ハイパー (W) 3ヒット発動回数',
-    descriptionEn: 'Every 3rd hit: 0-50 + 100% AP + 6-14% target maxHP magic.',
-    descriptionJa: '3ヒット毎: 0-50 + 100%AP + 6-14%対象最大HP 魔法DM。',
+    descriptionEn: 'Every 3rd hit: 10-50 + 100% AP + 6-14% target maxHP magic.',
+    descriptionJa: '3ヒット毎: 10-50 + 100%AP + 6-14%対象最大HP 魔法DM。',
     inputType: 'stack',
     min: 0,
     max: 5,
@@ -2213,7 +2214,7 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
       calc: (procs, attacker, target, level) => {
         if (procs <= 0) return 0;
         const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
-        const base = (wRank - 1) * 10;
+        const base = wRank * 10;
         const hpRatio = 0.04 + 0.02 * wRank;
         return (base + attacker.ap * 1.0 + hpRatio * target.maxHp) * procs;
       },
@@ -2575,16 +2576,21 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
   },
 
   // --- Poppy: Iron Ambassador (P) Shield ---
-  // Shield: 11-21.06% max HP for 3s
+  // Shield: 15-21% max HP for 3s
   {
     id: 'poppy-passive-shield',
     championId: 'Poppy',
     nameEn: 'Iron Ambassador (P) Shield',
     nameJa: 'アイアンアンバサダー (P) シールド',
-    descriptionEn: 'Shield = 11-21% max HP for 3s.',
-    descriptionJa: 'シールド = 最大HPの11-21%。3秒間。',
+    descriptionEn: 'Shield = 15-21% max HP for 3s.',
+    descriptionJa: 'シールド = 最大HPの15-21%。3秒間。',
     inputType: 'toggle',
     defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const pct = (15 + 6 / 17 * (level - 1)) / 100;
+      return holder.maxHp * pct;
+    },
   },
 
   // --- Graves: New Destiny (P) ---
@@ -2918,10 +2924,14 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     championId: 'Rakan',
     nameEn: 'Fey Feathers (P) Shield',
     nameJa: '神秘の翼 (P) シールド',
-    descriptionEn: 'Toggle: passive shield = 33-254 (by level) + 85% AP.',
-    descriptionJa: 'トグル: パッシブシールド = 33-254 (レベル) + 85%AP。',
+    descriptionEn: 'Toggle: passive shield = 30-248 (by level) + 95% AP.',
+    descriptionJa: 'トグル: パッシブシールド = 30-248 (レベル) + 95%AP。',
     inputType: 'toggle',
     defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      return 30 + (248 - 30) / 17 * (level - 1) + 0.95 * holder.ap;
+    },
   },
 
   // --- Mel: Searing Brilliance (P) ---
@@ -3632,6 +3642,330 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
         const base = 30 + 35 * (wRank - 1);
         return (base + attacker.ap * 0.60) * procs;
       },
+    },
+  },
+
+  // --- Yasuo: Way of the Wanderer (P) Shield ---
+  // Shield = 100-475 (by level). Activates when passive is fully charged and hit by champion.
+  {
+    id: 'yasuo-passive-shield',
+    championId: 'Yasuo',
+    nameEn: 'Way of the Wanderer (P) Shield',
+    nameJa: '打ち込む意志 (P) シールド',
+    descriptionEn: 'Toggle: passive shield = 100-475 (by level).',
+    descriptionJa: 'トグル: パッシブシールド = 100-475 (レベル依存)。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, _holder, level) => {
+      if (!value) return 0;
+      return 100 + (475 - 100) / 17 * (level - 1);
+    },
+  },
+
+  // --- Yone: Spirit Cleave (W) Shield ---
+  // Shield = 40-96 (by level) + 65% bonus AD. Increased per champion hit.
+  {
+    id: 'yone-w-shield',
+    championId: 'Yone',
+    nameEn: 'Spirit Cleave (W) Shield',
+    nameJa: '霊魂斬り (W) シールド',
+    descriptionEn: 'Toggle: W shield = 40-96 (by level) + 65% bonus AD.',
+    descriptionJa: 'トグル: Wシールド = 40-96 (レベル) + 65%増加AD。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const base = 40 + (96 - 40) / 17 * (level - 1);
+      const bonusAd = holder.ad - holder.baseAd;
+      return base + 0.65 * bonusAd;
+    },
+  },
+
+  // --- Sett: Haymaker (W) Shield ---
+  // Shield = Grit consumed (max Grit = 50% max HP). Input is Grit % (0-100).
+  {
+    id: 'sett-w-shield',
+    championId: 'Sett',
+    nameEn: 'Haymaker (W) Grit %',
+    nameJa: 'ヘイメーカー (W) グリット%',
+    descriptionEn: 'Shield = Grit consumed (max = 50% max HP). Set Grit %.',
+    descriptionJa: 'シールド = 消費グリット (最大 = 最大HPの50%)。グリット%を設定。',
+    inputType: 'stack',
+    min: 0,
+    max: 100,
+    defaultValue: 0,
+    shieldCalc: (pct, holder) => {
+      if (pct <= 0) return 0;
+      return holder.maxHp * 0.5 * (pct / 100);
+    },
+  },
+
+  // --- Camille: Adaptive Defenses (P) Shield ---
+  // Shield = 20% max HP (physical or magic based on target).
+  {
+    id: 'camille-passive-shield',
+    championId: 'Camille',
+    nameEn: 'Adaptive Defenses (P) Shield',
+    nameJa: '戦況適応 (P) シールド',
+    descriptionEn: 'Toggle: shield = 20% max HP.',
+    descriptionJa: 'トグル: シールド = 最大HPの20%。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder) => {
+      if (!value) return 0;
+      return holder.maxHp * 0.20;
+    },
+  },
+
+  // --- Malphite: Granite Shield (P) ---
+  // Shield = 10% max HP.
+  {
+    id: 'malphite-passive-shield',
+    championId: 'Malphite',
+    nameEn: 'Granite Shield (P)',
+    nameJa: 'グラナイトシールド (P)',
+    descriptionEn: 'Toggle: shield = 10% max HP.',
+    descriptionJa: 'トグル: シールド = 最大HPの10%。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder) => {
+      if (!value) return 0;
+      return holder.maxHp * 0.10;
+    },
+  },
+
+  // --- Kassadin: Null Sphere (Q) Shield ---
+  // Shield = 40-160 (by Q rank) + 30% AP. Magic damage shield.
+  {
+    id: 'kassadin-q-shield',
+    championId: 'Kassadin',
+    nameEn: 'Null Sphere (Q) Shield',
+    nameJa: 'ヌルスフィア (Q) シールド',
+    descriptionEn: 'Toggle: magic shield = 80-200 (by Q rank) + 30% AP.',
+    descriptionJa: 'トグル: 魔法シールド = 80-200 (Qランク) + 30%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [80, 110, 140, 170, 200][qRank - 1];
+      return base + 0.30 * holder.ap;
+    },
+  },
+
+  // --- Udyr: Iron Mantle (W) Shield ---
+  // Shield = 45-145 (by W rank) + 40% AP + 2-3.5% max HP.
+  {
+    id: 'udyr-w-shield',
+    championId: 'Udyr',
+    nameEn: 'Iron Mantle (W) Shield',
+    nameJa: 'アイアンマントル (W) シールド',
+    descriptionEn: 'Toggle: shield = 45-120 (by W rank) + 40% AP + 2-5% max HP.',
+    descriptionJa: 'トグル: シールド = 45-120 (Wランク) + 40%AP + 2-5%最大HP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      // Udyr has 6 ability ranks (maxed via R levels)
+      const wRank = Math.min(6, Math.max(1, Math.ceil(level / 3)));
+      const base = [45, 60, 75, 90, 105, 120][wRank - 1];
+      const hpPct = [0.02, 0.026, 0.032, 0.038, 0.044, 0.05][wRank - 1];
+      return base + 0.40 * holder.ap + hpPct * holder.maxHp;
+    },
+  },
+
+  // --- Sion: Soul Furnace (W) Shield ---
+  // Shield = 60-180 (by W rank) + 8-12% max HP.
+  {
+    id: 'sion-w-shield',
+    championId: 'Sion',
+    nameEn: 'Soul Furnace (W) Shield',
+    nameJa: 'ソウルファーネス (W) シールド',
+    descriptionEn: 'Toggle: shield = 60-180 (by W rank) + 8-12% max HP.',
+    descriptionJa: 'トグル: シールド = 60-180 (Wランク) + 8-12%最大HP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [60, 90, 120, 150, 180][wRank - 1];
+      const hpPct = [0.08, 0.09, 0.10, 0.11, 0.12][wRank - 1];
+      return base + hpPct * holder.maxHp;
+    },
+  },
+
+  // --- Volibear: Stormbringer (E) Shield ---
+  // If Volibear is in the E zone, gains shield = 15% max HP + 80% AP.
+  {
+    id: 'volibear-e-shield',
+    championId: 'Volibear',
+    nameEn: 'Stormbringer (E) Shield',
+    nameJa: 'ストームブリンガー (E) シールド',
+    descriptionEn: 'Toggle: shield = 15% max HP + 80% AP (if in E zone).',
+    descriptionJa: 'トグル: シールド = 最大HPの15% + 80%AP (E圏内時)。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder) => {
+      if (!value) return 0;
+      return holder.maxHp * 0.15 + 0.80 * holder.ap;
+    },
+  },
+
+  // --- Blitzcrank: Mana Barrier (P) Shield ---
+  // Shield = 30% current mana. Since we don't track current mana, use max mana.
+  {
+    id: 'blitzcrank-passive-shield',
+    championId: 'Blitzcrank',
+    nameEn: 'Mana Barrier (P) Shield',
+    nameJa: 'マナバリア (P) シールド',
+    descriptionEn: 'Toggle: shield = 35% max mana.',
+    descriptionJa: 'トグル: シールド = 最大マナの35%。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder) => {
+      if (!value) return 0;
+      return holder.maxMp * 0.35;
+    },
+  },
+
+  // --- Nunu & Willump: Absolute Zero (R) Shield ---
+  // Shield per second = 65-85 (by R rank) + 30-50% bonus HP. Refreshes each second for ~3s.
+  // Total shield remaining at end of channel ≈ per-second value (only last tick active).
+  {
+    id: 'nunu-r-shield',
+    championId: 'Nunu',
+    nameEn: 'Absolute Zero (R) Shield',
+    nameJa: 'アブソリュートゼロ (R) シールド',
+    descriptionEn: 'Toggle: R shield/s = 65-85 + 30-50% bonus HP (refreshes each second).',
+    descriptionJa: 'トグル: Rシールド/秒 = 65-85 + 30-50%増加HP (毎秒更新)。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const rRank = level >= 16 ? 3 : level >= 11 ? 2 : level >= 6 ? 1 : 0;
+      if (rRank <= 0) return 0;
+      const base = [65, 75, 85][rRank - 1];
+      const ratio = [0.30, 0.40, 0.50][rRank - 1];
+      const bonusHp = holder.maxHp - holder.baseHp;
+      return base + ratio * bonusHp;
+    },
+  },
+
+  // --- Galio: Shield of Durand (W) Damage Reduction ---
+  // W provides % damage reduction (not a shield). Model as effective shield.
+  // Magic DR: 25-45%, Physical DR: 12.5-22.5%. Average effective shield vs burst.
+  {
+    id: 'galio-w-shield',
+    championId: 'Galio',
+    nameEn: 'Shield of Durand (W) DR',
+    nameJa: 'デュランドの守り (W) 軽減',
+    descriptionEn: 'Toggle: W magic DR 25-45%, physical DR 12.5-22.5%.',
+    descriptionJa: 'トグル: W 魔法軽減25-45%, 物理軽減12.5-22.5%。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    // Model as shield equivalent: average DR (18.75-33.75%) × maxHP × 0.3 (burst fraction)
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const magicDr = [0.25, 0.30, 0.35, 0.40, 0.45][wRank - 1];
+      const physDr = magicDr * 0.5;
+      const avgDr = (magicDr + physDr) / 2;
+      return holder.maxHp * avgDr * 0.3;
+    },
+  },
+
+  // --- Morgana: Black Shield (E) ---
+  // Shield = 80-240 (by E rank) + 70% AP. Blocks magic damage + CC.
+  {
+    id: 'morgana-e-shield',
+    championId: 'Morgana',
+    nameEn: 'Black Shield (E)',
+    nameJa: 'ブラックシールド (E)',
+    descriptionEn: 'Toggle: magic shield = 100-500 (by E rank) + 100% AP.',
+    descriptionJa: 'トグル: 魔法シールド = 100-500 (Eランク) + 100%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [100, 200, 300, 400, 500][eRank - 1];
+      return base + 1.00 * holder.ap;
+    },
+  },
+
+  // --- Janna: Eye of the Storm (E) ---
+  // Shield = 65-165 (by E rank) + 55% AP.
+  {
+    id: 'janna-e-shield',
+    championId: 'Janna',
+    nameEn: 'Eye of the Storm (E) Shield',
+    nameJa: '恵みの風 (E) シールド',
+    descriptionEn: 'Toggle: shield = 65-165 (by E rank) + 55% AP.',
+    descriptionJa: 'トグル: シールド = 65-165 (Eランク) + 55%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [65, 90, 115, 140, 165][eRank - 1];
+      return base + 0.55 * holder.ap;
+    },
+  },
+
+  // --- Karma: Inspire (E) ---
+  // Shield = 80-200 (by E rank) + 50% AP.
+  {
+    id: 'karma-e-shield',
+    championId: 'Karma',
+    nameEn: 'Inspire (E) Shield',
+    nameJa: 'インスパイア (E) シールド',
+    descriptionEn: 'Toggle: shield = 80-280 (by E rank) + 60% AP.',
+    descriptionJa: 'トグル: シールド = 80-280 (Eランク) + 60%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [80, 130, 180, 230, 280][eRank - 1];
+      return base + 0.60 * holder.ap;
+    },
+  },
+
+  // --- Lulu: Help, Pix! (E) ---
+  // Shield = 75-175 (by E rank) + 55% AP.
+  {
+    id: 'lulu-e-shield',
+    championId: 'Lulu',
+    nameEn: 'Help, Pix! (E) Shield',
+    nameJa: 'おともだち! (E) シールド',
+    descriptionEn: 'Toggle: shield = 70-230 (by E rank) + 50% AP.',
+    descriptionJa: 'トグル: シールド = 70-230 (Eランク) + 50%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [70, 110, 150, 190, 230][eRank - 1];
+      return base + 0.50 * holder.ap;
+    },
+  },
+
+  // --- Ivern: Triggerseed (E) ---
+  // Shield = 80-200 (by E rank) + 75% AP.
+  {
+    id: 'ivern-e-shield',
+    championId: 'Ivern',
+    nameEn: 'Triggerseed (E) Shield',
+    nameJa: 'しぜんのいかり (E) シールド',
+    descriptionEn: 'Toggle: shield = 80-240 (by E rank) + 80% AP.',
+    descriptionJa: 'トグル: シールド = 80-240 (Eランク) + 80%AP。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [80, 120, 160, 200, 240][eRank - 1];
+      return base + 0.80 * holder.ap;
     },
   },
 ];

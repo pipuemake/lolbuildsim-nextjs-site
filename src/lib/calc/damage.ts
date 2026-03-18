@@ -114,22 +114,24 @@ export function calcAutoAttackDamage(
   const effectiveAR = calcEffectiveArmor(
     target.armor,
     0,
-    0,
+    attacker.percentArmorReduction,
     attacker.percentArmorPen,
     flatPen
   );
 
   const rawAD = attacker.ad;
+  // Apply defender's crit damage reduction (e.g. Randuin's Omen -20%)
+  const effectiveCritMult = 1 + (attacker.critMultiplier - 1) * (1 - (target.critDamageReduction ?? 0));
   // When critCount is specified, use exact crit calculation per AA
   let avgRaw: number;
   if (critCount != null && totalAA != null && totalAA > 0) {
-    const critDmg = critCount * rawAD * attacker.critMultiplier;
+    const critDmg = critCount * rawAD * effectiveCritMult;
     const normalDmg = (totalAA - critCount) * rawAD;
     avgRaw = (critDmg + normalDmg) / totalAA;
   } else {
     // Average damage accounting for crit:
-    // avgRaw = AD * (1 + critChance * (critMultiplier - 1))
-    avgRaw = rawAD * (1 + attacker.critChance * (attacker.critMultiplier - 1));
+    // avgRaw = AD * (1 + critChance * (effectiveCritMult - 1))
+    avgRaw = rawAD * (1 + attacker.critChance * (effectiveCritMult - 1));
   }
   let physical = calcPhysicalDamage(avgRaw, effectiveAR);
   let magical = 0;

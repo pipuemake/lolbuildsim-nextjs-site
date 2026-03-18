@@ -127,6 +127,10 @@ export interface ItemStats {
   flatMagicPen?: number;
   percentMagicPen?: number;
   percentArmorPen?: number;
+  percentArmorReduction?: number;
+  critDamageReduction?: number;
+  healShieldPower?: number;
+  grievousWounds?: number;
   moveSpeed?: number;
   moveSpeedPercent?: number;
   hpRegen?: number;
@@ -234,6 +238,10 @@ export interface BonusStats {
   flatMagicPen?: number;
   percentMagicPen?: number;
   percentArmorPen?: number;
+  percentArmorReduction?: number;
+  critDamageReduction?: number;
+  healShieldPower?: number;
+  grievousWounds?: number;
   lifeSteal?: number;
   omnivamp?: number;
   tenacity?: number;
@@ -285,6 +293,10 @@ export interface ComputedStats {
   flatMagicPen: number;
   percentMagicPen: number;
   percentArmorPen: number;
+  percentArmorReduction: number;
+  critDamageReduction: number;
+  healShieldPower: number;
+  grievousWounds: number;
   lifeSteal: number;
   omnivamp: number;
   tenacity: number;
@@ -431,6 +443,7 @@ export interface SummonerSpell {
   cooldown: number;
   damage?: (level: number) => number;
   damageType?: 'physical' | 'magic' | 'true';
+  shield?: (level: number) => number;
 }
 
 // ===== Champion Combo Passive Effects =====
@@ -474,6 +487,8 @@ export interface ChampionComboPassive {
   secondsPerUnit?: number;
   /** Form group for conditional display (e.g. 'shadow', 'rhaast') */
   formGroup?: string;
+  /** Shield amount calculation (value=toggle/stack input, returns raw shield HP) */
+  shieldCalc?: (value: number, holder: ComputedStats, level: number) => number;
 }
 
 // ===== HP Bar visualization =====

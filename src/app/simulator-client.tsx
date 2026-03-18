@@ -45,6 +45,9 @@ import {
   calcAdaptiveDamage,
   calcEffectiveMR,
   calcMagicDamage,
+  calcPhysicalDamage,
+  calcLethality,
+  calcEffectiveArmor,
 } from "@/lib/calc/damage";
 import {
   KEYSTONE_IDS,
@@ -81,6 +84,9 @@ import {
   calcSecondWindHeal,
   BISCUIT_MAX_HP_PER_USE,
   BISCUIT_MAX_COUNT,
+  calcShieldBashDamage,
+  calcRevitalizeMultiplier,
+  calcAeryShield,
 } from "@/lib/data/keystone-effects";
 import { calcDPS } from "@/lib/calc/dps";
 import { calcEffectiveHP } from "@/lib/calc/effective-hp";
@@ -107,8 +113,10 @@ import {
   getItemStackBonuses,
   getItemHealEffects,
   getLifelineShield,
+  getConditionalShields,
   type ItemStackBonus,
   type ItemHealEffect,
+  type ItemConditionalShield,
 } from "@/lib/data/item-effects";
 import { getChampionComboPassives } from "@/lib/data/champion-combo-effects";
 import { STAT_SHARDS } from "@/lib/data/runes";
@@ -250,6 +258,10 @@ const DEFAULT_COMPUTED_STATS: ComputedStats = {
   flatMagicPen: 0,
   percentMagicPen: 0,
   percentArmorPen: 0,
+  percentArmorReduction: 0,
+  critDamageReduction: 0,
+  healShieldPower: 0,
+  grievousWounds: 0,
   lifeSteal: 0,
   omnivamp: 0,
   tenacity: 0,
@@ -391,6 +403,8 @@ function SimulatorInner() {
   >({});
   const [allyItemStacks, setAllyItemStacks] = useState<Record<string, number>>({});
   const [allyHealCharges, setAllyHealCharges] = useState<Record<string, number>>({});
+  const [allyLifelineActive, setAllyLifelineActive] = useState(false);
+  const [allyConditionalShieldToggles, setAllyConditionalShieldToggles] = useState<Record<string, number>>({});
   const [allyComboPassiveValues, setAllyComboPassiveValues] = useState<
     Record<string, number>
   >({});
@@ -459,6 +473,8 @@ function SimulatorInner() {
   >({});
   const [enemyItemStacks, setEnemyItemStacks] = useState<Record<string, number>>({});
   const [enemyHealCharges, setEnemyHealCharges] = useState<Record<string, number>>({});
+  const [enemyLifelineActive, setEnemyLifelineActive] = useState(false);
+  const [enemyConditionalShieldToggles, setEnemyConditionalShieldToggles] = useState<Record<string, number>>({});
   const [enemyComboPassiveValues, setEnemyComboPassiveValues] = useState<
     Record<string, number>
   >({});
@@ -1003,12 +1019,19 @@ function SimulatorInner() {
     return getChampionComboPassives(enemyChampion.id);
   }, [enemyChampion]);
 
+  // Helper: clamp aaLinked passive values to current AA count
+  const getPassiveVal = useCallback((p: ChampionComboPassive, values: Record<string, number>, aaCounts: number) => {
+    const raw = values[p.id] ?? p.defaultValue;
+    if (p.aaLinked) return Math.min(raw, aaCounts);
+    return raw;
+  }, []);
+
   // Compute combo passive stat bonuses
   const allyComboPassiveStatBonus = useMemo<BonusStats>(() => {
     const result: BonusStats = {};
     for (const p of allyComboPassives) {
       if (!p.statBonus) continue;
-      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
       const bonus = p.statBonus(val, allyLevel);
       for (const [k, v] of Object.entries(bonus)) {
         if (v)
@@ -1017,13 +1040,13 @@ function SimulatorInner() {
       }
     }
     return result;
-  }, [allyComboPassives, allyComboPassiveValues, allyLevel]);
+  }, [allyComboPassives, allyComboPassiveValues, allyLevel, allyAACounts, getPassiveVal]);
 
   const enemyComboPassiveStatBonus = useMemo<BonusStats>(() => {
     const result: BonusStats = {};
     for (const p of enemyComboPassives) {
       if (!p.statBonus) continue;
-      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
       const bonus = p.statBonus(val, enemyLevel);
       for (const [k, v] of Object.entries(bonus)) {
         if (v)
@@ -1032,7 +1055,7 @@ function SimulatorInner() {
       }
     }
     return result;
-  }, [enemyComboPassives, enemyComboPassiveValues, enemyLevel]);
+  }, [enemyComboPassives, enemyComboPassiveValues, enemyLevel, enemyAACounts, getPassiveVal]);
 
   // Stable callback handlers (functional setState to avoid closure over stale state)
   const handleAllySummonerChange = useCallback((idx: number, spell: SummonerSpell | null) => {
@@ -1382,16 +1405,53 @@ function SimulatorInner() {
     enemyMergedBonusStats,
   ]);
 
-  // Lifeline shields (Maw, Sterak's, Shieldbow)
-  const allyLifelineShield = useMemo(() => {
+  // Lifeline shields (Maw, Sterak's, Shieldbow) — toggle-based
+  const allyLifelineInfo = useMemo(() => {
     const ids = allyItems.filter((id): id is string => id !== null);
-    return getLifelineShield(ids, allyStats, allyLevel)?.shield ?? 0;
+    return getLifelineShield(ids, allyStats, allyLevel);
   }, [allyItems, allyStats, allyLevel]);
 
-  const enemyLifelineShield = useMemo(() => {
+  const allyLifelineShield = allyLifelineActive ? (allyLifelineInfo?.shield ?? 0) : 0;
+
+  const enemyLifelineInfo = useMemo(() => {
     const ids = enemyItems.filter((id): id is string => id !== null);
-    return getLifelineShield(ids, enemyStats, enemyLevel)?.shield ?? 0;
+    return getLifelineShield(ids, enemyStats, enemyLevel);
   }, [enemyItems, enemyStats, enemyLevel]);
+
+  const enemyLifelineShield = enemyLifelineActive ? (enemyLifelineInfo?.shield ?? 0) : 0;
+
+  // Conditional shields (non-lifeline, stackable)
+  const allyConditionalShields = useMemo(() => {
+    const ids = allyItems.filter((id): id is string => id !== null);
+    return getConditionalShields(ids);
+  }, [allyItems]);
+
+  const allyConditionalShieldTotal = useMemo(() => {
+    let total = 0;
+    for (const s of allyConditionalShields) {
+      const charges = allyConditionalShieldToggles[s.itemId] ?? 0;
+      if (charges > 0) {
+        total += s.calc(allyStats, allyLevel) * charges;
+      }
+    }
+    return total;
+  }, [allyConditionalShields, allyConditionalShieldToggles, allyStats, allyLevel]);
+
+  const enemyConditionalShields = useMemo(() => {
+    const ids = enemyItems.filter((id): id is string => id !== null);
+    return getConditionalShields(ids);
+  }, [enemyItems]);
+
+  const enemyConditionalShieldTotal = useMemo(() => {
+    let total = 0;
+    for (const s of enemyConditionalShields) {
+      const charges = enemyConditionalShieldToggles[s.itemId] ?? 0;
+      if (charges > 0) {
+        total += s.calc(enemyStats, enemyLevel) * charges;
+      }
+    }
+    return total;
+  }, [enemyConditionalShields, enemyConditionalShieldToggles, enemyStats, enemyLevel]);
 
   // On-hit effects filtered by toggle state (only enabled on-hit items are used in damage calc)
   const allyEnabledOnHitEffects = useMemo(() => {
@@ -1779,8 +1839,21 @@ function SimulatorInner() {
         total += swProcs * calcSecondWindHeal(allyStats.maxHp, allyStats.maxHp * 0.5);
       }
     }
+    // Revitalize: +5% heal/shield power, +10% more below 40% HP
+    if (hasSubRune(allyRunes, SUBRUNE_IDS.REVITALIZE)) {
+      const hpPct = allyStats.hp / allyStats.maxHp;
+      total *= calcRevitalizeMultiplier(hpPct);
+    }
+    // Spirit Visage / healShieldPower
+    if (allyStats.healShieldPower > 0) {
+      total *= (1 + allyStats.healShieldPower);
+    }
+    // Grievous Wounds from enemy reduces ally healing
+    if (enemyStats.grievousWounds > 0) {
+      total *= (1 - enemyStats.grievousWounds);
+    }
     return total;
-  }, [allyHealEffects, allyHealCharges, allyRunes, allyRuneCharges, allyChampion, allyStats, allyLevel]);
+  }, [allyHealEffects, allyHealCharges, allyRunes, allyRuneCharges, allyChampion, allyStats, allyLevel, enemyStats]);
 
   const enemyHealTotal = useMemo(() => {
     let total = 0;
@@ -1816,8 +1889,86 @@ function SimulatorInner() {
         total += swProcs * calcSecondWindHeal(enemyStats.maxHp, enemyStats.maxHp * 0.5);
       }
     }
+    // Revitalize: +5% heal/shield power, +10% more below 40% HP
+    if (hasSubRune(enemyRunes, SUBRUNE_IDS.REVITALIZE)) {
+      const hpPct = enemyStats.hp / enemyStats.maxHp;
+      total *= calcRevitalizeMultiplier(hpPct);
+    }
+    // Spirit Visage / healShieldPower
+    if (enemyStats.healShieldPower > 0) {
+      total *= (1 + enemyStats.healShieldPower);
+    }
+    // Grievous Wounds from ally reduces enemy healing
+    if (allyStats.grievousWounds > 0) {
+      total *= (1 - allyStats.grievousWounds);
+    }
     return total;
-  }, [enemyHealEffects, enemyHealCharges, enemyRunes, enemyRuneCharges, enemyChampion, enemyStats, enemyLevel]);
+  }, [enemyHealEffects, enemyHealCharges, enemyRunes, enemyRuneCharges, enemyChampion, enemyStats, enemyLevel, allyStats]);
+
+  // Champion combo passive shields + Barrier summoner spell
+  const allyComboShield = useMemo(() => {
+    let total = 0;
+    for (const p of allyComboPassives) {
+      if (!p.shieldCalc) continue;
+      const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
+      if (val <= 0) continue;
+      total += p.shieldCalc(val, allyStats, allyLevel);
+    }
+    // Barrier summoner spell shield
+    for (let i = 0; i < 2; i++) {
+      if (allySummonerActive[i] && allySummoners[i]?.shield) {
+        total += allySummoners[i]!.shield!(allyLevel);
+      }
+    }
+    // Aery shield (charge-based)
+    const aeryShieldCharges = allyRuneCharges['aery-shield'] ?? 0;
+    if (allyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY && aeryShieldCharges > 0) {
+      const bonusAD = allyStats.ad - allyStats.baseAd;
+      total += aeryShieldCharges * calcAeryShield(allyLevel, bonusAD, allyStats.ap);
+    }
+    // Revitalize: +5% shield power, +10% more below 40% HP
+    if (hasSubRune(allyRunes, SUBRUNE_IDS.REVITALIZE)) {
+      const hpPct = allyStats.hp / allyStats.maxHp;
+      total *= calcRevitalizeMultiplier(hpPct);
+    }
+    // Spirit Visage / healShieldPower
+    if (allyStats.healShieldPower > 0) {
+      total *= (1 + allyStats.healShieldPower);
+    }
+    return total;
+  }, [allyComboPassives, allyComboPassiveValues, allyStats, allyLevel, allyAACounts, getPassiveVal, allySummoners, allySummonerActive, allyRunes, allyRuneCharges]);
+
+  const enemyComboShield = useMemo(() => {
+    let total = 0;
+    for (const p of enemyComboPassives) {
+      if (!p.shieldCalc) continue;
+      const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
+      if (val <= 0) continue;
+      total += p.shieldCalc(val, enemyStats, enemyLevel);
+    }
+    // Barrier summoner spell shield
+    for (let i = 0; i < 2; i++) {
+      if (enemySummonerActive[i] && enemySummoners[i]?.shield) {
+        total += enemySummoners[i]!.shield!(enemyLevel);
+      }
+    }
+    // Aery shield (charge-based)
+    const aeryShieldCharges = enemyRuneCharges['aery-shield'] ?? 0;
+    if (enemyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY && aeryShieldCharges > 0) {
+      const bonusAD = enemyStats.ad - enemyStats.baseAd;
+      total += aeryShieldCharges * calcAeryShield(enemyLevel, bonusAD, enemyStats.ap);
+    }
+    // Revitalize: +5% shield power, +10% more below 40% HP
+    if (hasSubRune(enemyRunes, SUBRUNE_IDS.REVITALIZE)) {
+      const hpPct = enemyStats.hp / enemyStats.maxHp;
+      total *= calcRevitalizeMultiplier(hpPct);
+    }
+    // Spirit Visage / healShieldPower
+    if (enemyStats.healShieldPower > 0) {
+      total *= (1 + enemyStats.healShieldPower);
+    }
+    return total;
+  }, [enemyComboPassives, enemyComboPassiveValues, enemyStats, enemyLevel, enemyAACounts, getPassiveVal, enemySummoners, enemySummonerActive, enemyRunes, enemyRuneCharges]);
 
   // Spellblade damage per proc (computed once for combo calculations)
   const allySpellbladeProc = useMemo(() => {
@@ -1861,7 +2012,7 @@ function SimulatorInner() {
       let perCombo = 0;
       for (const p of allyComboPassives) {
         if (!p.onHit || p.onHit.missingHpScaling) continue;
-        const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+        const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
         const dmg = calcComboPassiveOnHitDamage(
           p,
           val,
@@ -1887,6 +2038,8 @@ function SimulatorInner() {
       allyStats,
       enemyStats,
       allyLevel,
+      allyAACounts,
+      getPassiveVal,
     ]);
 
   // NOTE: missingHpScaling passives are excluded here — they are calculated last in combo damage
@@ -1901,7 +2054,7 @@ function SimulatorInner() {
       let perCombo = 0;
       for (const p of enemyComboPassives) {
         if (!p.onHit || p.onHit.missingHpScaling) continue;
-        const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+        const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
         const dmg = calcComboPassiveOnHitDamage(
           p,
           val,
@@ -1927,6 +2080,8 @@ function SimulatorInner() {
       enemyStats,
       allyStats,
       enemyLevel,
+      enemyAACounts,
+      getPassiveVal,
     ]);
 
   // Combo passive skill bonus damage (e.g. Nasus Q stacks)
@@ -1935,7 +2090,7 @@ function SimulatorInner() {
     if (!allyChampion || !enemyChampion) return bonuses;
     for (const p of allyComboPassives) {
       if (!p.skillBonus) continue;
-      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
       const dmg = calcComboPassiveSkillBonus(
         p,
         val,
@@ -1957,6 +2112,8 @@ function SimulatorInner() {
     allyStats,
     enemyStats,
     allyLevel,
+    allyAACounts,
+    getPassiveVal,
   ]);
 
   const enemyComboPassiveSkillBonuses = useMemo(() => {
@@ -1964,7 +2121,7 @@ function SimulatorInner() {
     if (!allyChampion || !enemyChampion) return bonuses;
     for (const p of enemyComboPassives) {
       if (!p.skillBonus) continue;
-      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
       const dmg = calcComboPassiveSkillBonus(
         p,
         val,
@@ -1986,6 +2143,8 @@ function SimulatorInner() {
     enemyStats,
     allyStats,
     enemyLevel,
+    enemyAACounts,
+    getPassiveVal,
   ]);
 
   // Combo damage (combo counts * each skill + AA * count + spellblade procs + summoners + passives + keystones)
@@ -2133,6 +2292,25 @@ function SimulatorInner() {
       }
     }
 
+    // Sub-rune: Shield Bash (charge-based adaptive damage)
+    {
+      const sbProcs = allyRuneCharges[String(SUBRUNE_IDS.SHIELD_BASH)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SHIELD_BASH) && sbProcs > 0) {
+        const bonusHp = allyStats.maxHp - allyStats.baseHp;
+        const totalShield = allyLifelineShield + allyComboShield + allyConditionalShieldTotal;
+        const raw = calcShieldBashDamage(allyLevel, bonusHp, totalShield);
+        // Adaptive: physical if AD > AP, else magic
+        if (allyStats.ad - allyStats.baseAd > allyStats.ap) {
+          const flatArmorPen = calcLethality(allyStats.lethality, allyLevel);
+          const effectiveArmor = calcEffectiveArmor(enemyStats.armor, 0, allyStats.percentArmorReduction, allyStats.percentArmorPen, flatArmorPen);
+          total += calcPhysicalDamage(raw, effectiveArmor) * sbProcs;
+        } else {
+          const effectiveMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+          total += calcMagicDamage(raw, effectiveMR) * sbProcs;
+        }
+      }
+    }
+
     // Precision slot 3: Coup de Grace / Cut Down / Last Stand (damage amplification)
     {
       let ampPercent = 0;
@@ -2218,7 +2396,7 @@ function SimulatorInner() {
     // Phase 3: missing-HP combo passives (e.g. Jhin 4th Shot) — calculated last with accumulated damage
     for (const p of allyComboPassives) {
       if (!p.onHit?.missingHpScaling) continue;
-      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
       if (val <= 0) continue;
       // Target HP reduced by all prior damage
       const adjustedTarget = { ...enemyStats, hp: Math.max(0, enemyStats.hp - total) };
@@ -2250,6 +2428,7 @@ function SimulatorInner() {
     allyRuneCharges,
     enemyRuneCharges,
     allyBonusValues,
+    getPassiveVal,
   ]);
 
   const enemyComboDamage = useMemo(() => {
@@ -2390,6 +2569,24 @@ function SimulatorInner() {
       }
     }
 
+    // Sub-rune: Shield Bash (charge-based adaptive damage)
+    {
+      const sbProcs = enemyRuneCharges[String(SUBRUNE_IDS.SHIELD_BASH)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SHIELD_BASH) && sbProcs > 0) {
+        const bonusHp = enemyStats.maxHp - enemyStats.baseHp;
+        const totalShield = enemyLifelineShield + enemyComboShield + enemyConditionalShieldTotal;
+        const raw = calcShieldBashDamage(enemyLevel, bonusHp, totalShield);
+        if (enemyStats.ad - enemyStats.baseAd > enemyStats.ap) {
+          const flatArmorPen = calcLethality(enemyStats.lethality, enemyLevel);
+          const effectiveArmor = calcEffectiveArmor(allyStats.armor, 0, enemyStats.percentArmorReduction, enemyStats.percentArmorPen, flatArmorPen);
+          total += calcPhysicalDamage(raw, effectiveArmor) * sbProcs;
+        } else {
+          const effectiveMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+          total += calcMagicDamage(raw, effectiveMR) * sbProcs;
+        }
+      }
+    }
+
     // Precision slot 3: Coup de Grace / Cut Down / Last Stand (damage amplification)
     {
       let ampPercent = 0;
@@ -2469,7 +2666,7 @@ function SimulatorInner() {
     // Phase 3: missing-HP combo passives — calculated last with accumulated damage
     for (const p of enemyComboPassives) {
       if (!p.onHit?.missingHpScaling) continue;
-      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
       if (val <= 0) continue;
       const adjustedTarget = { ...allyStats, hp: Math.max(0, allyStats.hp - total) };
       const dmg = calcComboPassiveOnHitDamage(p, val, enemyStats, adjustedTarget, enemyLevel);
@@ -2500,6 +2697,7 @@ function SimulatorInner() {
     enemyRuneCharges,
     allyRuneCharges,
     enemyBonusValues,
+    getPassiveVal,
   ]);
 
   // HP bar damage segments (combo-count-based)
@@ -2626,6 +2824,21 @@ function SimulatorInner() {
         const effMR = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
         runeDmg += calcMagicDamage(raw, effMR) * scProcs;
       }
+      // Shield Bash
+      const sbProcs = allyRuneCharges[String(SUBRUNE_IDS.SHIELD_BASH)] ?? 0;
+      if (hasSubRune(allyRunes, SUBRUNE_IDS.SHIELD_BASH) && sbProcs > 0) {
+        const bonusHp = allyStats.maxHp - allyStats.baseHp;
+        const totalShield = allyLifelineShield + allyComboShield + allyConditionalShieldTotal;
+        const raw = calcShieldBashDamage(allyLevel, bonusHp, totalShield);
+        if (allyStats.ad - allyStats.baseAd > allyStats.ap) {
+          const flatArmorPen = calcLethality(allyStats.lethality, allyLevel);
+          const effArmor = calcEffectiveArmor(enemyStats.armor, 0, allyStats.percentArmorReduction, allyStats.percentArmorPen, flatArmorPen);
+          runeDmg += calcPhysicalDamage(raw, effArmor) * sbProcs;
+        } else {
+          const effMR2 = calcEffectiveMR(enemyStats.mr, allyStats.flatMagicPen, allyStats.percentMagicPen);
+          runeDmg += calcMagicDamage(raw, effMR2) * sbProcs;
+        }
+      }
       if (runeDmg > 0) {
         segs.push({ source: "RUNE", amount: runeDmg, color: "" });
       }
@@ -2692,7 +2905,7 @@ function SimulatorInner() {
     // Phase 3: missing-HP combo passive segments (e.g. Jhin 4th Shot)
     for (const p of allyComboPassives) {
       if (!p.onHit?.missingHpScaling) continue;
-      const val = allyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
       if (val <= 0) continue;
       const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
       const adjustedTarget = { ...enemyStats, hp: Math.max(0, enemyStats.hp - preTotal) };
@@ -2722,6 +2935,7 @@ function SimulatorInner() {
     allyStats,
     enemyStats,
     allyLevel,
+    getPassiveVal,
   ]);
 
   const enemyDamageToAlly = useMemo<DamageSegment[]>(() => {
@@ -2847,6 +3061,21 @@ function SimulatorInner() {
         const effMR = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
         runeDmg += calcMagicDamage(raw, effMR) * scProcs;
       }
+      // Shield Bash
+      const sbProcs = enemyRuneCharges[String(SUBRUNE_IDS.SHIELD_BASH)] ?? 0;
+      if (hasSubRune(enemyRunes, SUBRUNE_IDS.SHIELD_BASH) && sbProcs > 0) {
+        const bonusHp = enemyStats.maxHp - enemyStats.baseHp;
+        const totalShield = enemyLifelineShield + enemyComboShield + enemyConditionalShieldTotal;
+        const raw = calcShieldBashDamage(enemyLevel, bonusHp, totalShield);
+        if (enemyStats.ad - enemyStats.baseAd > enemyStats.ap) {
+          const flatArmorPen = calcLethality(enemyStats.lethality, enemyLevel);
+          const effArmor = calcEffectiveArmor(allyStats.armor, 0, enemyStats.percentArmorReduction, enemyStats.percentArmorPen, flatArmorPen);
+          runeDmg += calcPhysicalDamage(raw, effArmor) * sbProcs;
+        } else {
+          const effMR2 = calcEffectiveMR(allyStats.mr, enemyStats.flatMagicPen, enemyStats.percentMagicPen);
+          runeDmg += calcMagicDamage(raw, effMR2) * sbProcs;
+        }
+      }
       if (runeDmg > 0) {
         segs.push({ source: "RUNE", amount: runeDmg, color: "" });
       }
@@ -2913,7 +3142,7 @@ function SimulatorInner() {
     // Phase 3: missing-HP combo passive segments
     for (const p of enemyComboPassives) {
       if (!p.onHit?.missingHpScaling) continue;
-      const val = enemyComboPassiveValues[p.id] ?? p.defaultValue;
+      const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
       if (val <= 0) continue;
       const preTotal = segs.reduce((s, seg) => s + seg.amount, 0);
       const adjustedTarget = { ...allyStats, hp: Math.max(0, allyStats.hp - preTotal) };
@@ -2943,6 +3172,9 @@ function SimulatorInner() {
     enemyStats,
     allyStats,
     enemyLevel,
+    enemyLifelineShield,
+    enemyComboShield,
+    getPassiveVal,
   ]);
 
   // Haste info with skill cooldowns
@@ -3003,19 +3235,23 @@ function SimulatorInner() {
     for (const subId of CHARGE_SUBRUNE_IDS) {
       if (hasSubRune(allyRunes, subId)) selectedIds.push(subId);
     }
-    if (selectedIds.length === 0) return [];
+    if (selectedIds.length === 0 && allyRunes.keystone !== KEYSTONE_IDS.SUMMON_AERY) return [];
     for (const path of runePaths) {
       for (const slot of path.slots) {
         for (const rune of slot.runes) {
           if (selectedIds.includes(rune.id)) {
             entries.push({ id: String(rune.id), icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name });
           }
+          // Aery shield: separate entry with distinct ID
+          if (rune.id === KEYSTONE_IDS.SUMMON_AERY && allyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY) {
+            entries.push({ id: 'aery-shield', icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: locale === 'ja' ? 'エアリー (シールド)' : 'Aery (Shield)' });
+          }
         }
       }
     }
     return entries;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allyRunes.keystone, allyRunes.primarySlot1, allyRunes.primarySlot2, allyRunes.primarySlot3, allyRunes.secondarySlot1, allyRunes.secondarySlot2, runePaths]);
+  }, [allyRunes.keystone, allyRunes.primarySlot1, allyRunes.primarySlot2, allyRunes.primarySlot3, allyRunes.secondarySlot1, allyRunes.secondarySlot2, runePaths, locale]);
 
   const enemyRuneComboEntries = useMemo(() => {
     const entries: { id: string; icon: string; name: string }[] = [];
@@ -3024,19 +3260,22 @@ function SimulatorInner() {
     for (const subId of CHARGE_SUBRUNE_IDS) {
       if (hasSubRune(enemyRunes, subId)) selectedIds.push(subId);
     }
-    if (selectedIds.length === 0) return [];
+    if (selectedIds.length === 0 && enemyRunes.keystone !== KEYSTONE_IDS.SUMMON_AERY) return [];
     for (const path of runePaths) {
       for (const slot of path.slots) {
         for (const rune of slot.runes) {
           if (selectedIds.includes(rune.id)) {
             entries.push({ id: String(rune.id), icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: rune.name });
           }
+          if (rune.id === KEYSTONE_IDS.SUMMON_AERY && enemyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY) {
+            entries.push({ id: 'aery-shield', icon: `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`, name: locale === 'ja' ? 'エアリー (シールド)' : 'Aery (Shield)' });
+          }
         }
       }
     }
     return entries;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enemyRunes.keystone, enemyRunes.primarySlot1, enemyRunes.primarySlot2, enemyRunes.primarySlot3, enemyRunes.secondarySlot1, enemyRunes.secondarySlot2, runePaths]);
+  }, [enemyRunes.keystone, enemyRunes.primarySlot1, enemyRunes.primarySlot2, enemyRunes.primarySlot3, enemyRunes.secondarySlot1, enemyRunes.secondarySlot2, runePaths, locale]);
 
   // Rune item entries (Biscuit Delivery, Triple Tonic elixirs)
   const allyRuneItemEntries = useMemo(() => {
@@ -3368,6 +3607,12 @@ function SimulatorInner() {
                 runeItemEntries={allyRuneItemEntries}
                 runeItemCharges={allyRuneItemCharges}
                 onRuneItemChargeChange={(id, charges) => setAllyRuneItemCharges(prev => ({ ...prev, [id]: charges }))}
+                lifelineItem={allyLifelineInfo ? { itemId: allyLifelineInfo.item.itemId, nameEn: allyLifelineInfo.item.nameEn, nameJa: allyLifelineInfo.item.nameJa } : null}
+                lifelineActive={allyLifelineActive}
+                onLifelineToggle={setAllyLifelineActive}
+                conditionalShields={allyConditionalShields.map(s => ({ itemId: s.itemId, nameEn: s.nameEn, nameJa: s.nameJa, shieldType: s.shieldType, maxCharges: s.maxCharges }))}
+                conditionalShieldToggles={allyConditionalShieldToggles}
+                onConditionalShieldToggle={(itemId, val) => setAllyConditionalShieldToggles(prev => ({ ...prev, [itemId]: val }))}
               />
             )}
             <ItemShop
@@ -3469,7 +3714,7 @@ function SimulatorInner() {
                   <HPBar
                     maxHP={enemyStats.maxHp}
                     damageSegments={allyDamageToEnemy}
-                    shieldAmount={enemyLifelineShield}
+                    shieldAmount={enemyLifelineShield + enemyComboShield + enemyConditionalShieldTotal}
                     healAmount={enemyHealTotal}
                     label={`${getChampionDisplayName(enemyChampion)} HP`}
                     locale={locale}
@@ -3501,7 +3746,7 @@ function SimulatorInner() {
                   <HPBar
                     maxHP={allyStats.maxHp}
                     damageSegments={enemyDamageToAlly}
-                    shieldAmount={allyLifelineShield}
+                    shieldAmount={allyLifelineShield + allyComboShield + allyConditionalShieldTotal}
                     healAmount={allyHealTotal}
                     label={`${getChampionDisplayName(allyChampion)} HP`}
                     locale={locale}
@@ -3664,6 +3909,12 @@ function SimulatorInner() {
                 runeItemEntries={enemyRuneItemEntries}
                 runeItemCharges={enemyRuneItemCharges}
                 onRuneItemChargeChange={(id, charges) => setEnemyRuneItemCharges(prev => ({ ...prev, [id]: charges }))}
+                lifelineItem={enemyLifelineInfo ? { itemId: enemyLifelineInfo.item.itemId, nameEn: enemyLifelineInfo.item.nameEn, nameJa: enemyLifelineInfo.item.nameJa } : null}
+                lifelineActive={enemyLifelineActive}
+                onLifelineToggle={setEnemyLifelineActive}
+                conditionalShields={enemyConditionalShields.map(s => ({ itemId: s.itemId, nameEn: s.nameEn, nameJa: s.nameJa, shieldType: s.shieldType, maxCharges: s.maxCharges }))}
+                conditionalShieldToggles={enemyConditionalShieldToggles}
+                onConditionalShieldToggle={(itemId, val) => setEnemyConditionalShieldToggles(prev => ({ ...prev, [itemId]: val }))}
               />
             )}
             <ItemShop

@@ -128,13 +128,24 @@ const WHITELISTED_ITEM_IDS = new Set([
   '4643',   // ビジラント ワードストーン (Vigilant Wardstone)
   // Rune-generated boots
   '2422',   // ちょっとだけ魔法がかった靴 (Slightly Magical Footwear)
+  // Hextech Gunblade (returned 2026 season, DDragon marks maps11=false but in-game on SR)
+  '3146',   // ヘクステック ガンブレード (Hextech Gunblade)
 ]);
 
-// Items to exclude by ID (support quest variants that duplicate regular items)
+// Items to exclude by ID (support quest variants, Arena 22xxxx duplicates)
 const BLACKLISTED_ITEM_IDS = new Set([
   '323034', // コレクター (Collector) — support quest variant, duplicates 3034
   '667666', // コレクター (Collector) — duplicate of 6676
 ]);
+
+/** Exclude 22xxxx Arena/mode duplicates that mirror base item IDs */
+function isArenaDuplicate(id: string): boolean {
+  if (id.length === 6 && id.startsWith('22')) {
+    const baseId = id.substring(2);
+    return baseId.length === 4;
+  }
+  return false;
+}
 
 // Items to exclude by Japanese name (removed from the shop entirely)
 const BLACKLISTED_ITEM_NAMES = new Set([
@@ -160,6 +171,9 @@ export function parseItems(data: DDragonItemData): Item[] {
   for (const [id, raw] of Object.entries(data)) {
     // Exclude blacklisted item IDs
     if (BLACKLISTED_ITEM_IDS.has(id)) continue;
+
+    // Exclude 22xxxx Arena/mode duplicate items
+    if (isArenaDuplicate(id)) continue;
 
     const isWhitelisted = WHITELISTED_ITEM_IDS.has(id);
 

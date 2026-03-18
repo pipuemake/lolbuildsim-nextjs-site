@@ -203,6 +203,12 @@ interface SkillComboBarProps {
   runeItemEntries?: RuneItemEntry[];
   runeItemCharges?: Record<string, number>;
   onRuneItemChargeChange?: (id: string, charges: number) => void;
+  lifelineItem?: { itemId: string; nameEn: string; nameJa: string } | null;
+  lifelineActive?: boolean;
+  onLifelineToggle?: (active: boolean) => void;
+  conditionalShields?: { itemId: string; nameEn: string; nameJa: string; shieldType: string; maxCharges?: number }[];
+  conditionalShieldToggles?: Record<string, number>;
+  onConditionalShieldToggle?: (itemId: string, value: number) => void;
 }
 
 export interface RuneComboEntry {
@@ -292,6 +298,12 @@ export function SkillComboBar({
   runeItemEntries,
   runeItemCharges,
   onRuneItemChargeChange,
+  lifelineItem,
+  lifelineActive,
+  onLifelineToggle,
+  conditionalShields,
+  conditionalShieldToggles,
+  onConditionalShieldToggle,
 }: SkillComboBarProps) {
   const isJa = locale === "ja";
   const [dropdownIndex, setDropdownIndex] = useState<0 | 1 | null>(null);
@@ -897,6 +909,104 @@ export function SkillComboBar({
           </>
         )}
 
+        {/* Lifeline shield toggle (Maw, Sterak's, Shieldbow) */}
+        {lifelineItem && onLifelineToggle && (
+          <>
+            <div className="w-px h-9 bg-zinc-700/60" />
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onLifelineToggle(!lifelineActive)}
+                className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${lifelineActive ? "ring-2 ring-sky-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                title={`${isJa ? lifelineItem.nameJa : lifelineItem.nameEn} (Lifeline 🛡)`}
+              >
+                <Image
+                  src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${lifelineItem.itemId}.png`}
+                  alt={lifelineItem.nameEn}
+                  width={36}
+                  height={36}
+                  className="rounded border border-black/50"
+                  unoptimized
+                />
+                {lifelineActive && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] bg-sky-600 text-white rounded-full leading-none font-bold px-0.5">
+                    🛡
+                  </span>
+                )}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Conditional shields (non-lifeline, toggleable or charge-based) */}
+        {conditionalShields && conditionalShields.length > 0 && onConditionalShieldToggle && (
+          <>
+            <div className="w-px h-9 bg-zinc-700/60" />
+            <div className="flex items-center gap-1.5">
+              {conditionalShields.map((shield) => {
+                const charges = conditionalShieldToggles?.[shield.itemId] ?? 0;
+                const max = shield.maxCharges ?? 1;
+                const isChargeBased = max > 1;
+                const badgeColor = shield.shieldType === 'physical' ? 'bg-orange-600' : shield.shieldType === 'magic' ? 'bg-purple-600' : 'bg-sky-600';
+                if (isChargeBased) {
+                  return (
+                    <LongPressButton
+                      key={shield.itemId}
+                      onTap={() => onConditionalShieldToggle(shield.itemId, Math.min(charges + 1, max))}
+                      onLongPress={() => onConditionalShieldToggle(shield.itemId, Math.max(charges - 1, 0))}
+                      className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${charges > 0 ? "ring-2 ring-sky-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                      title={`${isJa ? shield.nameJa : shield.nameEn} (🛡 ×${charges})`}
+                    >
+                      <Image
+                        src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${shield.itemId}.png`}
+                        alt={shield.nameEn}
+                        width={36}
+                        height={36}
+                        className="rounded border border-black/50"
+                        unoptimized
+                      />
+                      {charges > 0 && (
+                        <span className={`absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] ${badgeColor} text-white rounded-full leading-none font-bold px-0.5`}>
+                          {charges}
+                        </span>
+                      )}
+                    </LongPressButton>
+                  );
+                }
+                return (
+                  <button
+                    key={shield.itemId}
+                    type="button"
+                    onClick={() => onConditionalShieldToggle(shield.itemId, charges > 0 ? 0 : 1)}
+                    className={`relative flex-shrink-0 rounded transition-all duration-100 select-none cursor-pointer
+ ${charges > 0 ? "ring-2 ring-sky-500 shadow-md" : "opacity-30 hover:opacity-60"}
+ `}
+                    title={`${isJa ? shield.nameJa : shield.nameEn} (🛡)`}
+                  >
+                    <Image
+                      src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${shield.itemId}.png`}
+                      alt={shield.nameEn}
+                      width={36}
+                      height={36}
+                      className="rounded border border-black/50"
+                      unoptimized
+                    />
+                    {charges > 0 && (
+                      <span className={`absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] ${badgeColor} text-white rounded-full leading-none font-bold px-0.5`}>
+                        🛡
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {/* Rune combo entries (keystones with proc charges) */}
         {runeComboEntries && runeComboEntries.length > 0 && onRuneChargeChange && (
           <>
@@ -1072,21 +1182,27 @@ export function SkillComboBar({
               comboPassiveValues?.[passive.id] ?? passive.defaultValue;
             // aaLinked: cap max at current AA count
             const effectiveMax = passive.aaLinked ? Math.min(passive.max ?? 99, aaCounts) : (passive.max ?? 9999);
+            const isShield = !!passive.shieldCalc;
+            const activeColor = isShield
+              ? "bg-sky-500/20 border border-sky-500/40 text-sky-300"
+              : "bg-violet-500/20 border border-violet-500/40 text-violet-300";
+            const activeAccent = isShield ? "text-sky-400" : "text-violet-400";
             if (passive.inputType === "toggle") {
               return (
                 <button
                   key={passive.id}
                   onClick={() => onComboPassiveChange(passive.id, val ? 0 : 1)}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all
- ${val ? "bg-violet-500/20 border border-violet-500/40 text-violet-300" : "bg-zinc-800/60 border border-zinc-700/40 text-zinc-500 hover:text-zinc-300"}
+ ${val ? activeColor : "bg-zinc-800/60 border border-zinc-700/40 text-zinc-500 hover:text-zinc-300"}
  `}
                   title={isJa ? passive.descriptionJa : passive.descriptionEn}
                 >
+                  {isShield && <span className="text-[11px]">🛡</span>}
                   <span className="font-medium">
                     {isJa ? passive.nameJa : passive.nameEn}
                   </span>
                   <span
-                    className={`text-[10px] ${val ? "text-violet-400" : "text-zinc-600"}`}
+                    className={`text-[10px] ${val ? activeAccent : "text-zinc-600"}`}
                   >
                     {val ? "ON" : "OFF"}
                   </span>
@@ -1097,11 +1213,12 @@ export function SkillComboBar({
             return (
               <div
                 key={passive.id}
-                className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800/60 border border-zinc-700/40"
+                className={`flex items-center gap-1.5 px-2 py-1 rounded border ${isShield && val > 0 ? "bg-sky-500/10 border-sky-500/30" : "bg-zinc-800/60 border-zinc-700/40"}`}
                 title={isJa ? passive.descriptionJa : passive.descriptionEn}
               >
+                {isShield && <span className="text-[11px]">🛡</span>}
                 <span
-                  className={`text-xs font-medium ${val > 0 ? "text-violet-300" : "text-zinc-500"}`}
+                  className={`text-xs font-medium ${val > 0 ? (isShield ? "text-sky-300" : "text-violet-300") : "text-zinc-500"}`}
                 >
                   {isJa ? passive.nameJa : passive.nameEn}
                 </span>

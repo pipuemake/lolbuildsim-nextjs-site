@@ -47,6 +47,10 @@ export function computeBaseStats(
     flatMagicPen: 0,
     percentMagicPen: 0,
     percentArmorPen: 0,
+    percentArmorReduction: 0,
+    critDamageReduction: 0,
+    healShieldPower: 0,
+    grievousWounds: 0,
     lifeSteal: 0,
     omnivamp: 0,
     tenacity: 0,
@@ -82,6 +86,10 @@ export function computeItemStats(items: Item[]): Partial<ComputedStats> {
     if (st.flatMagicPen) result.flatMagicPen = (result.flatMagicPen ?? 0) + st.flatMagicPen;
     if (st.percentMagicPen) result.percentMagicPen = (result.percentMagicPen ?? 0) + st.percentMagicPen;
     if (st.percentArmorPen) result.percentArmorPen = (result.percentArmorPen ?? 0) + st.percentArmorPen;
+    if (st.percentArmorReduction) result.percentArmorReduction = (result.percentArmorReduction ?? 0) + st.percentArmorReduction;
+    if (st.critDamageReduction) result.critDamageReduction = (result.critDamageReduction ?? 0) + st.critDamageReduction;
+    if (st.healShieldPower) result.healShieldPower = (result.healShieldPower ?? 0) + st.healShieldPower;
+    if (st.grievousWounds) result.grievousWounds = Math.max(result.grievousWounds ?? 0, st.grievousWounds);
     if (st.moveSpeed) result.moveSpeed = (result.moveSpeed ?? 0) + st.moveSpeed;
     if (st.hpRegen) result.hpRegen = (result.hpRegen ?? 0) + st.hpRegen;
     if (st.mpRegen) result.mpRegen = (result.mpRegen ?? 0) + st.mpRegen;
@@ -121,6 +129,10 @@ export function computeRuneStats(
     if (v.flatMagicPen) result.flatMagicPen = (result.flatMagicPen ?? 0) + v.flatMagicPen;
     if (v.percentMagicPen) result.percentMagicPen = (result.percentMagicPen ?? 0) + v.percentMagicPen;
     if (v.percentArmorPen) result.percentArmorPen = (result.percentArmorPen ?? 0) + v.percentArmorPen;
+    if (v.percentArmorReduction) result.percentArmorReduction = (result.percentArmorReduction ?? 0) + v.percentArmorReduction;
+    if (v.critDamageReduction) result.critDamageReduction = (result.critDamageReduction ?? 0) + v.critDamageReduction;
+    if (v.healShieldPower) result.healShieldPower = (result.healShieldPower ?? 0) + v.healShieldPower;
+    if (v.grievousWounds) result.grievousWounds = Math.max(result.grievousWounds ?? 0, v.grievousWounds);
     if (v.moveSpeed) result.moveSpeed = (result.moveSpeed ?? 0) + v.moveSpeed;
     if (v.hpRegen) result.hpRegen = (result.hpRegen ?? 0) + v.hpRegen;
     if (v.mpRegen) result.mpRegen = (result.mpRegen ?? 0) + v.mpRegen;
@@ -195,6 +207,10 @@ export function computeStats(
     flatMagicPen: sum('flatMagicPen') + (bonus.flatMagicPen ?? 0),
     percentMagicPen: sum('percentMagicPen') + (bonus.percentMagicPen ?? 0),
     percentArmorPen: sum('percentArmorPen') + (bonus.percentArmorPen ?? 0),
+    percentArmorReduction: sum('percentArmorReduction') + (bonus.percentArmorReduction ?? 0),
+    critDamageReduction: sum('critDamageReduction') + (bonus.critDamageReduction ?? 0),
+    healShieldPower: sum('healShieldPower') + (bonus.healShieldPower ?? 0),
+    grievousWounds: Math.max(sum('grievousWounds'), bonus.grievousWounds ?? 0),
     lifeSteal: sum('lifeSteal') + (bonus.lifeSteal ?? 0),
     omnivamp: sum('omnivamp') + (bonus.omnivamp ?? 0),
     tenacity: sum('tenacity') + (bonus.tenacity ?? 0),

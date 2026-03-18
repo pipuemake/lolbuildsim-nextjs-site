@@ -220,23 +220,6 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
       return { ap: bonusMana * conversionRate };
     },
   },
-  // --- Cassiopeia: Serpentine Grace (P) ---
-  // Cannot buy boots. Gains 4 MS per level.
-  {
-    id: 'cassiopeia-passive',
-    championId: 'Cassiopeia',
-    type: 'passive',
-    nameEn: 'Serpentine Grace (P)',
-    nameJa: '蛇行の優雅 (P)',
-    descriptionEn: '+4 MS per level (cannot buy boots)',
-    descriptionJa: 'レベル毎に+4 MS (ブーツ購入不可)',
-    inputType: 'toggle',
-    defaultValue: 1,
-    calc: (enabled, level) => {
-      if (!enabled) return {};
-      return { moveSpeed: 4 * ((level ?? 1) - 1) };
-    },
-  },
   // --- Nasus: Stacks of the Ancients ---
   // Already handled as combo passive (Q stacks). No stat bonus needed.
 
@@ -852,6 +835,174 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
     calc: (enabled) => {
       if (!enabled) return {};
       return { armor: 10, mr: 10 };
+    },
+  },
+  // --- Legend: Alacrity ---
+  {
+    id: 'legend-alacrity',
+    type: 'rune',
+    runeId: 9104,
+    nameEn: 'Legend: Alacrity',
+    nameJa: '栄華: 迅速',
+    descriptionEn: '+4.5% AS base, +1.5% AS per stack (max 10)',
+    descriptionJa: '基礎+4.5% AS, スタック毎+1.5% AS (最大10)',
+    inputType: 'number',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    calc: (stacks) => {
+      return { attackSpeed: (4.5 + stacks * 1.5) / 100 };
+    },
+  },
+  // --- Legend: Bloodline ---
+  {
+    id: 'legend-bloodline',
+    type: 'rune',
+    runeId: 9103,
+    nameEn: 'Legend: Bloodline',
+    nameJa: '栄華: 血脈',
+    descriptionEn: '+0.35% life steal per stack (max 10), +85 HP at max',
+    descriptionJa: 'スタック毎+0.35% LS (最大10), 最大時+85 HP',
+    inputType: 'number',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    calc: (stacks) => {
+      const ls = stacks * 0.35;
+      const hp = stacks >= 10 ? 85 : 0;
+      const result: Record<string, number> = {};
+      if (ls > 0) result.lifeSteal = ls / 100;
+      if (hp > 0) result.hp = hp;
+      return result;
+    },
+  },
+  // --- Legend: Haste ---
+  {
+    id: 'legend-haste',
+    type: 'rune',
+    runeId: 9105,
+    nameEn: 'Legend: Haste',
+    nameJa: '栄華: ヘイスト',
+    descriptionEn: '+1.5 AH per stack (max 10), +5% tenacity at max',
+    descriptionJa: 'スタック毎+1.5 AH (最大10), 最大時+5% テナシティ',
+    inputType: 'number',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    calc: (stacks) => {
+      const ah = stacks * 1.5;
+      const result: Record<string, number> = {};
+      if (ah > 0) result.abilityHaste = ah;
+      if (stacks >= 10) result.tenacity = 0.05;
+      return result;
+    },
+  },
+  // --- Jack of All Trades (AD) ---
+  {
+    id: 'jack-of-all-trades-ad',
+    type: 'rune',
+    runeId: 8316,
+    nameEn: 'Jack of All Trades (AD)',
+    nameJa: '何でも屋 (AD)',
+    descriptionEn: '+1 AH per unique stat. +6 AD at 5, +15 AD at 10',
+    descriptionJa: 'ユニークステータス毎+1 AH. 5種で+6AD, 10種で追加+9AD',
+    inputType: 'number',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    calc: (stacks) => {
+      const result: Record<string, number> = {};
+      if (stacks > 0) result.abilityHaste = stacks;
+      let ad = 0;
+      if (stacks >= 5) ad += 6;
+      if (stacks >= 10) ad += 9;
+      if (ad > 0) result.ad = ad;
+      return result;
+    },
+  },
+  // --- Jack of All Trades (AP) ---
+  {
+    id: 'jack-of-all-trades-ap',
+    type: 'rune',
+    runeId: 8316,
+    nameEn: 'Jack of All Trades (AP)',
+    nameJa: '何でも屋 (AP)',
+    descriptionEn: '+1 AH per unique stat. +10 AP at 5, +25 AP at 10',
+    descriptionJa: 'ユニークステータス毎+1 AH. 5種で+10AP, 10種で追加+15AP',
+    inputType: 'number',
+    min: 0,
+    max: 10,
+    defaultValue: 0,
+    calc: (stacks) => {
+      const result: Record<string, number> = {};
+      if (stacks > 0) result.abilityHaste = stacks;
+      let ap = 0;
+      if (stacks >= 5) ap += 10;
+      if (stacks >= 10) ap += 15;
+      if (ap > 0) result.ap = ap;
+      return result;
+    },
+  },
+  // --- Shield Bash: AR/MR while shielded ---
+  {
+    id: 'shield-bash-defense',
+    type: 'rune',
+    runeId: 8401,
+    nameEn: 'Shield Bash (Defense)',
+    nameJa: 'シールドバッシュ (防御)',
+    descriptionEn: '+1-10 AR/MR while shielded (by level)',
+    descriptionJa: 'シールド時: +1-10 AR/MR (レベル依存)',
+    inputType: 'toggle',
+    defaultValue: 0,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      const bonus = 1 + (10 - 1) / 17 * ((level ?? 1) - 1);
+      return { armor: bonus, mr: bonus };
+    },
+  },
+  // --- Revitalize: heal/shield power boost ---
+  {
+    id: 'revitalize',
+    type: 'rune',
+    runeId: 8453,
+    nameEn: 'Revitalize',
+    nameJa: '生命の泉',
+    descriptionEn: '+5% heal/shield power (+10% more below 40% HP)',
+    descriptionJa: '回復/シールド+5% (HP40%以下で追加+10%)',
+    inputType: 'toggle',
+    defaultValue: 0,
+    calc: () => ({}), // Handled in simulator-client.tsx heal/shield calculations
+  },
+  // --- Cosmic Insight ---
+  {
+    id: 'cosmic-insight',
+    type: 'rune',
+    runeId: 8347,
+    nameEn: 'Cosmic Insight',
+    nameJa: '宇宙の英知',
+    descriptionEn: '+18 summoner haste, +10 item haste',
+    descriptionJa: '+18 サモナーヘイスト, +10 アイテムヘイスト',
+    inputType: 'toggle',
+    defaultValue: 0,
+    calc: (enabled) => {
+      if (!enabled) return {};
+      return { abilityHaste: 10 }; // Item haste approx as AH
+    },
+  },
+  // --- Magical Footwear ---
+  {
+    id: 'magical-footwear',
+    type: 'rune',
+    runeId: 8304,
+    nameEn: 'Magical Footwear',
+    nameJa: '魔法の靴',
+    descriptionEn: '+10 bonus MS (Slightly Magical Boots)',
+    descriptionJa: '+10 移動速度 (ちょっぴり魔法の靴)',
+    inputType: 'toggle',
+    defaultValue: 0,
+    calc: (enabled) => {
+      if (!enabled) return {};
+      return { moveSpeed: 10 };
     },
   },
 ];

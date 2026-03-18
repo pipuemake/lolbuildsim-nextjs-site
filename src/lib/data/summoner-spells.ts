@@ -53,6 +53,7 @@ export const SUMMONER_SPELLS: SummonerSpell[] = [
     nameJa: 'バリア',
     image: 'SummonerBarrier.png',
     cooldown: 180,
+    shield: (level: number) => 105 + 15 * level,
   },
   {
     id: 'SummonerExhaust',

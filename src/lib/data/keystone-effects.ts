@@ -93,10 +93,17 @@ export const SUBRUNE_IDS = {
   LAST_STAND: 8299,
   // Resolve slot 3
   UNFLINCHING: 8242,
+  REVITALIZE: 8453,
+  // Precision slot 2
+  LEGEND_ALACRITY: 9104,
+  LEGEND_BLOODLINE: 9103,
+  LEGEND_HASTE: 9105,
   // Inspiration
   BISCUIT_DELIVERY: 8345,
   TRIPLE_TONIC: 8313,
   JACK_OF_ALL_TRADES: 8316,
+  COSMIC_INSIGHT: 8347,
+  MAGICAL_FOOTWEAR: 8304,
 } as const;
 
 /** Whether attackRange qualifies as melee (<=350). */
@@ -226,6 +233,12 @@ export const HAIL_OF_BLADES_ATTACKS = 2;
 export function calcAeryDamage(level: number, bonusAD: number, ap: number): number {
   const base = 10 + (44.71 / 17) * (level - 1);
   return base + 0.10 * bonusAD + 0.05 * ap;
+}
+
+/** Summon Aery shield: 30-75 (level) + 25% bonusAD + 12.5% AP. */
+export function calcAeryShield(level: number, bonusAD: number, ap: number): number {
+  const base = 30 + (45 / 17) * (level - 1);
+  return base + 0.25 * bonusAD + 0.125 * ap;
 }
 
 // ===== Arcane Comet =====
@@ -380,6 +393,34 @@ export function calcJackBonus(stacks: number, isAdaptiveAD: boolean): { abilityH
   return { abilityHaste: ah, ad, ap };
 }
 
+// ===== Shield Bash =====
+
+/** Shield Bash: while shielded, gain 1-10 bonus AR/MR (by level). */
+export function calcShieldBashDefense(level: number): { armor: number; mr: number } {
+  const bonus = 1 + (10 - 1) / 17 * (level - 1);
+  return { armor: bonus, mr: bonus };
+}
+
+/** Shield Bash damage: 5-30 (by level) + 2.5% bonus HP + 15% shield amount. Adaptive. */
+export function calcShieldBashDamage(level: number, bonusHp: number, shieldAmount: number): number {
+  const base = 5 + (30 - 5) / 17 * (level - 1);
+  return base + 0.025 * bonusHp + 0.15 * shieldAmount;
+}
+
+// ===== Revitalize =====
+
+/** Revitalize: heal/shield power multiplier. +5% base, +10% more when below 40% HP. */
+export function calcRevitalizeMultiplier(currentHpPct: number): number {
+  const base = 1.05;
+  return currentHpPct <= 0.40 ? base * 1.10 : base;
+}
+
+// ===== Cosmic Insight =====
+// +18 summoner spell haste, +10 item haste (handled as stat bonus in champion-bonuses.ts)
+
+// ===== Magical Footwear =====
+// +10 bonus MS (handled as stat bonus in champion-bonuses.ts)
+
 // =============================================
 // Sub-runes that should be charge-managed in combo bar
 // =============================================
@@ -390,4 +431,5 @@ export const CHARGE_SUBRUNE_IDS: number[] = [
   SUBRUNE_IDS.SCORCH,
   SUBRUNE_IDS.BONE_PLATING,
   SUBRUNE_IDS.SECOND_WIND,
+  SUBRUNE_IDS.SHIELD_BASH,
 ];
