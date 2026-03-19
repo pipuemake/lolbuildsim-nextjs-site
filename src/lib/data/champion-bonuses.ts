@@ -551,6 +551,94 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
     },
   },
 
+  // --- Ambessa: Public Execution (R) ---
+  // Passive: 15/20/25% armor penetration by R rank
+  {
+    id: 'ambessa-r-arpen',
+    championId: 'Ambessa',
+    type: 'passive',
+    nameEn: 'Public Execution (R) Armor Pen',
+    nameJa: '公開処刑 (R) 物理防御貫通',
+    descriptionEn: 'R passive: 15/20/25% armor pen (by R rank)',
+    descriptionJa: 'Rパッシブ: 15/20/25% 物理防御貫通 (Rランク依存)',
+    inputType: 'toggle',
+    defaultValue: 1,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      const rRank = level >= 16 ? 3 : level >= 11 ? 2 : level >= 6 ? 1 : 0;
+      if (rRank === 0) return {};
+      const pen = rRank === 1 ? 0.15 : rRank === 2 ? 0.20 : 0.25;
+      return { percentArmorPen: pen };
+    },
+  },
+
+  // --- Darius: Apprehend (E) ---
+  // Passive: 15/20/25/30/35% armor penetration by E rank
+  {
+    id: 'darius-e-arpen',
+    championId: 'Darius',
+    type: 'passive',
+    nameEn: 'Apprehend (E) Armor Pen',
+    nameJa: 'アプリヘンド (E) 物理防御貫通',
+    descriptionEn: 'E passive: 15/20/25/30/35% armor pen (by E rank)',
+    descriptionJa: 'Eパッシブ: 15/20/25/30/35% 物理防御貫通 (Eランク依存)',
+    inputType: 'toggle',
+    defaultValue: 1,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      // Estimate E rank from level: E is typically maxed 2nd (after Q)
+      // At level 1-3: E rank 0-1, 4-5: 1, 8: 2, 10: 3, 12: 4, 13+: 5
+      // Simple approach: use level to estimate rank (E usually taken at 4,8,10,12,13)
+      const eRank = level >= 13 ? 5 : level >= 12 ? 4 : level >= 10 ? 3 : level >= 8 ? 2 : level >= 4 ? 1 : 0;
+      if (eRank === 0) return {};
+      const pen = [0.15, 0.20, 0.25, 0.30, 0.35][eRank - 1];
+      return { percentArmorPen: pen };
+    },
+  },
+
+  // --- Mordekaiser: Death's Grasp (E) ---
+  // Passive: 5/7.5/10/12.5/15% magic penetration by E rank
+  {
+    id: 'mordekaiser-e-mpen',
+    championId: 'Mordekaiser',
+    type: 'passive',
+    nameEn: "Death's Grasp (E) Magic Pen",
+    nameJa: 'デスグラスプ (E) 魔法防御貫通',
+    descriptionEn: 'E passive: 5/7.5/10/12.5/15% magic pen (by E rank)',
+    descriptionJa: 'Eパッシブ: 5/7.5/10/12.5/15% 魔法防御貫通 (Eランク依存)',
+    inputType: 'toggle',
+    defaultValue: 1,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      // E usually maxed last; taken at 3, then leveled 8,10,12,13
+      const eRank = level >= 13 ? 5 : level >= 12 ? 4 : level >= 10 ? 3 : level >= 8 ? 2 : level >= 3 ? 1 : 0;
+      if (eRank === 0) return {};
+      const pen = [0.05, 0.075, 0.10, 0.125, 0.15][eRank - 1];
+      return { percentMagicPen: pen };
+    },
+  },
+
+  // --- Pantheon: Grand Starfall (R) ---
+  // Passive: 10/20/30% armor penetration by R rank
+  {
+    id: 'pantheon-r-arpen',
+    championId: 'Pantheon',
+    type: 'passive',
+    nameEn: 'Grand Starfall (R) Armor Pen',
+    nameJa: 'グランドスターフォール (R) 物理防御貫通',
+    descriptionEn: 'R passive: 10/20/30% armor pen (by R rank)',
+    descriptionJa: 'Rパッシブ: 10/20/30% 物理防御貫通 (Rランク依存)',
+    inputType: 'toggle',
+    defaultValue: 1,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      const rRank = level >= 16 ? 3 : level >= 11 ? 2 : level >= 6 ? 1 : 0;
+      if (rRank === 0) return {};
+      const pen = rRank === 1 ? 0.10 : rRank === 2 ? 0.20 : 0.30;
+      return { percentArmorPen: pen };
+    },
+  },
+
   // --- Quinn: no stat bonus passive for damage calc ---
 
   // --- Jarvan IV: no toggleable stat bonus ---
