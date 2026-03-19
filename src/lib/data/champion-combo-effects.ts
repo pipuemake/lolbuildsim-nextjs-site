@@ -3329,15 +3329,15 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     },
   },
 
-  // --- Yunara: Cultivation of Spirit (Q) On-Hit ---
-  // Q passive: 5-25 + 20%AP magic on-hit. Q active doubles it: 10-50 + 40%AP.
+  // --- Yunara: Cultivation of Spirit (Q) On-Hit (Normal) ---
+  // Q passive: 5-25 + 20%AP magic on-hit
   {
     id: 'yunara-q-onhit',
     championId: 'Yunara',
     nameEn: 'Cultivation of Spirit (Q) On-Hit',
     nameJa: '精神修養 (Q) オンヒット',
-    descriptionEn: 'Q on-hit: 5-25 + 20%AP magic (doubled during Q active).',
-    descriptionJa: 'Qオンヒット: 5-25 + 20%AP 魔法DM (Q発動中2倍)。',
+    descriptionEn: 'Q on-hit: 5-25 + 20%AP magic.',
+    descriptionJa: 'Qオンヒット: 5-25 + 20%AP 魔法DM。',
     inputType: 'stack',
     min: 0,
     max: 10,
@@ -3353,15 +3353,14 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
       },
     },
   },
-  // --- Yunara: Vow of the First Lands (P) ---
-  // Crit strikes deal 10% + 10%/100AP bonus magic damage
+  // --- Yunara: Cultivation of Spirit (Q) On-Hit (R中: 2倍) ---
   {
-    id: 'yunara-passive',
+    id: 'yunara-q-onhit-r',
     championId: 'Yunara',
-    nameEn: 'Vow of the First Lands (P) Crit Procs',
-    nameJa: '始まりの地への誓い (P) クリティカル発動数',
-    descriptionEn: 'Crit: 10% + 10%/100AP bonus magic damage per crit.',
-    descriptionJa: 'クリティカル: 10% + 10%/100AP ボーナス魔法DM。',
+    nameEn: 'Q On-Hit (R: doubled)',
+    nameJa: 'Q オンヒット (R中: 2倍)',
+    descriptionEn: 'R active: on-hit doubled to 10-50 + 40%AP magic.',
+    descriptionJa: 'R中: オンヒット2倍 10-50 + 40%AP 魔法DM。',
     inputType: 'stack',
     min: 0,
     max: 10,
@@ -3369,10 +3368,34 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     onHit: {
       damageType: 'magic',
       perCombo: true,
+      calc: (procs, attacker, _target, level) => {
+        if (procs <= 0) return 0;
+        const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+        const base = [10, 20, 30, 40, 50][qRank - 1];
+        return (base + attacker.ap * 0.40) * procs;
+      },
+    },
+  },
+  // --- Yunara: Vow of the First Lands (P) ---
+  // Crit strikes deal 10% + 10%/100AP bonus magic damage — auto-linked to crit count
+  {
+    id: 'yunara-passive',
+    championId: 'Yunara',
+    nameEn: 'Vow of the First Lands (P)',
+    nameJa: '始まりの地への誓い (P)',
+    descriptionEn: 'Crit: 10% + 10%/100AP bonus magic damage (auto: crit count).',
+    descriptionJa: 'クリティカル: 10% + 10%/100AP ボーナス魔法DM（クリティカル数に自動連動）。',
+    inputType: 'stack',
+    min: 0,
+    max: 99,
+    defaultValue: 0,
+    critLinked: true,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
       calc: (procs, attacker) => {
         if (procs <= 0) return 0;
         const bonusPct = 0.10 + 0.10 * (attacker.ap / 100);
-        // Bonus magic damage = bonusPct * AD (crit damage base)
         return bonusPct * attacker.ad * procs;
       },
     },

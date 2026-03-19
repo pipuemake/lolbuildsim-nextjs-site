@@ -659,24 +659,22 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     {
       skillKey: 'Q',
       subCasts: [
-        { id: 'Q1', nameEn: 'Emberstrike (1st)', nameJa: 'エンバーストライク (1段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'human' },
-        { id: 'Q2', nameEn: 'Emberstrike (2nd)', nameJa: 'エンバーストライク (2段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'human' },
-        { id: 'Q1D', nameEn: 'Emberstrike (1st, Dragon)', nameJa: 'エンバーストライク (1段目, ドラゴン)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'dragon' },
-        { id: 'Q2D', nameEn: 'Emberstrike (2nd, Dragon)', nameJa: 'エンバーストライク (2段目, ドラゴン)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'dragon' },
-        { id: 'Q3D', nameEn: 'Emberstrike Bite (Dragon)', nameJa: 'エンバーストライク 噛みつき (ドラゴン)', baseDamage: [15, 22.5, 30, 37.5, 45], damageType: 'true', scalings: [{ stat: 'ad', ratio: 1.65 }, { stat: 'ap', ratio: 0.375 }], formGroup: 'dragon' },
+        { id: 'Q1', nameEn: 'Emberstrike (1st)', nameJa: 'エンバーストライク (1段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], image: 'https://raw.communitydragon.org/latest/game/assets/characters/shyvana/hud/icons2d/shyvana_q1.shyvana_rework.png' },
+        { id: 'Q2', nameEn: 'Emberstrike (2nd)', nameJa: 'エンバーストライク (2段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], image: 'https://raw.communitydragon.org/latest/game/assets/characters/shyvana/hud/icons2d/shyvana_q2.shyvana_rework.png' },
+        { id: 'Q3', nameEn: 'Emberstrike Bite (Dragon)', nameJa: 'エンバーストライク 噛みつき (ドラゴン)', baseDamage: [15, 22.5, 30, 37.5, 45], damageType: 'true', scalings: [{ stat: 'ad', ratio: 1.65 }, { stat: 'ap', ratio: 0.375 }], image: 'https://raw.communitydragon.org/latest/game/assets/characters/shyvana/hud/icons2d/shyvana_q3.shyvana_rework.png', comboLabel: 'D' },
       ],
     },
     {
       skillKey: 'W',
       subCasts: [
-        { id: 'W1', nameEn: 'Inferno Aegis (explosion)', nameJa: 'インフェルノイージス (爆発)', baseDamage: [80, 100, 120, 140, 160], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.40 }, { stat: 'ap', ratio: 0.20 }] },
+        { id: 'W1', nameEn: 'Inferno Aegis (explosion)', nameJa: 'インフェルノイージス (爆発)', baseDamage: [80, 100, 120, 140, 160], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.40 }, { stat: 'ap', ratio: 0.20 }], image: 'https://raw.communitydragon.org/latest/game/assets/characters/shyvana/hud/icons2d/shyvana_w2.shyvana_rework.png' },
       ],
     },
     {
       skillKey: 'E',
       subCasts: [
-        { id: 'E1', nameEn: 'Molten Burst (Human)', nameJa: 'モルテンバースト (人間)', baseDamage: [80, 110, 140, 170, 200], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.35 }, { stat: 'ap', ratio: 0.70 }], formGroup: 'human' },
-        { id: 'E2', nameEn: 'Molten Burst (Dragon, +25%)', nameJa: 'モルテンバースト (ドラゴン, +25%)', baseDamage: [100, 137.5, 175, 212.5, 250], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.4375 }, { stat: 'ap', ratio: 0.875 }], formGroup: 'dragon' },
+        { id: 'E1', nameEn: 'Molten Burst', nameJa: 'モルテンバースト', baseDamage: [80, 110, 140, 170, 200], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.35 }, { stat: 'ap', ratio: 0.70 }] },
+        { id: 'E2', nameEn: 'Molten Burst (Dragon, +25%)', nameJa: 'モルテンバースト (ドラゴン, +25%)', baseDamage: [100, 137.5, 175, 212.5, 250], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.4375 }, { stat: 'ap', ratio: 0.875 }], comboLabel: 'D' },
       ],
     },
     {
@@ -1499,14 +1497,14 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
 
   // ── Yunara (ユナラ) ──
   // W: Arc of Judgment (通常) / Arc of Ruin (R中)
-  // R: Transcend One's Self — no direct damage, empowers W/E
+  // R: Transcend One's Self — no direct damage, empowers W/E/Q
   Yunara: [
     {
       skillKey: 'W',
       subCasts: [
         { id: 'W1', nameEn: 'Arc of Judgment (impact)', nameJa: '裁きの弧 (着弾)', baseDamage: [55, 95, 135, 175, 215], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.85 }, { stat: 'ap', ratio: 0.50 }] },
         { id: 'W2', nameEn: 'Arc of Judgment (linger)', nameJa: '裁きの弧 (残留)', baseDamage: [33, 57, 81, 105, 129], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.51 }, { stat: 'ap', ratio: 0.30 }] },
-        { id: 'W3', nameEn: 'Arc of Ruin (R)', nameJa: '滅びの弧 (R中)', baseDamage: [160, 320, 480], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 1.20 }, { stat: 'ap', ratio: 0.75 }], formGroup: 'transcendent' },
+        { id: 'W3', nameEn: 'Arc of Ruin (R)', nameJa: '滅びの弧 (R中)', baseDamage: [160, 320, 480], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 1.20 }, { stat: 'ap', ratio: 0.75 }] },
       ],
     },
   ],

@@ -352,53 +352,8 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
     }),
   },
   // --- Ornn: Living Forge (P) ---
-  // Can upgrade items (Masterwork items). Grants +10% bonus AR/MR/HP
-  // --- Ornn: Living Forge (P) ---
-  // Input = total bonus AR+MR+HP from items. Grants +10% of each.
-  // Since calc only receives a single value + level, user enters total bonus AR.
-  // Split into 3 separate entries for AR, MR, HP.
-  {
-    id: 'ornn-passive-ar',
-    championId: 'Ornn',
-    type: 'stack',
-    nameEn: 'Living Forge (P) Bonus AR',
-    nameJa: 'リビングフォージ (P) 増加AR',
-    descriptionEn: 'Enter bonus armor from items. Grants +10%.',
-    descriptionJa: 'アイテムの増加ARを入力。+10%付与。',
-    inputType: 'number',
-    min: 0,
-    max: 500,
-    defaultValue: 0,
-    calc: (bonusAr) => (bonusAr > 0 ? { armor: Math.floor(bonusAr * 0.10) } : {}),
-  },
-  {
-    id: 'ornn-passive-mr',
-    championId: 'Ornn',
-    type: 'stack',
-    nameEn: 'Living Forge (P) Bonus MR',
-    nameJa: 'リビングフォージ (P) 増加MR',
-    descriptionEn: 'Enter bonus MR from items. Grants +10%.',
-    descriptionJa: 'アイテムの増加MRを入力。+10%付与。',
-    inputType: 'number',
-    min: 0,
-    max: 500,
-    defaultValue: 0,
-    calc: (bonusMr) => (bonusMr > 0 ? { mr: Math.floor(bonusMr * 0.10) } : {}),
-  },
-  {
-    id: 'ornn-passive-hp',
-    championId: 'Ornn',
-    type: 'stack',
-    nameEn: 'Living Forge (P) Bonus HP',
-    nameJa: 'リビングフォージ (P) 増加HP',
-    descriptionEn: 'Enter bonus HP from items. Grants +10%.',
-    descriptionJa: 'アイテムの増加HPを入力。+10%付与。',
-    inputType: 'number',
-    min: 0,
-    max: 5000,
-    defaultValue: 0,
-    calc: (bonusHp) => (bonusHp > 0 ? { hp: Math.floor(bonusHp * 0.10) } : {}),
-  },
+  // Masterwork item upgrades and % bonus AR/MR/HP are now calculated automatically
+  // in simulator-client.tsx via ornn-masterwork.ts
   // --- Cho'Gath R already exists above ---
   // --- Jhin: Whisper (P) ---
   // Every 1% crit = +0.3% AD, every 1% bonus AS = +0.25 AD
@@ -1082,22 +1037,7 @@ export const RUNE_BONUSES: ChampionBonusDefinition[] = [
     defaultValue: 0,
     calc: () => ({}), // Handled in simulator-client.tsx heal/shield calculations
   },
-  // --- Cosmic Insight ---
-  {
-    id: 'cosmic-insight',
-    type: 'rune',
-    runeId: 8347,
-    nameEn: 'Cosmic Insight',
-    nameJa: '宇宙の英知',
-    descriptionEn: '+18 summoner haste, +10 item haste',
-    descriptionJa: '+18 サモナーヘイスト, +10 アイテムヘイスト',
-    inputType: 'toggle',
-    defaultValue: 0,
-    calc: (enabled) => {
-      if (!enabled) return {};
-      return { abilityHaste: 10 }; // Item haste approx as AH
-    },
-  },
+  // --- Cosmic Insight: summoner haste + item haste only, no combat stats ---
   // --- Magical Footwear ---
   {
     id: 'magical-footwear',

@@ -88,6 +88,10 @@ import {
   calcRevitalizeMultiplier,
   calcAeryShield,
 } from "@/lib/data/keystone-effects";
+import {
+  calculateMasterworkBonusForItem,
+  calculateOrnnPercentBonus,
+} from "@/lib/calc/ornn-masterwork";
 import { calcDPS } from "@/lib/calc/dps";
 import { calcEffectiveHP } from "@/lib/calc/effective-hp";
 import { getHasteInfo } from "@/lib/calc/haste";
@@ -419,6 +423,16 @@ function SimulatorInner() {
   const [allyRuneItemCharges, setAllyRuneItemCharges] = useState<Record<string, number>>({});
   const [enemyRuneItemCharges, setEnemyRuneItemCharges] = useState<Record<string, number>>({});
 
+  // Role quest state
+  const [allyTopQuest, setAllyTopQuest] = useState(false);
+  const [allyBotQuest, setAllyBotQuest] = useState(false);
+  const [enemyTopQuest, setEnemyTopQuest] = useState(false);
+  const [enemyBotQuest, setEnemyBotQuest] = useState(false);
+
+  // Masterwork slot: which item slot (0-5) has Ornn masterwork upgrade, or null
+  const [allyMasterworkSlot, setAllyMasterworkSlot] = useState<number | null>(null);
+  const [enemyMasterworkSlot, setEnemyMasterworkSlot] = useState<number | null>(null);
+
   // Enemy state
   const [enemyChampion, setEnemyChampion] = useState<Champion | null>(null);
   const [enemyLevel, setEnemyLevel] = useState(1);
@@ -668,6 +682,42 @@ function SimulatorInner() {
     enemySkillRanks,
   ]);
 
+  // TOP quest: clamp level to 18 when disabled
+  useEffect(() => {
+    if (!allyTopQuest && allyLevel > 18) setAllyLevel(18);
+  }, [allyTopQuest, allyLevel]);
+  useEffect(() => {
+    if (!enemyTopQuest && enemyLevel > 18) setEnemyLevel(18);
+  }, [enemyTopQuest, enemyLevel]);
+
+  // BOT quest: expand/shrink items array
+  useEffect(() => {
+    if (allyBotQuest && allyItems.length < 7) {
+      setAllyItems(prev => [...prev, null]);
+    } else if (!allyBotQuest && allyItems.length > 6) {
+      setAllyItems(prev => prev.slice(0, 6));
+    }
+  }, [allyBotQuest, allyItems.length]);
+  useEffect(() => {
+    if (enemyBotQuest && enemyItems.length < 7) {
+      setEnemyItems(prev => [...prev, null]);
+    } else if (!enemyBotQuest && enemyItems.length > 6) {
+      setEnemyItems(prev => prev.slice(0, 6));
+    }
+  }, [enemyBotQuest, enemyItems.length]);
+
+  // Clear masterwork if the slot's item is removed
+  useEffect(() => {
+    if (allyMasterworkSlot !== null && !allyItems[allyMasterworkSlot]) {
+      setAllyMasterworkSlot(null);
+    }
+  }, [allyMasterworkSlot, allyItems]);
+  useEffect(() => {
+    if (enemyMasterworkSlot !== null && !enemyItems[enemyMasterworkSlot]) {
+      setEnemyMasterworkSlot(null);
+    }
+  }, [enemyMasterworkSlot, enemyItems]);
+
   // Reset ally side
   const handleResetAlly = useCallback(() => {
     const defaultRuneValues: SelectedRunes = {
@@ -704,6 +754,9 @@ function SimulatorInner() {
     setAllySylasRSkill(null);
     setAllyRuneCharges({});
     setAllyRuneItemCharges({});
+    setAllyTopQuest(false);
+    setAllyBotQuest(false);
+    setAllyMasterworkSlot(null);
   }, [runePaths]);
 
   // Reset enemy side
@@ -742,6 +795,9 @@ function SimulatorInner() {
     setEnemySylasRSkill(null);
     setEnemyRuneCharges({});
     setEnemyRuneItemCharges({});
+    setEnemyTopQuest(false);
+    setEnemyBotQuest(false);
+    setEnemyMasterworkSlot(null);
   }, [runePaths]);
 
   // Reset all state
@@ -779,6 +835,9 @@ function SimulatorInner() {
     const tmpSylasRSkill = allySylasRSkill;
     const tmpRuneCharges = allyRuneCharges;
     const tmpRuneItemCharges = allyRuneItemCharges;
+    const tmpTopQuest = allyTopQuest;
+    const tmpBotQuest = allyBotQuest;
+    const tmpMasterworkSlot = allyMasterworkSlot;
 
     setAllyChampion(enemyChampion);
     setAllyLevel(enemyLevel);
@@ -805,6 +864,9 @@ function SimulatorInner() {
     setAllySylasRSkill(enemySylasRSkill);
     setAllyRuneCharges(enemyRuneCharges);
     setAllyRuneItemCharges(enemyRuneItemCharges);
+    setAllyTopQuest(enemyTopQuest);
+    setAllyBotQuest(enemyBotQuest);
+    setAllyMasterworkSlot(enemyMasterworkSlot);
 
     setEnemyChampion(tmpChamp);
     setEnemyLevel(tmpLevel);
@@ -831,17 +893,22 @@ function SimulatorInner() {
     setEnemySylasRSkill(tmpSylasRSkill);
     setEnemyRuneCharges(tmpRuneCharges);
     setEnemyRuneItemCharges(tmpRuneItemCharges);
+    setEnemyTopQuest(tmpTopQuest);
+    setEnemyBotQuest(tmpBotQuest);
+    setEnemyMasterworkSlot(tmpMasterworkSlot);
   }, [
     allyChampion, allyLevel, allyItems, allyRunes, allySkillRanks, allySkills,
     allyBonusValues, allyGenericBonuses, allyComboCounts, allyAACounts, allyCritCount,
     allySummoners, allySummonerActive, allyItemActiveToggles, allyOnHitToggles,
     allyItemStacks, allyHealCharges, allyComboPassiveValues, allyDistanceMultipliers,
     allyFormGroup, allySylasRChampId, allySylasRSkill, allyRuneCharges,
+    allyTopQuest, allyBotQuest, allyMasterworkSlot,
     enemyChampion, enemyLevel, enemyItems, enemyRunes, enemySkillRanks, enemySkills,
     enemyBonusValues, enemyGenericBonuses, enemyComboCounts, enemyAACounts, enemyCritCount,
     enemySummoners, enemySummonerActive, enemyItemActiveToggles, enemyOnHitToggles,
     enemyItemStacks, enemyHealCharges, enemyComboPassiveValues, enemyDistanceMultipliers,
     enemyFormGroup, enemySylasRChampId, enemySylasRSkill, enemyRuneCharges,
+    enemyTopQuest, enemyBotQuest, enemyMasterworkSlot,
   ]);
 
   // Fetch Meraki skill data when champion changes, then apply overrides
@@ -1019,12 +1086,36 @@ function SimulatorInner() {
     return getChampionComboPassives(enemyChampion.id);
   }, [enemyChampion]);
 
-  // Helper: clamp aaLinked passive values to current AA count
+  // Helper: clamp aaLinked passive values to current AA count, auto-resolve critLinked
   const getPassiveVal = useCallback((p: ChampionComboPassive, values: Record<string, number>, aaCounts: number) => {
+    if (p.critLinked) return values[p.id] ?? 0;
     const raw = values[p.id] ?? p.defaultValue;
     if (p.aaLinked) return Math.min(raw, aaCounts);
     return raw;
   }, []);
+
+  // Auto-sync critLinked passive values with crit count
+  useEffect(() => {
+    for (const p of allyComboPassives) {
+      if (p.critLinked) {
+        setAllyComboPassiveValues((prev) => {
+          if (prev[p.id] === allyCritCount) return prev;
+          return { ...prev, [p.id]: allyCritCount };
+        });
+      }
+    }
+  }, [allyCritCount, allyComboPassives]);
+
+  useEffect(() => {
+    for (const p of enemyComboPassives) {
+      if (p.critLinked) {
+        setEnemyComboPassiveValues((prev) => {
+          if (prev[p.id] === enemyCritCount) return prev;
+          return { ...prev, [p.id]: enemyCritCount };
+        });
+      }
+    }
+  }, [enemyCritCount, enemyComboPassives]);
 
   // Compute combo passive stat bonuses
   const allyComboPassiveStatBonus = useMemo<BonusStats>(() => {
@@ -1279,6 +1370,37 @@ function SimulatorInner() {
         if (bonus.ap > 0) base.ap = (base.ap ?? 0) + bonus.ap;
       }
     }
+    // Masterwork: apply +1000g stats to the selected masterwork item
+    if (allyMasterworkSlot !== null && allyItems[allyMasterworkSlot]) {
+      const mwItem = itemById.get(allyItems[allyMasterworkSlot]!);
+      if (mwItem) {
+        const mwBonus = calculateMasterworkBonusForItem(mwItem);
+        for (const [k, v] of Object.entries(mwBonus)) {
+          if (v) (base as Record<string, number>)[k] = ((base as Record<string, number>)[k] ?? 0) + (v as number);
+        }
+      }
+    }
+    // Ornn-only: percentage bonus on ALL bonus AR/MR/HP (10% + 4% per upgrade)
+    if (allyChampion?.id === 'Ornn' && allyLevel >= 13) {
+      const equippedItems = resolveItems(allyItems);
+      // upgradeCount = 1 for self in 1v1 context
+      const upgradeCount = allyMasterworkSlot !== null ? 1 : 0;
+      let itemAr = 0, itemMr = 0, itemHp = 0;
+      for (const item of equippedItems) {
+        itemAr += item.stats.armor ?? 0;
+        itemMr += item.stats.mr ?? 0;
+        itemHp += item.stats.hp ?? 0;
+      }
+      const pctBonus = calculateOrnnPercentBonus(
+        upgradeCount,
+        (base.armor ?? 0) + itemAr,
+        (base.mr ?? 0) + itemMr,
+        (base.hp ?? 0) + itemHp,
+      );
+      base.armor = (base.armor ?? 0) + (pctBonus.armor ?? 0);
+      base.mr = (base.mr ?? 0) + (pctBonus.mr ?? 0);
+      base.hp = (base.hp ?? 0) + (pctBonus.hp ?? 0);
+    }
     return base;
   }, [
     allyChampionBonuses,
@@ -1292,6 +1414,9 @@ function SimulatorInner() {
     allyRuneItemCharges,
     allyRunes,
     allyItems,
+    allyChampion,
+    allyMasterworkSlot,
+    itemById,
     resolveItems,
   ]);
 
@@ -1339,6 +1464,36 @@ function SimulatorInner() {
         if (bonus.ap > 0) base.ap = (base.ap ?? 0) + bonus.ap;
       }
     }
+    // Masterwork: apply +1000g stats to the selected masterwork item
+    if (enemyMasterworkSlot !== null && enemyItems[enemyMasterworkSlot]) {
+      const mwItem = itemById.get(enemyItems[enemyMasterworkSlot]!);
+      if (mwItem) {
+        const mwBonus = calculateMasterworkBonusForItem(mwItem);
+        for (const [k, v] of Object.entries(mwBonus)) {
+          if (v) (base as Record<string, number>)[k] = ((base as Record<string, number>)[k] ?? 0) + (v as number);
+        }
+      }
+    }
+    // Ornn-only: percentage bonus on ALL bonus AR/MR/HP
+    if (enemyChampion?.id === 'Ornn' && enemyLevel >= 13) {
+      const equippedItems = resolveItems(enemyItems);
+      const upgradeCount = enemyMasterworkSlot !== null ? 1 : 0;
+      let itemAr = 0, itemMr = 0, itemHp = 0;
+      for (const item of equippedItems) {
+        itemAr += item.stats.armor ?? 0;
+        itemMr += item.stats.mr ?? 0;
+        itemHp += item.stats.hp ?? 0;
+      }
+      const pctBonus = calculateOrnnPercentBonus(
+        upgradeCount,
+        (base.armor ?? 0) + itemAr,
+        (base.mr ?? 0) + itemMr,
+        (base.hp ?? 0) + itemHp,
+      );
+      base.armor = (base.armor ?? 0) + (pctBonus.armor ?? 0);
+      base.mr = (base.mr ?? 0) + (pctBonus.mr ?? 0);
+      base.hp = (base.hp ?? 0) + (pctBonus.hp ?? 0);
+    }
     return base;
   }, [
     enemyChampionBonuses,
@@ -1352,6 +1507,9 @@ function SimulatorInner() {
     enemyRuneItemCharges,
     enemyRunes,
     enemyItems,
+    enemyChampion,
+    enemyMasterworkSlot,
+    itemById,
     resolveItems,
   ]);
 
@@ -3601,7 +3759,36 @@ function SimulatorInner() {
               level={allyLevel}
               onLevelChange={setAllyLevel}
               locale={locale}
+              maxLevel={allyTopQuest ? 20 : 18}
             />
+            <div className="flex items-center gap-4 px-4 py-1.5 bg-card border border-border text-xs">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allyTopQuest}
+                  onChange={(e) => {
+                    setAllyTopQuest(e.target.checked);
+                    if (e.target.checked) setAllyBotQuest(false);
+                  }}
+                  className="accent-[#C89B3C] w-3.5 h-3.5"
+                />
+                <span className="text-zinc-400">{locale === "ja" ? "TOPクエスト" : "TOP Quest"}</span>
+                <span className="text-zinc-600">(Lv.20)</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allyBotQuest}
+                  onChange={(e) => {
+                    setAllyBotQuest(e.target.checked);
+                    if (e.target.checked) setAllyTopQuest(false);
+                  }}
+                  className="accent-[#C89B3C] w-3.5 h-3.5"
+                />
+                <span className="text-zinc-400">{locale === "ja" ? "BOTクエスト" : "BOT Quest"}</span>
+                <span className="text-zinc-600">({locale === "ja" ? "ブーツ枠+1" : "Boots +1"})</span>
+              </label>
+            </div>
             {allyChampion && (
               <SkillComboBar
                 champion={allyChampion}
@@ -3659,6 +3846,9 @@ function SimulatorInner() {
               locale={locale}
               version={version}
               enItemData={enItemData}
+              bootsSlot={allyBotQuest}
+              masterworkSlot={allyMasterworkSlot}
+              onMasterworkChange={setAllyMasterworkSlot}
             />
             <CollapsibleSection title={locale === "ja" ? "ルーン" : "Runes"}>
               <RuneSelector
@@ -3903,7 +4093,36 @@ function SimulatorInner() {
               level={enemyLevel}
               onLevelChange={setEnemyLevel}
               locale={locale}
+              maxLevel={enemyTopQuest ? 20 : 18}
             />
+            <div className="flex items-center gap-4 px-4 py-1.5 bg-card border border-border text-xs">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={enemyTopQuest}
+                  onChange={(e) => {
+                    setEnemyTopQuest(e.target.checked);
+                    if (e.target.checked) setEnemyBotQuest(false);
+                  }}
+                  className="accent-[#C89B3C] w-3.5 h-3.5"
+                />
+                <span className="text-zinc-400">{locale === "ja" ? "TOPクエスト" : "TOP Quest"}</span>
+                <span className="text-zinc-600">(Lv.20)</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={enemyBotQuest}
+                  onChange={(e) => {
+                    setEnemyBotQuest(e.target.checked);
+                    if (e.target.checked) setEnemyTopQuest(false);
+                  }}
+                  className="accent-[#C89B3C] w-3.5 h-3.5"
+                />
+                <span className="text-zinc-400">{locale === "ja" ? "BOTクエスト" : "BOT Quest"}</span>
+                <span className="text-zinc-600">({locale === "ja" ? "ブーツ枠+1" : "Boots +1"})</span>
+              </label>
+            </div>
             {enemyChampion && (
               <SkillComboBar
                 champion={enemyChampion}
@@ -3961,6 +4180,9 @@ function SimulatorInner() {
               locale={locale}
               version={version}
               enItemData={enItemData}
+              bootsSlot={enemyBotQuest}
+              masterworkSlot={enemyMasterworkSlot}
+              onMasterworkChange={setEnemyMasterworkSlot}
             />
             <CollapsibleSection title={locale === "ja" ? "ルーン" : "Runes"}>
               <RuneSelector

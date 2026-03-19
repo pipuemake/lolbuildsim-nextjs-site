@@ -74,6 +74,7 @@ function ItemSlotButton({
   className,
   onMouseEnter,
   onMouseLeave,
+  title,
 }: {
   onTap: () => void;
   onLongPress: () => void;
@@ -81,6 +82,7 @@ function ItemSlotButton({
   className?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  title?: string;
 }) {
   const { handlers: lp, isTouchRecent } = useLongPress(onTap, onLongPress);
   return (
@@ -95,6 +97,7 @@ function ItemSlotButton({
       style={TOUCH_SUPPRESS_STYLE}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      title={title}
     >
       {children}
     </button>
@@ -245,6 +248,12 @@ interface ItemShopProps {
   locale?: string;
   version: string;
   enItemData?: Record<string, { name: string; description: string }>;
+  /** If true, show a 7th slot (index 6) reserved for Boots only (Bot lane quest) */
+  bootsSlot?: boolean;
+  /** Which slot (0-5) has a masterwork upgrade, or null */
+  masterworkSlot?: number | null;
+  /** Callback to toggle masterwork on a slot */
+  onMasterworkChange?: (slot: number | null) => void;
 }
 
 export function ItemShop({
@@ -254,6 +263,9 @@ export function ItemShop({
   locale = "ja",
   version,
   enItemData,
+  bootsSlot,
+  masterworkSlot,
+  onMasterworkChange,
 }: ItemShopProps) {
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -280,8 +292,14 @@ export function ItemShop({
     });
   }, [items]);
 
+  // When boots slot is active, force boots-only filter
+  const isBootsSlotActive = bootsSlot && activeSlot === 6;
+
   const filteredItems = useMemo(() => {
     return shopItems.filter((item) => {
+      // Boots slot: only show boots items
+      if (isBootsSlotActive && !item.tags.includes("Boots")) return false;
+
       const enName = enItemData?.[item.id]?.name?.toLowerCase() ?? "";
       const matchesSearch =
         search === "" ||
@@ -336,7 +354,7 @@ export function ItemShop({
 
       return matchesSearch;
     });
-  }, [shopItems, search, category]);
+  }, [shopItems, search, category, isBootsSlotActive]);
 
   const itemByIdMap = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
   const getItemById = (id: string | null): Item | undefined => {
@@ -362,7 +380,7 @@ export function ItemShop({
         {totalCost > 0 && (
           <span className="text-[11px] text-zinc-400">
             <span className="text-yellow-500 font-medium">{totalCost}g</span>
-            <span className="text-zinc-500 ml-1">({filledCount}/6)</span>
+            <span className="text-zinc-500 ml-1">({filledCount}/{bootsSlot ? 7 : 6})</span>
           </span>
         )}
       </div>
@@ -420,6 +438,11 @@ export function ItemShop({
                         unoptimized
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded" />
+                      {masterworkSlot === i && (
+                        <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-amber-500 rounded-bl flex items-center justify-center" title={locale === "ja" ? "名匠" : "Masterwork"}>
+                          <span className="text-[8px] text-black font-bold leading-none">M</span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <span className="text-border text-lg group-hover:text-zinc-500 transition-colors">
@@ -439,7 +462,116 @@ export function ItemShop({
             </Tooltip>
           );
         })}
+        {/* 7th slot: boots only (Bot lane quest) */}
+        {bootsSlot && (() => {
+          const bIdx = 6;
+          const bootItem = getItemById(selectedItems[bIdx]);
+          const isBootActive = activeSlot === bIdx;
+          return (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <ItemSlotButton
+                  onTap={() => {
+                    if (isBootActive) {
+                      setActiveSlot(null);
+                    } else {
+                      setActiveSlot(bIdx);
+                      setSearch("");
+                      setCategory("boots");
+                      setHoveredItem(null);
+                    }
+                  }}
+                  onLongPress={() => {
+                    if (selectedItems[bIdx]) {
+                      onItemChange(bIdx, null);
+                    }
+                  }}
+                  onMouseEnter={() => { if (shopOpen && bootItem) setHoveredItem(bootItem); }}
+                  onMouseLeave={() => { if (shopOpen) setHoveredItem(null); }}
+                  className={`w-11 h-11 rounded relative overflow-hidden transition-all duration-150 group ml-1 ${
+                    isBootActive
+                      ? "border-2 border-cyan-400"
+                      : bootItem
+                        ? "border border-cyan-700 hover:border-cyan-500"
+                        : "border-2 border-dashed border-cyan-800/60 bg-card hover:border-cyan-600"
+                  }`}
+                  title={locale === "ja" ? "ブーツ専用 (BOTクエスト)" : "Boots only (Bot Quest)"}
+                >
+                  {bootItem ? (
+                    <>
+                      <Image
+                        src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${bootItem.image}`}
+                        alt={getItemName(bootItem)}
+                        width={44}
+                        height={44}
+                        className="rounded block"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded" />
+                    </>
+                  ) : (
+                    <span className="text-cyan-700 text-[10px] font-bold">B</span>
+                  )}
+                </ItemSlotButton>
+              </TooltipTrigger>
+              {bootItem && !isBootActive && (
+                <TooltipContent
+                  side="bottom"
+                  className="bg-popover border-border p-2.5 pointer-events-none"
+                >
+                  <ItemTooltipContent item={bootItem} displayName={getItemName(bootItem)} displayDescription={getItemDescription(bootItem)} />
+                </TooltipContent>
+              )}
+            </Tooltip>
+          );
+        })()}
       </div>
+
+      {/* Masterwork toggle */}
+      {onMasterworkChange && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (masterworkSlot !== null) {
+                onMasterworkChange(null);
+              } else {
+                // Find first filled non-boots legendary slot
+                const slot = selectedItems.findIndex((id, idx) => {
+                  if (!id) return false;
+                  if (bootsSlot && idx === 6) return false;
+                  const item = items.find(it => it.id === id);
+                  if (!item) return false;
+                  if (item.tags.includes("Boots")) return false;
+                  if (item.into && item.into.length > 0) return false;
+                  return true;
+                });
+                if (slot >= 0) onMasterworkChange(slot);
+              }
+            }}
+            className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
+              masterworkSlot !== null
+                ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                : "text-zinc-500 hover:text-zinc-400 border border-zinc-700 hover:border-zinc-600"
+            }`}
+          >
+            {locale === "ja" ? "名匠" : "Masterwork"}
+            {masterworkSlot != null && (() => {
+              const mwId = selectedItems[masterworkSlot];
+              const mwItem = mwId ? items.find(it => it.id === mwId) : null;
+              return mwItem ? `: ${locale === "ja" ? mwItem.name : (enItemData?.[mwItem.id]?.name ?? mwItem.name)}` : '';
+            })()}
+          </button>
+          {masterworkSlot !== null && (
+            <button
+              onClick={() => onMasterworkChange(null)}
+              className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+              title={locale === "ja" ? "名匠解除" : "Remove Masterwork"}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Inline shop panel */}
       {shopOpen && (

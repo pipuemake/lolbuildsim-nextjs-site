@@ -7,12 +7,14 @@ interface LevelSliderProps {
   level: number;
   onLevelChange: (level: number) => void;
   locale?: string;
+  maxLevel?: number;
 }
 
 export function LevelSlider({
   level,
   onLevelChange,
   locale = "ja",
+  maxLevel = 18,
 }: LevelSliderProps) {
   return (
     <div className="flex items-center gap-3 bg-card border border-border px-4 py-3">
@@ -23,7 +25,7 @@ export function LevelSlider({
         value={[level]}
         onValueChange={([v]) => onLevelChange(v)}
         min={1}
-        max={18}
+        max={maxLevel}
         step={1}
         className="flex-1 [&_[role=slider]]:bg-[#C89B3C] [&_[role=slider]]:border-[#C89B3C] [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_.relative]:h-2"
       />
@@ -33,7 +35,7 @@ export function LevelSlider({
         </span>
         <div className="flex flex-col gap-0.5">
           <button
-            onClick={() => onLevelChange(Math.min(18, level + 1))}
+            onClick={() => onLevelChange(Math.min(maxLevel, level + 1))}
             className="text-[10px] text-zinc-600 hover:text-zinc-300 leading-none transition-colors px-0.5"
           >
             ▲

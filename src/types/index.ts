@@ -483,6 +483,8 @@ export interface ChampionComboPassive {
   skillBonus?: ComboPassiveSkillBonus;
   /** If true, max is capped at current AA count */
   aaLinked?: boolean;
+  /** If true, value is auto-set to crit hit count (no manual input shown) */
+  critLinked?: boolean;
   /** Display time per unit (e.g. 0.5 for Renekton R ticks → seconds) */
   secondsPerUnit?: number;
   /** Form group for conditional display (e.g. 'shadow', 'rhaast') */

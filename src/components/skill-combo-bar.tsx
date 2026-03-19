@@ -430,6 +430,7 @@ export function SkillComboBar({
     allout: { en: 'All Out', ja: 'オールアウト' },
     cannon: { en: 'Cannon', ja: 'キャノン' },
     hammer: { en: 'Hammer', ja: 'ハンマー' },
+    transcendent: { en: 'Transcendent (R)', ja: '超越 (R)' },
   };
 
   // Sylas R selector state
@@ -1174,6 +1175,8 @@ export function SkillComboBar({
             {isJa ? "パッシブ" : "Passive"}
           </span>
           {comboPassives.map((passive) => {
+            // critLinked: auto-synced with crit count, no manual input
+            if (passive.critLinked) return null;
             // formGroup filter: only show passives matching the active form group
             if (passive.formGroup && hasFormGroups && passive.formGroup !== activeFormGroup) {
               return null;
