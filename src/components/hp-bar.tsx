@@ -26,10 +26,33 @@ const SEGMENT_COLORS: Record<string, string> = {
   RUNE: "#d946ef",     // Generic sub-rune - fuchsia
 };
 
+// Shield type colors
+const SHIELD_COLORS = {
+  all:      { bar: 'linear-gradient(180deg, #e2e8f0dd 0%, #94a3b899 100%)', legend: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%)' },
+  physical: { bar: 'linear-gradient(180deg, #fb923cdd 0%, #ea580c99 100%)', legend: 'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)' },
+  magic:    { bar: 'linear-gradient(180deg, #c084fcdd 0%, #9333ea99 100%)', legend: 'linear-gradient(180deg, #c084fc 0%, #9333ea 100%)' },
+} as const;
+
+const SHIELD_LABELS = {
+  all:      { ja: 'シールド', en: 'Shield' },
+  physical: { ja: '物理シールド', en: 'Phys Shield' },
+  magic:    { ja: '魔法シールド', en: 'Mag Shield' },
+} as const;
+
+export type ShieldType = 'physical' | 'magic' | 'all';
+
+export interface ShieldInfo {
+  physical: number;
+  magic: number;
+  all: number;
+}
+
 interface HPBarProps {
   maxHP: number;
   damageSegments: DamageSegment[];
+  /** @deprecated Use shields instead */
   shieldAmount?: number;
+  shields?: ShieldInfo;
   healAmount?: number;
   label?: string;
   locale?: string;
@@ -38,12 +61,51 @@ interface HPBarProps {
 export function HPBar({
   maxHP,
   damageSegments,
-  shieldAmount = 0,
+  shieldAmount: legacyShield = 0,
+  shields,
   healAmount = 0,
   label,
   locale = "ja",
 }: HPBarProps) {
-  const effectiveHP = maxHP + shieldAmount;
+  // Use new shields prop if available, fallback to legacy shieldAmount
+  const physicalShield = shields?.physical ?? 0;
+  const magicShield = shields?.magic ?? 0;
+  const allShield = shields?.all ?? (shields ? 0 : legacyShield);
+  const totalShield = physicalShield + magicShield + allShield;
+
+  // Calculate how much of each damage type exists
+  const physicalDmg = damageSegments
+    .filter(s => s.damageType === 'physical')
+    .reduce((sum, s) => sum + s.amount, 0);
+  const magicDmg = damageSegments
+    .filter(s => s.damageType === 'magic')
+    .reduce((sum, s) => sum + s.amount, 0);
+  const trueDmg = damageSegments
+    .filter(s => s.damageType === 'true')
+    .reduce((sum, s) => sum + s.amount, 0);
+  // Segments without damageType are treated as physical (AA, skills default)
+  const untyped = damageSegments
+    .filter(s => !s.damageType)
+    .reduce((sum, s) => sum + s.amount, 0);
+
+  const totalPhys = physicalDmg + untyped;
+  const totalMag = magicDmg;
+
+  // Calculate effective shield absorption:
+  // Physical shield blocks physical damage, magic shield blocks magic damage
+  // All shield blocks remaining damage after typed shields
+  // True damage bypasses all shields
+  const physBlocked = Math.min(physicalShield, totalPhys);
+  const magBlocked = Math.min(magicShield, totalMag);
+  const remainingPhys = totalPhys - physBlocked;
+  const remainingMag = totalMag - magBlocked;
+  const remainingDmgForAllShield = remainingPhys + remainingMag; // true damage bypasses shields
+  const allBlocked = Math.min(allShield, remainingDmgForAllShield);
+
+  const totalBlocked = physBlocked + magBlocked + allBlocked;
+  const effectiveShield = totalBlocked; // actual HP saved by shields
+
+  const effectiveHP = maxHP + effectiveShield;
   const totalDamageRaw = damageSegments.reduce((sum, s) => sum + s.amount, 0);
   // Healing reduces effective damage (can't overheal above max HP)
   const totalDamage = Math.max(0, totalDamageRaw - healAmount);
@@ -54,14 +116,19 @@ export function HPBar({
   const segmentCount = Math.min(Math.ceil(effectiveHP / 100), 30);
 
   const remainingPct = (remainingHP / effectiveHP) * 100;
-  const shieldPct = (shieldAmount / effectiveHP) * 100;
   const hpOnlyPct = (maxHP / effectiveHP) * 100;
 
   // HP bar color based on remaining HP (not shield)
-  const remainingHpOnly = Math.max(0, maxHP - Math.max(0, totalDamage - shieldAmount));
+  const remainingHpOnly = Math.max(0, maxHP - Math.max(0, totalDamage - effectiveShield));
   const hpRatio = maxHP > 0 ? (remainingHpOnly / maxHP) * 100 : 0;
   const hpColor =
     hpRatio > 60 ? "#22c55e" : hpRatio > 30 ? "#eab308" : "#ef4444";
+
+  // Build shield segments for visualization (in order: all, physical, magic)
+  const shieldSegments: { type: ShieldType; amount: number }[] = [];
+  if (allBlocked > 0) shieldSegments.push({ type: 'all', amount: allBlocked });
+  if (physBlocked > 0) shieldSegments.push({ type: 'physical', amount: physBlocked });
+  if (magBlocked > 0) shieldSegments.push({ type: 'magic', amount: magBlocked });
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -98,17 +165,30 @@ export function HPBar({
             background: `linear-gradient(180deg, ${hpColor}dd 0%, ${hpColor}99 100%)`,
           }}
         />
-        {/* Shield portion (white/silver, shown after HP) */}
-        {shieldAmount > 0 && remainingPct > hpOnlyPct && (
-          <div
-            className="absolute top-0 h-full transition-all duration-300"
-            style={{
-              left: `${Math.min(remainingPct, hpOnlyPct)}%`,
-              width: `${Math.min(remainingPct - hpOnlyPct, shieldPct)}%`,
-              background: 'linear-gradient(180deg, #e2e8f0dd 0%, #94a3b899 100%)',
-            }}
-          />
-        )}
+        {/* Shield portions (shown after HP, each typed shield gets its own color) */}
+        {(() => {
+          let shieldOffset = Math.min(remainingPct, hpOnlyPct);
+          const shieldEnd = remainingPct;
+          return shieldSegments.map((seg, i) => {
+            const segPct = (seg.amount / effectiveHP) * 100;
+            const available = shieldEnd - shieldOffset;
+            const w = Math.min(segPct, available);
+            if (w <= 0) return null;
+            const el = (
+              <div
+                key={`shield-${i}`}
+                className="absolute top-0 h-full transition-all duration-300"
+                style={{
+                  left: `${shieldOffset}%`,
+                  width: `${w}%`,
+                  background: SHIELD_COLORS[seg.type].bar,
+                }}
+              />
+            );
+            shieldOffset += w;
+            return el;
+          });
+        })()}
 
         {/* Damage segments */}
         {(() => {
@@ -146,7 +226,7 @@ export function HPBar({
         {/* HP text overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xs font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-            {shieldAmount > 0
+            {effectiveShield > 0
               ? `${Math.round(remainingHpOnly)} + ${Math.round(Math.max(0, remainingHP - remainingHpOnly))} / ${Math.round(maxHP)}`
               : `${Math.round(remainingHP)} / ${Math.round(maxHP)}`}
           </span>
@@ -173,13 +253,14 @@ export function HPBar({
                 </span>
               </div>
             ))}
-          {shieldAmount > 0 && (
-            <div className="flex items-center gap-1 text-[10px]">
-              <div className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ background: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%)' }} />
-              <span className="text-zinc-500">{locale === "ja" ? "シールド" : "Shield"}</span>
-              <span className="text-zinc-300 tabular-nums">{Math.round(shieldAmount)}</span>
+          {/* Shield legend entries - one per type */}
+          {shieldSegments.map((seg, i) => (
+            <div key={`shield-legend-${i}`} className="flex items-center gap-1 text-[10px]">
+              <div className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ background: SHIELD_COLORS[seg.type].legend }} />
+              <span className="text-zinc-500">{SHIELD_LABELS[seg.type][locale === 'ja' ? 'ja' : 'en']}</span>
+              <span className="text-zinc-300 tabular-nums">{Math.round(seg.amount)}</span>
             </div>
-          )}
+          ))}
           {healAmount > 0 && (
             <div className="flex items-center gap-1 text-[10px]">
               <div className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ backgroundColor: '#22c55e' }} />

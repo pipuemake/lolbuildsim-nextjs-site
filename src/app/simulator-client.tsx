@@ -1412,6 +1412,7 @@ function SimulatorInner() {
   }, [allyItems, allyStats, allyLevel]);
 
   const allyLifelineShield = allyLifelineActive ? (allyLifelineInfo?.shield ?? 0) : 0;
+  const allyLifelineShieldType = allyLifelineInfo?.item?.shieldType ?? 'all';
 
   const enemyLifelineInfo = useMemo(() => {
     const ids = enemyItems.filter((id): id is string => id !== null);
@@ -1419,6 +1420,7 @@ function SimulatorInner() {
   }, [enemyItems, enemyStats, enemyLevel]);
 
   const enemyLifelineShield = enemyLifelineActive ? (enemyLifelineInfo?.shield ?? 0) : 0;
+  const enemyLifelineShieldType = enemyLifelineInfo?.item?.shieldType ?? 'all';
 
   // Conditional shields (non-lifeline, stackable)
   const allyConditionalShields = useMemo(() => {
@@ -1426,32 +1428,34 @@ function SimulatorInner() {
     return getConditionalShields(ids);
   }, [allyItems]);
 
-  const allyConditionalShieldTotal = useMemo(() => {
-    let total = 0;
+  const allyConditionalShieldsByType = useMemo(() => {
+    const shields = { physical: 0, magic: 0, all: 0 };
     for (const s of allyConditionalShields) {
       const charges = allyConditionalShieldToggles[s.itemId] ?? 0;
       if (charges > 0) {
-        total += s.calc(allyStats, allyLevel) * charges;
+        shields[s.shieldType] += s.calc(allyStats, allyLevel) * charges;
       }
     }
-    return total;
+    return shields;
   }, [allyConditionalShields, allyConditionalShieldToggles, allyStats, allyLevel]);
+  const allyConditionalShieldTotal = allyConditionalShieldsByType.physical + allyConditionalShieldsByType.magic + allyConditionalShieldsByType.all;
 
   const enemyConditionalShields = useMemo(() => {
     const ids = enemyItems.filter((id): id is string => id !== null);
     return getConditionalShields(ids);
   }, [enemyItems]);
 
-  const enemyConditionalShieldTotal = useMemo(() => {
-    let total = 0;
+  const enemyConditionalShieldsByType = useMemo(() => {
+    const shields = { physical: 0, magic: 0, all: 0 };
     for (const s of enemyConditionalShields) {
       const charges = enemyConditionalShieldToggles[s.itemId] ?? 0;
       if (charges > 0) {
-        total += s.calc(enemyStats, enemyLevel) * charges;
+        shields[s.shieldType] += s.calc(enemyStats, enemyLevel) * charges;
       }
     }
-    return total;
+    return shields;
   }, [enemyConditionalShields, enemyConditionalShieldToggles, enemyStats, enemyLevel]);
+  const enemyConditionalShieldTotal = enemyConditionalShieldsByType.physical + enemyConditionalShieldsByType.magic + enemyConditionalShieldsByType.all;
 
   // On-hit effects filtered by toggle state (only enabled on-hit items are used in damage calc)
   const allyEnabledOnHitEffects = useMemo(() => {
@@ -1905,70 +1909,101 @@ function SimulatorInner() {
     return total;
   }, [enemyHealEffects, enemyHealCharges, enemyRunes, enemyRuneCharges, enemyChampion, enemyStats, enemyLevel, allyStats]);
 
-  // Champion combo passive shields + Barrier summoner spell
-  const allyComboShield = useMemo(() => {
-    let total = 0;
+  // Champion combo passive shields + Barrier summoner spell (split by shield type)
+  const allyComboShields = useMemo(() => {
+    const shields = { physical: 0, magic: 0, all: 0 };
     for (const p of allyComboPassives) {
       if (!p.shieldCalc) continue;
       const val = getPassiveVal(p, allyComboPassiveValues, allyAACounts);
       if (val <= 0) continue;
-      total += p.shieldCalc(val, allyStats, allyLevel);
+      const amount = p.shieldCalc(val, allyStats, allyLevel);
+      const type = p.shieldType ?? 'all';
+      shields[type] += amount;
     }
-    // Barrier summoner spell shield
+    // Barrier summoner spell shield (all type)
     for (let i = 0; i < 2; i++) {
       if (allySummonerActive[i] && allySummoners[i]?.shield) {
-        total += allySummoners[i]!.shield!(allyLevel);
+        shields.all += allySummoners[i]!.shield!(allyLevel);
       }
     }
-    // Aery shield (charge-based)
+    // Aery shield (charge-based, all type)
     const aeryShieldCharges = allyRuneCharges['aery-shield'] ?? 0;
     if (allyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY && aeryShieldCharges > 0) {
       const bonusAD = allyStats.ad - allyStats.baseAd;
-      total += aeryShieldCharges * calcAeryShield(allyLevel, bonusAD, allyStats.ap);
+      shields.all += aeryShieldCharges * calcAeryShield(allyLevel, bonusAD, allyStats.ap);
     }
-    // Revitalize: +5% shield power, +10% more below 40% HP
+    // Revitalize & healShieldPower multiply all shield types
+    let mult = 1;
     if (hasSubRune(allyRunes, SUBRUNE_IDS.REVITALIZE)) {
       const hpPct = allyStats.hp / allyStats.maxHp;
-      total *= calcRevitalizeMultiplier(hpPct);
+      mult *= calcRevitalizeMultiplier(hpPct);
     }
-    // Spirit Visage / healShieldPower
     if (allyStats.healShieldPower > 0) {
-      total *= (1 + allyStats.healShieldPower);
+      mult *= (1 + allyStats.healShieldPower);
     }
-    return total;
+    if (mult !== 1) {
+      shields.physical *= mult;
+      shields.magic *= mult;
+      shields.all *= mult;
+    }
+    return shields;
   }, [allyComboPassives, allyComboPassiveValues, allyStats, allyLevel, allyAACounts, getPassiveVal, allySummoners, allySummonerActive, allyRunes, allyRuneCharges]);
 
-  const enemyComboShield = useMemo(() => {
-    let total = 0;
+  const enemyComboShields = useMemo(() => {
+    const shields = { physical: 0, magic: 0, all: 0 };
     for (const p of enemyComboPassives) {
       if (!p.shieldCalc) continue;
       const val = getPassiveVal(p, enemyComboPassiveValues, enemyAACounts);
       if (val <= 0) continue;
-      total += p.shieldCalc(val, enemyStats, enemyLevel);
+      const amount = p.shieldCalc(val, enemyStats, enemyLevel);
+      const type = p.shieldType ?? 'all';
+      shields[type] += amount;
     }
-    // Barrier summoner spell shield
+    // Barrier summoner spell shield (all type)
     for (let i = 0; i < 2; i++) {
       if (enemySummonerActive[i] && enemySummoners[i]?.shield) {
-        total += enemySummoners[i]!.shield!(enemyLevel);
+        shields.all += enemySummoners[i]!.shield!(enemyLevel);
       }
     }
-    // Aery shield (charge-based)
+    // Aery shield (charge-based, all type)
     const aeryShieldCharges = enemyRuneCharges['aery-shield'] ?? 0;
     if (enemyRunes.keystone === KEYSTONE_IDS.SUMMON_AERY && aeryShieldCharges > 0) {
       const bonusAD = enemyStats.ad - enemyStats.baseAd;
-      total += aeryShieldCharges * calcAeryShield(enemyLevel, bonusAD, enemyStats.ap);
+      shields.all += aeryShieldCharges * calcAeryShield(enemyLevel, bonusAD, enemyStats.ap);
     }
-    // Revitalize: +5% shield power, +10% more below 40% HP
+    // Revitalize & healShieldPower multiply all shield types
+    let mult = 1;
     if (hasSubRune(enemyRunes, SUBRUNE_IDS.REVITALIZE)) {
       const hpPct = enemyStats.hp / enemyStats.maxHp;
-      total *= calcRevitalizeMultiplier(hpPct);
+      mult *= calcRevitalizeMultiplier(hpPct);
     }
-    // Spirit Visage / healShieldPower
     if (enemyStats.healShieldPower > 0) {
-      total *= (1 + enemyStats.healShieldPower);
+      mult *= (1 + enemyStats.healShieldPower);
     }
-    return total;
+    if (mult !== 1) {
+      shields.physical *= mult;
+      shields.magic *= mult;
+      shields.all *= mult;
+    }
+    return shields;
   }, [enemyComboPassives, enemyComboPassiveValues, enemyStats, enemyLevel, enemyAACounts, getPassiveVal, enemySummoners, enemySummonerActive, enemyRunes, enemyRuneCharges]);
+
+  // Legacy totals for backward compat in combo/kill calculations
+  const allyComboShield = allyComboShields.physical + allyComboShields.magic + allyComboShields.all;
+  const enemyComboShield = enemyComboShields.physical + enemyComboShields.magic + enemyComboShields.all;
+
+  // Merged shields by type (lifeline + combo + conditional)
+  const allyShieldsByType = useMemo(() => ({
+    physical: allyComboShields.physical + allyConditionalShieldsByType.physical + (allyLifelineShieldType === 'physical' ? allyLifelineShield : 0),
+    magic: allyComboShields.magic + allyConditionalShieldsByType.magic + (allyLifelineShieldType === 'magic' ? allyLifelineShield : 0),
+    all: allyComboShields.all + allyConditionalShieldsByType.all + (allyLifelineShieldType === 'all' ? allyLifelineShield : 0),
+  }), [allyComboShields, allyConditionalShieldsByType, allyLifelineShield, allyLifelineShieldType]);
+
+  const enemyShieldsByType = useMemo(() => ({
+    physical: enemyComboShields.physical + enemyConditionalShieldsByType.physical + (enemyLifelineShieldType === 'physical' ? enemyLifelineShield : 0),
+    magic: enemyComboShields.magic + enemyConditionalShieldsByType.magic + (enemyLifelineShieldType === 'magic' ? enemyLifelineShield : 0),
+    all: enemyComboShields.all + enemyConditionalShieldsByType.all + (enemyLifelineShieldType === 'all' ? enemyLifelineShield : 0),
+  }), [enemyComboShields, enemyConditionalShieldsByType, enemyLifelineShield, enemyLifelineShieldType]);
 
   // Spellblade damage per proc (computed once for combo calculations)
   const allySpellbladeProc = useMemo(() => {
@@ -2708,6 +2743,7 @@ function SimulatorInner() {
         source: "P",
         amount: allyPassiveDamage.totalAfterResist * allyComboCounts["P"],
         color: "",
+        damageType: allyPassiveDamage.damageType,
       });
     }
     for (const sd of allySkillDamages) {
@@ -2718,7 +2754,7 @@ function SimulatorInner() {
         if (allyComboPassiveSkillBonuses[sd.skillKey]) {
           skillDmg += allyComboPassiveSkillBonuses[sd.skillKey];
         }
-        segs.push({ source: sd.skillKey, amount: skillDmg * count, color: "" });
+        segs.push({ source: sd.skillKey, amount: skillDmg * count, color: "", damageType: sd.damageType });
       }
     }
     if (allyAACounts > 0 || allyComboPassiveOnHitPerCombo > 0) {
@@ -2733,7 +2769,7 @@ function SimulatorInner() {
         }
         aaTotal += allySpellbladeProc * Math.min(skillUses, allyAACounts);
       }
-      segs.push({ source: "AA", amount: aaTotal, color: "" });
+      segs.push({ source: "AA", amount: aaTotal, color: "", damageType: 'physical' });
     }
     if (allySummonerDamage > 0) {
       segs.push({ source: "SUM", amount: allySummonerDamage, color: "" });
@@ -2945,6 +2981,7 @@ function SimulatorInner() {
         source: "P",
         amount: enemyPassiveDamage.totalAfterResist * enemyComboCounts["P"],
         color: "",
+        damageType: enemyPassiveDamage.damageType,
       });
     }
     for (const sd of enemySkillDamages) {
@@ -2955,7 +2992,7 @@ function SimulatorInner() {
         if (enemyComboPassiveSkillBonuses[sd.skillKey]) {
           skillDmg += enemyComboPassiveSkillBonuses[sd.skillKey];
         }
-        segs.push({ source: sd.skillKey, amount: skillDmg * count, color: "" });
+        segs.push({ source: sd.skillKey, amount: skillDmg * count, color: "", damageType: sd.damageType });
       }
     }
     if (enemyAACounts > 0 || enemyComboPassiveOnHitPerCombo > 0) {
@@ -2970,7 +3007,7 @@ function SimulatorInner() {
         }
         aaTotal += enemySpellbladeProc * Math.min(skillUses, enemyAACounts);
       }
-      segs.push({ source: "AA", amount: aaTotal, color: "" });
+      segs.push({ source: "AA", amount: aaTotal, color: "", damageType: 'physical' });
     }
     if (enemySummonerDamage > 0) {
       segs.push({ source: "SUM", amount: enemySummonerDamage, color: "" });
@@ -3714,7 +3751,7 @@ function SimulatorInner() {
                   <HPBar
                     maxHP={enemyStats.maxHp}
                     damageSegments={allyDamageToEnemy}
-                    shieldAmount={enemyLifelineShield + enemyComboShield + enemyConditionalShieldTotal}
+                    shields={enemyShieldsByType}
                     healAmount={enemyHealTotal}
                     label={`${getChampionDisplayName(enemyChampion)} HP`}
                     locale={locale}
@@ -3746,7 +3783,7 @@ function SimulatorInner() {
                   <HPBar
                     maxHP={allyStats.maxHp}
                     damageSegments={enemyDamageToAlly}
-                    shieldAmount={allyLifelineShield + allyComboShield + allyConditionalShieldTotal}
+                    shields={allyShieldsByType}
                     healAmount={allyHealTotal}
                     label={`${getChampionDisplayName(allyChampion)} HP`}
                     locale={locale}

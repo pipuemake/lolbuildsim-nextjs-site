@@ -601,16 +601,19 @@ export interface ItemLifelineShield {
   itemId: string;
   nameEn: string;
   nameJa: string;
+  /** Shield type: 'physical' blocks physical only, 'magic' blocks magic only, 'all' blocks all */
+  shieldType: 'physical' | 'magic' | 'all';
   /** Calculate shield amount given the holder's computed stats and level */
   calc: (holder: LifelineHolder, level: number) => number;
 }
 
 const LIFELINE_SHIELDS: ItemLifelineShield[] = [
-  // Maw of Malmortius — Lifeline: 200 + 150% bonus AD (melee) / 150 + 112.5% bonus AD (ranged)
+  // Maw of Malmortius — Lifeline: magic shield, 200 + 150% bonus AD (melee) / 150 + 112.5% bonus AD (ranged)
   {
     itemId: '3156',
     nameEn: 'Maw of Malmortius',
     nameJa: 'マルモティウスの胃袋',
+    shieldType: 'magic',
     calc: (holder) => {
       const bonusAD = holder.ad - holder.baseAd;
       if (holder.attackRange <= 350) {
@@ -619,21 +622,23 @@ const LIFELINE_SHIELDS: ItemLifelineShield[] = [
       return 150 + bonusAD * 1.125;
     },
   },
-  // Sterak's Gage — Lifeline: 75% bonus HP
+  // Sterak's Gage — Lifeline: all shield, 75% bonus HP
   {
     itemId: '3053',
     nameEn: "Sterak's Gage",
     nameJa: 'ステラックの篭手',
+    shieldType: 'all',
     calc: (holder) => {
       const bonusHp = holder.maxHp - holder.baseHp;
       return bonusHp * 0.75;
     },
   },
-  // Immortal Shieldbow — Lifeline: 400-700 (melee) / 320-560 (ranged) by level
+  // Immortal Shieldbow — Lifeline: all shield, 400-700 (melee) / 320-560 (ranged) by level
   {
     itemId: '6673',
     nameEn: 'Immortal Shieldbow',
     nameJa: 'イモータルシールドボウ',
+    shieldType: 'all',
     calc: (holder, level) => {
       if (holder.attackRange <= 350) {
         return 400 + (300 * (level - 1) / 17);

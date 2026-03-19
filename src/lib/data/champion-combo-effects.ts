@@ -3701,16 +3701,33 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
   },
 
   // --- Camille: Adaptive Defenses (P) Shield ---
-  // Shield = 20% max HP (physical or magic based on target).
+  // Shield = 20% max HP. Physical shield vs AD, magic shield vs AP champions.
+  // Two separate entries for physical and magic variants
   {
-    id: 'camille-passive-shield',
+    id: 'camille-passive-shield-physical',
     championId: 'Camille',
-    nameEn: 'Adaptive Defenses (P) Shield',
-    nameJa: '戦況適応 (P) シールド',
-    descriptionEn: 'Toggle: shield = 20% max HP.',
-    descriptionJa: 'トグル: シールド = 最大HPの20%。',
+    nameEn: 'Adaptive Defenses (P) Physical Shield',
+    nameJa: '戦況適応 (P) 物理シールド',
+    descriptionEn: 'Toggle: physical shield = 20% max HP (vs AD champs).',
+    descriptionJa: 'トグル: 物理シールド = 最大HPの20% (AD相手時)。',
     inputType: 'toggle',
     defaultValue: 0,
+    shieldType: 'physical',
+    shieldCalc: (value, holder) => {
+      if (!value) return 0;
+      return holder.maxHp * 0.20;
+    },
+  },
+  {
+    id: 'camille-passive-shield-magic',
+    championId: 'Camille',
+    nameEn: 'Adaptive Defenses (P) Magic Shield',
+    nameJa: '戦況適応 (P) 魔法シールド',
+    descriptionEn: 'Toggle: magic shield = 20% max HP (vs AP champs).',
+    descriptionJa: 'トグル: 魔法シールド = 最大HPの20% (AP相手時)。',
+    inputType: 'toggle',
+    defaultValue: 0,
+    shieldType: 'magic',
     shieldCalc: (value, holder) => {
       if (!value) return 0;
       return holder.maxHp * 0.20;
@@ -3739,12 +3756,13 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
   {
     id: 'kassadin-q-shield',
     championId: 'Kassadin',
-    nameEn: 'Null Sphere (Q) Shield',
-    nameJa: 'ヌルスフィア (Q) シールド',
+    nameEn: 'Null Sphere (Q) Magic Shield',
+    nameJa: 'ヌルスフィア (Q) 魔法シールド',
     descriptionEn: 'Toggle: magic shield = 80-200 (by Q rank) + 30% AP.',
     descriptionJa: 'トグル: 魔法シールド = 80-200 (Qランク) + 30%AP。',
     inputType: 'toggle',
     defaultValue: 0,
+    shieldType: 'magic',
     shieldCalc: (value, holder, level) => {
       if (!value) return 0;
       const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
@@ -3879,12 +3897,13 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
   {
     id: 'morgana-e-shield',
     championId: 'Morgana',
-    nameEn: 'Black Shield (E)',
-    nameJa: 'ブラックシールド (E)',
+    nameEn: 'Black Shield (E) Magic Shield',
+    nameJa: 'ブラックシールド (E) 魔法シールド',
     descriptionEn: 'Toggle: magic shield = 100-500 (by E rank) + 100% AP.',
     descriptionJa: 'トグル: 魔法シールド = 100-500 (Eランク) + 100%AP。',
     inputType: 'toggle',
     defaultValue: 0,
+    shieldType: 'magic',
     shieldCalc: (value, holder, level) => {
       if (!value) return 0;
       const eRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));

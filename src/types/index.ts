@@ -489,6 +489,8 @@ export interface ChampionComboPassive {
   formGroup?: string;
   /** Shield amount calculation (value=toggle/stack input, returns raw shield HP) */
   shieldCalc?: (value: number, holder: ComputedStats, level: number) => number;
+  /** Shield type: 'physical' blocks physical only, 'magic' blocks magic only, 'all' blocks all (default: 'all') */
+  shieldType?: 'physical' | 'magic' | 'all';
 }
 
 // ===== HP Bar visualization =====
@@ -496,6 +498,8 @@ export interface DamageSegment {
   source: string;
   amount: number;
   color: string;
+  /** Damage type for shield interaction: physical shields only block physical, magic shields only block magic */
+  damageType?: 'physical' | 'magic' | 'true';
 }
 
 // ===== Data Dragon API types =====
