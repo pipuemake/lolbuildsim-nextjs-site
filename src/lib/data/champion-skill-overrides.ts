@@ -1497,6 +1497,20 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     },
   ],
 
+  // ── Yunara (ユナラ) ──
+  // W: Arc of Judgment (通常) / Arc of Ruin (R中)
+  // R: Transcend One's Self — no direct damage, empowers W/E
+  Yunara: [
+    {
+      skillKey: 'W',
+      subCasts: [
+        { id: 'W1', nameEn: 'Arc of Judgment (impact)', nameJa: '裁きの弧 (着弾)', baseDamage: [55, 95, 135, 175, 215], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.85 }, { stat: 'ap', ratio: 0.50 }] },
+        { id: 'W2', nameEn: 'Arc of Judgment (linger)', nameJa: '裁きの弧 (残留)', baseDamage: [33, 57, 81, 105, 129], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.51 }, { stat: 'ap', ratio: 0.30 }] },
+        { id: 'W3', nameEn: 'Arc of Ruin (R)', nameJa: '滅びの弧 (R中)', baseDamage: [160, 320, 480], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 1.20 }, { stat: 'ap', ratio: 0.75 }], formGroup: 'transcendent' },
+      ],
+    },
+  ],
+
   // ── Poppy ──
   // Q: Hammer Shock — initial hit + delayed rupture (same damage)
   Poppy: [

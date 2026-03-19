@@ -220,6 +220,7 @@ const CHAMPION_LANES: Record<string, Lane[]> = {
   Yone: ['TOP', 'MID'],
   Yorick: ['TOP'],
   Yuumi: ['SUP'],
+  Yunara: ['BOT'],
 
   // Z
   Zaahen: ['TOP'],
