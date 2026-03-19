@@ -293,24 +293,45 @@ export const CHAMPION_BONUSES: ChampionBonusDefinition[] = [
       };
     },
   },
-  // --- Shyvana: Fury of the Dragonborn (P) ---
-  // +5 AR/MR per dragon killed
+  // --- Shyvana (Rework): Scalemail (P) ---
+  // +0.3 AR/MR per stack (large minion/monster=1, champ/epic=3)
   {
     id: 'shyvana-passive',
     championId: 'Shyvana',
     type: 'stack',
-    nameEn: 'Fury of the Dragonborn (P)',
-    nameJa: '竜族の末裔 (P)',
-    descriptionEn: '+5 AR, +5 MR per dragon killed',
-    descriptionJa: 'ドラゴン1体撃破毎に+5 AR, +5 MR',
+    nameEn: 'Scalemail (P)',
+    nameJa: 'スケールメイル (P)',
+    descriptionEn: '+0.3 AR, +0.3 MR per stack',
+    descriptionJa: 'スタック毎に+0.3 AR, +0.3 MR',
     inputType: 'number',
     min: 0,
-    max: 7,
+    max: 999,
     defaultValue: 0,
     calc: (stacks) => ({
-      armor: stacks * 5,
-      mr: stacks * 5,
+      armor: stacks * 0.3,
+      mr: stacks * 0.3,
     }),
+  },
+  // --- Shyvana (Rework): Dragon's Descent (R) ---
+  // Dragon form: +150/250/350 HP, +25/50/75 attack range
+  {
+    id: 'shyvana-r-dragon',
+    championId: 'Shyvana',
+    type: 'passive',
+    nameEn: "Dragon's Descent (R) Dragon Form",
+    nameJa: '龍の降臨 (R) ドラゴンフォーム',
+    descriptionEn: 'Dragon form: +150/250/350 HP, +25/50/75 range',
+    descriptionJa: 'ドラゴン: +150/250/350 HP, +25/50/75 射程',
+    inputType: 'toggle',
+    defaultValue: 0,
+    calc: (enabled, level) => {
+      if (!enabled) return {};
+      const rRank = level >= 16 ? 3 : level >= 11 ? 2 : level >= 6 ? 1 : 0;
+      if (rRank === 0) return {};
+      const hp = [150, 250, 350][rRank - 1];
+      const range = [25, 50, 75][rRank - 1];
+      return { hp, attackRange: range };
+    },
   },
   // --- Tryndamere: Battle Fury (P) ---
   // 0-40% crit chance from fury (0-100)

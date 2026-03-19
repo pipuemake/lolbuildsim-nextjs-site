@@ -650,21 +650,39 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
     },
   ],
 
-  // ── Shyvana ──
-  // Human vs Dragon form for Q/W/E
+  // ── Shyvana (Rework) ──
+  // Q: Emberstrike — cone (1st cast) + around target (2nd cast) + dragon form bite (true damage)
+  // W: Inferno Aegis — recast explosion magic damage
+  // E: Molten Burst — magic damage, human vs dragon form
+  // R: Dragon's Descent — frontal cone magic damage
   Shyvana: [
     {
       skillKey: 'Q',
       subCasts: [
-        { id: 'Q1', nameEn: 'Twin Bite (Human)', nameJa: 'ツインバイト (人間)', baseDamage: [0, 0, 0, 0, 0], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.20 }], formGroup: 'human' },
-        { id: 'Q2', nameEn: 'Twin Bite (Dragon)', nameJa: 'ツインバイト (ドラゴン)', baseDamage: [0, 0, 0, 0, 0], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 0.35 }], formGroup: 'dragon' },
+        { id: 'Q1', nameEn: 'Emberstrike (1st)', nameJa: 'エンバーストライク (1段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'human' },
+        { id: 'Q2', nameEn: 'Emberstrike (2nd)', nameJa: 'エンバーストライク (2段目)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'human' },
+        { id: 'Q1D', nameEn: 'Emberstrike (1st, Dragon)', nameJa: 'エンバーストライク (1段目, ドラゴン)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'dragon' },
+        { id: 'Q2D', nameEn: 'Emberstrike (2nd, Dragon)', nameJa: 'エンバーストライク (2段目, ドラゴン)', baseDamage: [10, 15, 20, 25, 30], damageType: 'physical', scalings: [{ stat: 'ad', ratio: 1.10 }, { stat: 'ap', ratio: 0.25 }], formGroup: 'dragon' },
+        { id: 'Q3D', nameEn: 'Emberstrike Bite (Dragon)', nameJa: 'エンバーストライク 噛みつき (ドラゴン)', baseDamage: [15, 22.5, 30, 37.5, 45], damageType: 'true', scalings: [{ stat: 'ad', ratio: 1.65 }, { stat: 'ap', ratio: 0.375 }], formGroup: 'dragon' },
+      ],
+    },
+    {
+      skillKey: 'W',
+      subCasts: [
+        { id: 'W1', nameEn: 'Inferno Aegis (explosion)', nameJa: 'インフェルノイージス (爆発)', baseDamage: [80, 100, 120, 140, 160], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.40 }, { stat: 'ap', ratio: 0.20 }] },
       ],
     },
     {
       skillKey: 'E',
       subCasts: [
-        { id: 'E1', nameEn: 'Flame Breath (Human)', nameJa: 'フレイムブレス (人間)', baseDamage: [60, 100, 140, 180, 220], damageType: 'magic', scalings: [{ stat: 'ad', ratio: 0.30 }, { stat: 'ap', ratio: 0.70 }], formGroup: 'human' },
-        { id: 'E2', nameEn: 'Flame Breath (Dragon)', nameJa: 'フレイムブレス (ドラゴン)', baseDamage: [60, 100, 140, 180, 220], damageType: 'magic', scalings: [{ stat: 'ad', ratio: 0.30 }, { stat: 'ap', ratio: 0.70 }], formGroup: 'dragon' },
+        { id: 'E1', nameEn: 'Molten Burst (Human)', nameJa: 'モルテンバースト (人間)', baseDamage: [80, 110, 140, 170, 200], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.35 }, { stat: 'ap', ratio: 0.70 }], formGroup: 'human' },
+        { id: 'E2', nameEn: 'Molten Burst (Dragon, +25%)', nameJa: 'モルテンバースト (ドラゴン, +25%)', baseDamage: [100, 137.5, 175, 212.5, 250], damageType: 'magic', scalings: [{ stat: 'bonusAd', ratio: 0.4375 }, { stat: 'ap', ratio: 0.875 }], formGroup: 'dragon' },
+      ],
+    },
+    {
+      skillKey: 'R',
+      subCasts: [
+        { id: 'R1', nameEn: "Dragon's Descent", nameJa: '龍の降臨', baseDamage: [150, 250, 350], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 1.00 }] },
       ],
     },
   ],
@@ -1438,7 +1456,9 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
   ],
 
   // ── Aurora ──
-  // Q: Twofold Hex — outgoing + return
+  // Q: Twofold Hex — outgoing + return (return has missing HP scaling 0-50%)
+  // E: The Weirding — single hit magic
+  // R: Between Worlds — shockwave magic
   Aurora: [
     {
       skillKey: 'Q',
@@ -1446,21 +1466,33 @@ const OVERRIDES: Record<string, ChampionSkillOverride[]> = {
         {
           id: 'Q1',
           nameEn: 'Twofold Hex (out)',
-          nameJa: 'ツーフォールドヘックス (往路)',
-          baseDamage: [60, 90, 120, 150, 180],
+          nameJa: '折れ重なる魔法 (往路)',
+          baseDamage: [45, 70, 95, 120, 145],
           damageType: 'magic',
-          scalings: [{ stat: 'ap', ratio: 0.50 }],
+          scalings: [{ stat: 'ap', ratio: 0.40 }],
           comboLabel: '往',
         },
         {
           id: 'Q2',
           nameEn: 'Twofold Hex (return)',
-          nameJa: 'ツーフォールドヘックス (復路)',
-          baseDamage: [40, 60, 80, 100, 120],
+          nameJa: '折れ重なる魔法 (復路)',
+          baseDamage: [45, 70, 95, 120, 145],
           damageType: 'magic',
-          scalings: [{ stat: 'ap', ratio: 0.35 }],
+          scalings: [{ stat: 'ap', ratio: 0.40 }],
           comboLabel: '復',
         },
+      ],
+    },
+    {
+      skillKey: 'E',
+      subCasts: [
+        { id: 'E1', nameEn: 'The Weirding', nameJa: 'ウィアーディング', baseDamage: [70, 110, 150, 190, 230], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.70 }] },
+      ],
+    },
+    {
+      skillKey: 'R',
+      subCasts: [
+        { id: 'R1', nameEn: 'Between Worlds', nameJa: '世界の狭間', baseDamage: [175, 275, 375], damageType: 'magic', scalings: [{ stat: 'ap', ratio: 0.70 }] },
       ],
     },
   ],

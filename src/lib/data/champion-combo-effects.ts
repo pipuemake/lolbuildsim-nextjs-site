@@ -1644,27 +1644,27 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     },
   },
 
-  // --- Shyvana: Twin Bite (Q) ---
-  // Q: AA reset that deals 100% AD + 15-75% AD physical (2nd hit)
+  // --- Shyvana (Rework): Emberstrike (Q) On-Hit Passive ---
+  // Every AA: 1% (+ 1.1% per 100 bAD) (+ 1.1% per 100 AP) target max HP magic damage
   {
-    id: 'shyvana-q',
+    id: 'shyvana-q-onhit',
     championId: 'Shyvana',
-    nameEn: 'Twin Bite (Q) Bonus Hit',
-    nameJa: 'ツインバイト (Q) 追加打撃数',
-    descriptionEn: 'Q 2nd hit: 15-75% AD physical. Set hits.',
-    descriptionJa: 'Q2撃目: 15-75%AD 物理DM。ヒット数。',
+    nameEn: 'Emberstrike (Q) On-Hit Procs',
+    nameJa: 'エンバーストライク (Q) オンヒット発動数',
+    descriptionEn: 'On-hit: 1% + 1.1%/100bAD + 1.1%/100AP target max HP magic.',
+    descriptionJa: 'オンヒット: 1% + 1.1%/100増AD + 1.1%/100AP 対象最大HP 魔法DM。',
     inputType: 'stack',
     min: 0,
-    max: 5,
+    max: 10,
     defaultValue: 0,
     onHit: {
-      damageType: 'physical',
+      damageType: 'magic',
       perCombo: true,
-      calc: (procCount, attacker, _target, level) => {
-        if (procCount <= 0) return 0;
-        const qRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
-        const ratio = [0.15, 0.30, 0.45, 0.60, 0.75][qRank - 1];
-        return ratio * attacker.ad * procCount;
+      calc: (procs, attacker, target) => {
+        if (procs <= 0) return 0;
+        const bonusAd = attacker.ad - attacker.baseAd;
+        const pct = 0.01 + 0.011 * (bonusAd / 100) + 0.011 * (attacker.ap / 100);
+        return Math.min(pct * target.maxHp, 200) * procs;
       },
     },
   },
@@ -3329,6 +3329,30 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     },
   },
 
+  // --- Aurora: Spirit Abjuration (P) ---
+  // 3rd stack proc: 1% (+ 2.7% per 100 AP) target max HP magic damage
+  {
+    id: 'aurora-passive',
+    championId: 'Aurora',
+    nameEn: 'Spirit Abjuration (P) Procs',
+    nameJa: '精霊の解放 (P) 発動回数',
+    descriptionEn: '3rd stack: 1% + 2.7%/100AP target max HP magic.',
+    descriptionJa: '3スタック: 1% + 2.7%/100AP 対象最大HP 魔法DM。',
+    inputType: 'stack',
+    min: 0,
+    max: 6,
+    defaultValue: 0,
+    onHit: {
+      damageType: 'magic',
+      perCombo: true,
+      calc: (procs, attacker, target) => {
+        if (procs <= 0) return 0;
+        const pct = 0.01 + 0.027 * (attacker.ap / 100);
+        return pct * target.maxHp * procs;
+      },
+    },
+  },
+
   // --- Akshan: Dirty Fighting (P) ---
   // Every 3 hits: bonus magic damage 10-165 (by level) + 60% bonus AD
   // Also grants shield, but damage is primary
@@ -3731,6 +3755,27 @@ const COMBO_PASSIVES: ChampionComboPassive[] = [
     shieldCalc: (value, holder) => {
       if (!value) return 0;
       return holder.maxHp * 0.20;
+    },
+  },
+
+  // --- Shyvana (Rework): Inferno Aegis (W) Shield ---
+  // Shield = 60-140 (by W rank) + 5% max HP. Charge-based for nearby enemy champions.
+  {
+    id: 'shyvana-w-shield',
+    championId: 'Shyvana',
+    nameEn: 'Inferno Aegis (W) Shield',
+    nameJa: 'インフェルノイージス (W) シールド',
+    descriptionEn: 'W shield = 60-140 + 5% max HP. Set proc count.',
+    descriptionJa: 'Wシールド = 60-140 + 5%最大HP。発動回数。',
+    inputType: 'stack',
+    min: 0,
+    max: 3,
+    defaultValue: 0,
+    shieldCalc: (value, holder, level) => {
+      if (!value) return 0;
+      const wRank = Math.min(5, Math.max(1, Math.ceil(level / 3.6)));
+      const base = [60, 80, 100, 120, 140][wRank - 1];
+      return (base + holder.maxHp * 0.05) * value;
     },
   },
 
