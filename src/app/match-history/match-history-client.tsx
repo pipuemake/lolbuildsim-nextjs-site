@@ -105,6 +105,8 @@ function ItemSlotGrid({ items, version }: { items: number[]; version: string }) 
 function MatchHistoryInner() {
   const { locale, setLocale, t } = useLocale();
   const { version, champions, loading: dragonLoading } = useDragonData();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Restore from session
   const saved = useRef(loadSession());
@@ -660,6 +662,10 @@ function MatchHistoryInner() {
       </p>
     </div>
   );
+
+  if (!mounted) {
+    return <div className="min-h-screen flex flex-col bg-background" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
