@@ -581,7 +581,7 @@ function BuildsInner() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            LoL Build Sim(Beta)
+            LoL Build Sim
           </h1>
         </div>
       </div>
@@ -605,6 +605,12 @@ function BuildsInner() {
               className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
             >
               {t("nav.championBuilds")}
+            </Link>
+            <Link
+              href="/match-history"
+              className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              {t("nav.matchHistory")}
             </Link>
           </nav>
           <div className="flex sm:hidden items-center gap-1">

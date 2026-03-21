@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale } from "@/lib/i18n";
 
 interface MobileMenuProps {
-  currentPage: "home" | "builds" | "championBuilds";
+  currentPage: "home" | "builds" | "championBuilds" | "matchHistory";
   locale: string;
 }
 
@@ -13,6 +13,7 @@ const pages = [
   { key: "home" as const, href: "/", labelKey: "nav.home" as const },
   { key: "builds" as const, href: "/builds", labelKey: "nav.builds" as const },
   { key: "championBuilds" as const, href: "/champion-builds", labelKey: "nav.championBuilds" as const },
+  { key: "matchHistory" as const, href: "/match-history", labelKey: "nav.matchHistory" as const },
 ] as const;
 
 export function MobileMenu({ currentPage, locale }: MobileMenuProps) {

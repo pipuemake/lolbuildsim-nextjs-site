@@ -8,6 +8,7 @@ function PrivacyContent() {
 
   const sections = [
     { title: t("privacy.auth.title"), body: t("privacy.auth.body") },
+    { title: t("privacy.riotApi.title"), body: t("privacy.riotApi.body") },
     { title: t("privacy.ads.title"), body: t("privacy.ads.body") },
     { title: t("privacy.cookies.title"), body: t("privacy.cookies.body") },
     { title: t("privacy.thirdParty.title"), body: t("privacy.thirdParty.body") },

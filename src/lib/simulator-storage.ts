@@ -64,6 +64,8 @@ export interface LoadBuildInstruction {
   items: (string | null)[];
   runes: SelectedRunes;
   spells?: [string | null, string | null];
+  skillRanks?: Record<string, number>;
+  bonusValues?: Record<string, number>;
 }
 
 // ===== Simulator State =====
@@ -102,9 +104,13 @@ export function consumeLoadBuildInstruction(): LoadBuildInstruction | null {
   try {
     const raw = localStorage.getItem(LOAD_BUILD_KEY);
     if (!raw) return null;
+    // Parse before removing so the instruction survives if JSON.parse throws
+    const instruction: LoadBuildInstruction = JSON.parse(raw);
     localStorage.removeItem(LOAD_BUILD_KEY);
-    return JSON.parse(raw);
+    return instruction;
   } catch {
+    // If parsing fails, clean up the corrupt entry
+    try { localStorage.removeItem(LOAD_BUILD_KEY); } catch {}
     return null;
   }
 }

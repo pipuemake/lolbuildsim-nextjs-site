@@ -132,6 +132,7 @@ import {
   loadSimulatorState,
   clearSimulatorState,
   consumeLoadBuildInstruction,
+  type LoadBuildInstruction,
   type SideState,
   type SimulatorPersistedState,
 } from "@/lib/simulator-storage";
@@ -503,129 +504,101 @@ function SimulatorInner() {
   const [mobileTab, setMobileTab] = useState<"ally" | "vs" | "enemy">("ally");
 
   // Restore state: URL params > load-build instruction > localStorage
+  // Wait until champions are loaded before restoring (DDragon data is async)
   useEffect(() => {
     if (didInitRef.current) return;
+    if (champions.length <= 1) return; // Only dummy champion loaded so far
     didInitRef.current = true;
+
+    // Side-specific setters keyed by side name to eliminate duplication
+    const sideSetters = {
+      ally: {
+        setChampion: setAllyChampion, setLevel: setAllyLevel,
+        setItems: setAllyItems, setRunes: setAllyRunes,
+        setSkillRanks: setAllySkillRanks, setSummoners: setAllySummoners,
+        setBonusValues: setAllyBonusValues,
+      },
+      enemy: {
+        setChampion: setEnemyChampion, setLevel: setEnemyLevel,
+        setItems: setEnemyItems, setRunes: setEnemyRunes,
+        setSkillRanks: setEnemySkillRanks, setSummoners: setEnemySummoners,
+        setBonusValues: setEnemyBonusValues,
+      },
+    } as const;
+
+    // Restore a side from persisted SideState (localStorage)
+    const restoreSide = (side: 'ally' | 'enemy', state: SideState) => {
+      const s = sideSetters[side];
+      if (state.championId) {
+        const champ = champions.find((c) => c.id === state.championId);
+        if (champ) s.setChampion(champ);
+      }
+      s.setLevel(state.level);
+      s.setItems(state.items);
+      s.setRunes(state.runes);
+      if (state.skillRanks) s.setSkillRanks(state.skillRanks);
+    };
+
+    // Resolve summoner spell IDs to SummonerSpell objects
+    const resolveSpells = (ids: [string | null, string | null]): [SummonerSpell | null, SummonerSpell | null] => [
+      ids[0] ? SUMMONER_SPELLS.find((s) => s.id === ids[0]) ?? null : null,
+      ids[1] ? SUMMONER_SPELLS.find((s) => s.id === ids[1]) ?? null : null,
+    ];
+
+    // Apply a load-build instruction to the target side
+    const applyLoadInstruction = (instruction: LoadBuildInstruction) => {
+      const champ = champions.find((c) => c.id === instruction.championId);
+      if (!champ) return;
+      const s = sideSetters[instruction.side];
+      s.setChampion(champ);
+      s.setLevel(instruction.level);
+      s.setItems(instruction.items);
+      s.setRunes(instruction.runes);
+      if (instruction.spells) s.setSummoners(resolveSpells(instruction.spells));
+      if (instruction.skillRanks) s.setSkillRanks(instruction.skillRanks);
+      if (instruction.bonusValues) s.setBonusValues({ ...instruction.bonusValues });
+    };
+
+    // --- Priority 1: URL params ---
     const params = new URLSearchParams(window.location.search);
     const allyParam = params.get("ally");
     const enemyParam = params.get("enemy");
     let hasUrlParams = false;
 
-    if (allyParam) {
-      const build = decodeBuild(allyParam);
-      if (build) {
-        hasUrlParams = true;
-        const champ = champions.find((c) => c.id === build.championId);
-        if (champ) setAllyChampion(champ);
-        setAllyLevel(build.level);
-        setAllyItems(build.items);
-        setAllyRunes(build.runes);
-      }
-    }
-    if (enemyParam) {
-      const build = decodeBuild(enemyParam);
-      if (build) {
-        hasUrlParams = true;
-        const champ = champions.find((c) => c.id === build.championId);
-        if (champ) setEnemyChampion(champ);
-        setEnemyLevel(build.level);
-        setEnemyItems(build.items);
-        setEnemyRunes(build.runes);
-      }
+    for (const [param, side] of [[allyParam, "ally"], [enemyParam, "enemy"]] as const) {
+      if (!param) continue;
+      const build = decodeBuild(param);
+      if (!build) continue;
+      hasUrlParams = true;
+      const s = sideSetters[side];
+      const champ = champions.find((c) => c.id === build.championId);
+      if (champ) s.setChampion(champ);
+      s.setLevel(build.level);
+      s.setItems(build.items);
+      s.setRunes(build.runes);
     }
 
-    // Helper to restore one side from localStorage
-    const restoreSide = (
-      side: SideState,
-      setChamp: typeof setAllyChampion,
-      setLvl: typeof setAllyLevel,
-      setItm: typeof setAllyItems,
-      setRn: typeof setAllyRunes,
-      setSkR: typeof setAllySkillRanks,
-    ) => {
-      if (side.championId) {
-        const champ = champions.find((c) => c.id === side.championId);
-        if (champ) setChamp(champ);
-      }
-      setLvl(side.level);
-      setItm(side.items);
-      setRn(side.runes);
-      if (side.skillRanks) setSkR(side.skillRanks);
-    };
-
-    // Check for load-build instruction from builds page
+    // --- Priority 2: Load-build instruction from builds page ---
     const loadInstruction = consumeLoadBuildInstruction();
     if (loadInstruction) {
-      const champ = champions.find((c) => c.id === loadInstruction.championId);
-      if (champ) {
-        const resolvedSpells: [SummonerSpell | null, SummonerSpell | null] = [
-          loadInstruction.spells?.[0] ? SUMMONER_SPELLS.find((s) => s.id === loadInstruction.spells![0]) ?? null : null,
-          loadInstruction.spells?.[1] ? SUMMONER_SPELLS.find((s) => s.id === loadInstruction.spells![1]) ?? null : null,
-        ];
-        if (loadInstruction.side === "ally") {
-          setAllyChampion(champ);
-          setAllyLevel(loadInstruction.level);
-          setAllyItems(loadInstruction.items);
-          setAllyRunes(loadInstruction.runes);
-          if (loadInstruction.spells) setAllySummoners(resolvedSpells);
-        } else {
-          setEnemyChampion(champ);
-          setEnemyLevel(loadInstruction.level);
-          setEnemyItems(loadInstruction.items);
-          setEnemyRunes(loadInstruction.runes);
-          if (loadInstruction.spells) setEnemySummoners(resolvedSpells);
-        }
-      }
+      applyLoadInstruction(loadInstruction);
       // Restore the OTHER side from localStorage so it doesn't reset
+      const otherSide = loadInstruction.side === "ally" ? "enemy" : "ally";
       const saved = loadSimulatorState();
-      if (saved) {
-        if (loadInstruction.side === "ally") {
-          restoreSide(
-            saved.enemy,
-            setEnemyChampion,
-            setEnemyLevel,
-            setEnemyItems,
-            setEnemyRunes,
-            setEnemySkillRanks,
-          );
-        } else {
-          restoreSide(
-            saved.ally,
-            setAllyChampion,
-            setAllyLevel,
-            setAllyItems,
-            setAllyRunes,
-            setAllySkillRanks,
-          );
-        }
-      }
+      if (saved) restoreSide(otherSide, saved[otherSide]);
       return;
     }
 
-    // If no URL params and no load instruction, restore both sides from localStorage
+    // --- Priority 3: Restore both sides from localStorage ---
     if (!hasUrlParams) {
       const saved = loadSimulatorState();
       if (saved) {
-        restoreSide(
-          saved.ally,
-          setAllyChampion,
-          setAllyLevel,
-          setAllyItems,
-          setAllyRunes,
-          setAllySkillRanks,
-        );
-        restoreSide(
-          saved.enemy,
-          setEnemyChampion,
-          setEnemyLevel,
-          setEnemyItems,
-          setEnemyRunes,
-          setEnemySkillRanks,
-        );
+        restoreSide("ally", saved.ally);
+        restoreSide("enemy", saved.enemy);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [champions]);
 
   // Auto-sync Aftershock AR/MR toggle with charges
   useEffect(() => {
@@ -650,8 +623,9 @@ function SimulatorInner() {
     }
   }, [enemyRuneCharges, enemyRunes.keystone]);
 
-  // Persist state to localStorage on change
+  // Persist state to localStorage on change (only after initial restore is done)
   useEffect(() => {
+    if (!didInitRef.current) return;
     const state: SimulatorPersistedState = {
       ally: {
         championId: allyChampion?.id ?? null,
@@ -3578,7 +3552,7 @@ function SimulatorInner() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-4 h-full flex items-end pb-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#C89B3C] tracking-tight drop-shadow-lg font-[family-name:var(--font-playfair)]">
-            LoL Build Sim(Beta)
+            LoL Build Sim
           </h1>
         </div>
       </div>
@@ -3602,6 +3576,12 @@ function SimulatorInner() {
               className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
             >
               {t("nav.championBuilds")}
+            </Link>
+            <Link
+              href="/match-history"
+              className="text-sm px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              {t("nav.matchHistory")}
             </Link>
           </nav>
           {/* Mobile nav */}
@@ -4262,7 +4242,7 @@ function SimulatorInner() {
         </div>
       </section>
 
-      <SiteFooter />
+      <SiteFooter showFeedbackForm />
     </div>
   );
 }

@@ -8,7 +8,7 @@ const FEEDBACK_FORM_URL = {
   ja: "https://docs.google.com/forms/d/e/1FAIpQLSe_tEwPDuo1sHsA-33uM2NJ3AB4zFyPnnlJfMRKSW6pQ9h9lg/viewform?embedded=true",
 };
 
-export function SiteFooter() {
+export function SiteFooter({ showFeedbackForm = false }: { showFeedbackForm?: boolean }) {
   const { locale, t } = useLocale();
 
   const formUrl = FEEDBACK_FORM_URL[locale] ?? FEEDBACK_FORM_URL.en;
@@ -16,23 +16,25 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border mt-8">
       <div className="max-w-[1600px] mx-auto px-4 py-6">
-        {/* Feedback form */}
-        <div className="mb-6">
-          <h3 className="text-center text-sm font-semibold text-muted-foreground mb-3">
-            {locale === "ja" ? "フィードバック / アンケート" : "Feedback / Survey"}
-          </h3>
-          <div className="flex justify-center">
-            <iframe
-              src={formUrl}
-              width="100%"
-              height="600"
-              className="max-w-2xl w-full rounded border border-border"
-              title={locale === "ja" ? "フィードバックフォーム" : "Feedback Form"}
-            >
-              Loading…
-            </iframe>
+        {/* Feedback form - only shown when explicitly enabled */}
+        {showFeedbackForm && (
+          <div className="mb-6">
+            <h3 className="text-center text-sm font-semibold text-muted-foreground mb-3">
+              {locale === "ja" ? "フィードバック / アンケート" : "Feedback / Survey"}
+            </h3>
+            <div className="flex justify-center">
+              <iframe
+                src={formUrl}
+                width="100%"
+                height="600"
+                className="max-w-2xl w-full rounded border border-border"
+                title={locale === "ja" ? "フィードバックフォーム" : "Feedback Form"}
+              >
+                Loading…
+              </iframe>
+            </div>
           </div>
-        </div>
+        )}
 
         <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-4 text-sm">
           <Link
@@ -58,6 +60,12 @@ export function SiteFooter() {
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             {t("footer.faq")}
+          </Link>
+          <Link
+            href="/terms"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t("footer.terms")}
           </Link>
           <Link
             href="/privacy"
