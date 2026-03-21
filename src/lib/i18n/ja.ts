@@ -324,6 +324,7 @@ export const ja: Record<string, string> = {
 
   // Match History
   "nav.matchHistory": "マッチ履歴",
+  "match.unavailable": "現在、Riot Games APIのProduction Key申請中のため、この機能はご利用いただけません。しばらくお待ちください。",
   "match.search": "サモナー検索",
   "match.region": "リージョン",
   "match.gameName": "ゲーム名",

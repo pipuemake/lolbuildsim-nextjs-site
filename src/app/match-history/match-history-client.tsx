@@ -537,8 +537,13 @@ function MatchHistoryInner() {
     </div>
   ) : (
     <div className="space-y-6">
+      {/* API key under review notice */}
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 text-sm text-amber-800 dark:text-amber-200">
+        {t("match.unavailable")}
+      </div>
+
       {/* Search form */}
-      <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+      <div className="bg-card border border-border rounded-lg p-4 space-y-3 opacity-50 pointer-events-none">
         <div className="flex gap-2 flex-wrap">
           <select
             value={region}

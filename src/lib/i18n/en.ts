@@ -324,6 +324,7 @@ export const en: Record<string, string> = {
 
   // Match History
   "nav.matchHistory": "Match History",
+  "match.unavailable": "This feature is currently unavailable while our Riot Games API production key is under review. Please check back later.",
   "match.search": "Summoner Search",
   "match.region": "Region",
   "match.gameName": "Game Name",
