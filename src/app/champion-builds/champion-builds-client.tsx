@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { AdUnit } from "@/components/ad-unit";
 import Link from "next/link";
 import Image from "next/image";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -690,6 +691,8 @@ function ChampionBuildsInner() {
             {total} {locale === "ja" ? "件" : "builds"}
           </div>
         )}
+
+        <AdUnit slot="9423426039" />
       </main>
 
       <footer className="border-t border-border mt-8">

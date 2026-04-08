@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider, useLocale } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChampionSelect } from "@/components/champion-select";
+import { AdUnit } from "@/components/ad-unit";
 import { LevelSlider } from "@/components/level-slider";
 import { ItemShop } from "@/components/item-shop";
 import { RuneSelector } from "@/components/rune-selector";
@@ -879,6 +880,8 @@ function BuildsInner() {
             </button>
           </div>
         )}
+
+        <AdUnit slot="4060883750" />
 
         <ChampionSelect
           champions={champions}
