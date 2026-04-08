@@ -25,6 +25,7 @@ import { SkillDamagePanel } from "@/components/skill-damage";
 import { SkillComboBar } from "@/components/skill-combo-bar";
 import { HasteDisplay } from "@/components/haste-display";
 import { MinionInfo } from "@/components/minion-info";
+import { AdUnit } from "@/components/ad-unit";
 import {
   BonusStatsPanel,
   computeBonusStats,
@@ -3726,6 +3727,8 @@ function SimulatorInner() {
               )}
             </div>
 
+            <AdUnit slot="3919817912" />
+
             <ChampionSelect
               champions={champions}
               selectedId={allyChampion?.id ?? null}
@@ -3994,6 +3997,8 @@ function SimulatorInner() {
                 locale={locale}
               />
             )}
+
+            <AdUnit slot="5757108801" />
           </div>
 
           {/* Enemy column */}
@@ -4059,6 +4064,8 @@ function SimulatorInner() {
                 </div>
               )}
             </div>
+
+            <AdUnit slot="1165662060" />
 
             <ChampionSelect
               champions={champions}
