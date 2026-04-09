@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
-import { LocaleProvider, useLocale } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 import { SiteFooter } from "@/components/site-footer";
 import { ChampionSelect } from "@/components/champion-select";
 import { LevelSlider } from "@/components/level-slider";
@@ -295,13 +295,11 @@ const DEFAULT_GENERIC_BONUSES = { ad: 0, ap: 0, hp: 0, armor: 0, mr: 0 };
 
 export function SimulatorClient() {
   return (
-    <LocaleProvider>
-      <TooltipProvider>
-        <Suspense>
-          <SimulatorInner />
-        </Suspense>
-      </TooltipProvider>
-    </LocaleProvider>
+    <TooltipProvider>
+      <Suspense>
+        <SimulatorInner />
+      </Suspense>
+    </TooltipProvider>
   );
 }
 
