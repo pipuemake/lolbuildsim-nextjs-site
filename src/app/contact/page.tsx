@@ -14,16 +14,26 @@ function ContactContent() {
       <p className="text-sm text-muted-foreground leading-relaxed">
         {t("contact.body")}
       </p>
-      <div className="lol-card p-6 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          {t("contact.email")}
-        </h2>
-        <a
-          href="mailto:pipurmake@gmail.com"
-          className="text-[#C89B3C] hover:underline text-sm"
-        >
-          pipurmake@gmail.com
-        </a>
+      <div className="lol-card p-6 space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t("contact.operator")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("contact.operatorName")}
+          </p>
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t("contact.email")}
+          </h2>
+          <a
+            href="mailto:pipurmake@gmail.com"
+            className="text-[#C89B3C] hover:underline text-sm"
+          >
+            pipurmake@gmail.com
+          </a>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">
         {t("contact.note")}

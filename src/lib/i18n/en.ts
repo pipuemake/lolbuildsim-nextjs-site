@@ -186,7 +186,7 @@ export const en: Record<string, string> = {
   "home.aboutList3": "Want to test builds after patch changes",
   "home.aboutBody3": "in making informed decisions.",
   "home.aboutBody4": "This tool is not provided by Riot Games and is an unofficial site developed independently. Please note that displayed values and behavior may differ from the actual game due to game specification changes or patch updates.",
-  "home.aboutBody5": "Additionally, this is currently a beta version and calculations may contain errors. We are continuously improving through updates, so if you find bugs or calculation errors, please let us know via the contact page.",
+  "home.aboutBody5": "The site is continuously updated to stay in sync with the latest patches. If you find bugs or calculation errors, please let us know via the contact page.",
   "home.aboutBody6": "This site is intended to help you better understand LoL and serve as reference material for gameplay decisions. It does not recommend or guarantee any specific build or play style.",
 
   // About page
@@ -196,9 +196,9 @@ export const en: Record<string, string> = {
   "about.tech.title": "Technology Stack",
   "about.tech.body": "This site is built with Next.js (App Router), React, TypeScript, Tailwind CSS, and shadcn/ui. Champion and item data is sourced from the Data Dragon API provided by Riot Games, with some skill data referencing Meraki Analytics data.",
   "about.developer.title": "Developer",
-  "about.developer.body": "This site is operated by an independent developer. For inquiries or bug reports, please contact us via the contact page.",
+  "about.developer.body": "Operator: Ashi. ~1.5 years of League of Legends experience, peak rank Emerald. This site is developed and operated independently. For inquiries or bug reports, please contact us via the contact page.",
   "about.disclaimer.title": "Disclaimer",
-  "about.disclaimer.body": "This site is not an official Riot Games service and is not endorsed or sponsored by Riot Games. Displayed values may differ from actual in-game values due to game specification changes or patch updates. As this is currently a beta version, calculations may contain errors. The developer assumes no responsibility for any damages resulting from the use of information on this site. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
+  "about.disclaimer.body": "This site is not an official Riot Games service and is not endorsed or sponsored by Riot Games. Displayed values may differ from actual in-game values due to game specification changes or patch updates. The operator assumes no responsibility for any damages resulting from the use of information on this site. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
 
   // How to Use page
   "howToUse.title": "How to Use",
@@ -217,7 +217,7 @@ export const en: Record<string, string> = {
   // FAQ page
   "faq.title": "FAQ",
   "faq.q1": "The damage doesn't match the actual game",
-  "faq.a1": "This tool is in beta, and some champion-specific effects or special item effects may not yet be implemented. Values may also have changed due to patch updates. If you find any errors, please report them via the contact page. We continuously improve through updates.",
+  "faq.a1": "The accuracy of some champion-specific effects and special item effects is being continuously improved. Values may also have changed due to patch updates. If you find any errors, please report them via the contact page. We continuously improve through updates.",
   "faq.q2": "When is the data updated?",
   "faq.a2": "Champion and item data is sourced from Riot Games' Data Dragon API. When a new patch is released, data is automatically updated in line with Data Dragon updates. However, detailed skill calculation formulas are updated manually, so there may be a delay.",
   "faq.q3": "Can I use it on mobile?",
@@ -255,6 +255,8 @@ export const en: Record<string, string> = {
   // Contact page
   "contact.title": "Contact",
   "contact.body": "For inquiries, bug reports, or feature requests regarding LoL Build Sim, please feel free to contact us at the email address below.",
+  "contact.operator": "Operator",
+  "contact.operatorName": "Ashi",
   "contact.email": "Email Address",
   "contact.note": "When reporting bugs, please include the champion name, item build, level, and details of the issue for faster resolution. We typically respond within a few days.",
 
@@ -316,7 +318,7 @@ export const en: Record<string, string> = {
   "terms.prohibited.title": "Prohibited Activities",
   "terms.prohibited.body": "The following activities are prohibited: excessive access or scraping of this site's API endpoints, interference with the service, unauthorized access to other users' information, and any illegal activities conducted through this site.",
   "terms.liability.title": "Limitation of Liability",
-  "terms.liability.body": "The operator assumes no liability for any damages arising from the use of this site. This site is in beta and the service may be changed, suspended, or terminated without notice.",
+  "terms.liability.body": "The operator assumes no liability for any damages arising from the use of this site. The service may undergo maintenance or feature changes as part of ongoing improvements.",
   "terms.changes.title": "Changes to These Terms",
   "terms.changes.body": "This site may change these terms of service as needed. The revised terms become effective upon publication on this site.",
   "terms.updated": "Last updated: March 2026",
